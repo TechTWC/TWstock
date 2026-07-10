@@ -8,7 +8,7 @@
 
 ## 1. Purpose
 
-本文件定義 TWStock 中每一個投資策略從最初想法到研究、實作、驗證、紙上交易、升級、修訂、重測或淘汰的正式生命週期。
+本文件定義 TWStock 中每一個投資策略從最初想法到研究、實作、驗證、紙上交易、前瞻觀察、修訂、重測或淘汰的正式生命週期。
 
 核心目的包括：
 
@@ -17,6 +17,7 @@
 - 確保每個階段都有明確輸入、輸出、責任角色與通過條件
 - 確保策略、資料、設定、程式、實驗與決策均可追蹤
 - 明確區分 `Revise` 與 `Retest`
+- 明確區分新 Strategy ID、MAJOR、MINOR 與 PATCH
 - 保存失敗、無效、被否證與被淘汰的策略紀錄
 - 防止策略跳過 Point-in-Time、穩健性、Out-of-Sample 或 Paper Trading 驗證
 
@@ -48,8 +49,6 @@
 5. 修正後必須建立必要的新版本與新 Experiment ID。
 
 ## 3. Core Lifecycle Principles
-
-所有 TWStock 策略必須遵守下列原則。
 
 ### 3.1 No Stage Skipping
 
@@ -84,13 +83,13 @@ Backtest Result → Strategy Validated
 
 ### 3.4 Promotion Is Stage-specific
 
-`Promote` 只代表策略進入下一個研究階段。
+`Promote` 只表示通過正式驗證關卡並進入下一個研究階段。
 
 例如：
 
 ```text
-Hypothesis → Research Specification
 Historical Backtest → Robustness Validation
+Robustness Validation → Out-of-Sample
 Out-of-Sample → Paper Trading
 ```
 
@@ -106,6 +105,19 @@ Out-of-Sample → Paper Trading
 任何會改變策略選股、排名、進出場、持股、權重、交易或風險行為的變更，都必須經版本管理。
 
 不得用程式碼中的隱藏預設值改變策略行為。
+
+### 3.6 Early-stage Decisions Are Not Audit Decisions
+
+Idea、Hypothesis、Research Specification 與 Engineering Translation 階段尚未產生正式策略實驗證據。
+
+因此：
+
+- `01｜台股研究與策略大腦`負責 Idea 與 Hypothesis 的研究決策。
+- `02｜台股研究規格轉譯`負責判斷規格是否可交付工程，或是否應退回 `01`。
+- `03｜TWStock 工程轉譯`負責判斷工程拆分是否可執行，或是否應退回 `02`。
+- `04｜台股策略驗證與審計`從正式 Historical Backtest 證據形成後，才擁有 `Promote / Revise / Retest / Retire` 的最終審計決策權。
+
+早期階段不得使用 `Allowed Audit Decision` 造成責任誤解。
 
 ## 4. Canonical Lifecycle
 
@@ -125,7 +137,25 @@ Idea
 → Continuing Review / Revision / Retirement
 ```
 
-在任何正式審計點，策略驗證與審計只能作出：
+### 4.1 Pre-evidence Decisions
+
+在正式 Historical Backtest 前，各階段 Owner 使用符合該階段的工作決策，例如：
+
+```text
+Proceed
+Revise
+Park
+Reject
+Ready for Next Stage
+Return to Previous Stage
+Blocked
+```
+
+這些決策不屬於 `04` 的正式策略驗證結論。
+
+### 4.2 Formal Validation Decisions
+
+自 Historical Backtest 起，正式審計只能作出：
 
 ```text
 Promote
@@ -136,10 +166,10 @@ Retire
 
 其中：
 
-- `Promote`：進入下一研究階段
-- `Revise`：核心假設或正式規格需要改變，退回研究或規格階段
-- `Retest`：假設暫時保留，但資料、程式、測試或證據需要重新執行
-- `Retire`：停止目前策略版本或策略 lineage 的進一步研究
+- `Promote`：通過當前正式驗證 Gate，進入下一研究階段。
+- `Revise`：核心研究內容或正式策略行為需要改變，退回 `01` 或 `02`。
+- `Retest`：假設與正式策略行為暫時保留，但資料、程式、測試或證據需要重新執行。
+- `Retire`：停止指定 Strategy Version 或整條 strategy lineage 的進一步升級。
 
 ## 5. Lifecycle States
 
@@ -157,7 +187,7 @@ Retire
 | `OUT_OF_SAMPLE` | 正在執行未見樣本或 Walk-forward 測試 |
 | `PAPER_TRADING` | 使用當下可得資料進行無真實資金的前瞻性驗證 |
 | `LIVE_OBSERVATION` | 只允許前瞻訊號觀察與營運監控，不代表實盤授權 |
-| `RETIRED` | 已正式停止目前策略或版本的進一步升級 |
+| `RETIRED` | 已正式停止指定版本或 lineage 的進一步升級 |
 
 可以另外使用下列操作狀態，但它們不能取代 Lifecycle State：
 
@@ -173,7 +203,7 @@ Retire
 
 ### 6.1 Strategy ID
 
-識別一條具有一致核心投資假設與預期報酬機制的策略 lineage。
+識別一條具有一致核心投資假設、經濟或行為基礎及預期報酬機制的 strategy lineage。
 
 建議格式：
 
@@ -189,7 +219,7 @@ TW-M03-MONTHLY-REVENUE-MOMENTUM
 
 ### 6.2 Strategy Version
 
-識別策略行為版本，採語意化版本：
+識別同一 strategy lineage 內的策略行為版本，採語意化版本：
 
 ```text
 MAJOR.MINOR.PATCH
@@ -223,43 +253,66 @@ MAJOR.MINOR.PATCH
 
 ### 6.9 Decision Record ID
 
-每次 Promote、Revise、Retest 或 Retire 都必須建立可追蹤的決策紀錄。
+自正式 Historical Backtest 起，每次 Promote、Revise、Retest 或 Retire 都必須建立可追蹤的 Decision Record。
 
-## 7. When to Create a New Strategy ID
+早期研究決策亦須保留紀錄，但可以使用 Research Decision Record，不應冒充正式 Validation Decision。
 
-下列情況原則上應建立新的 Strategy ID，而不是只升級版本：
+## 7. Strategy ID Versus Strategy Version
+
+### 7.1 Create a New Strategy ID
+
+下列情況原則上必須建立新的 Strategy ID：
 
 - 核心預期報酬機制改變
-- 經濟或行為假設改變
+- 經濟或行為基礎改變
 - Parent Mode 改變
-- 原本單因子策略變成具有不同理論的多因子策略
+- 新增具有獨立理論基礎的因子或交易機制
 - 投資期限與交易機制改變到無法合理視為同一 lineage
-- 原策略被 Retire 後，以不同假設重新開啟研究
+- Retired lineage 以不同假設重新開啟研究
 
 例如：
 
 ```text
-原策略：月營收成長加速
+原策略：月營收成長加速，捕捉資訊反應不足
 新策略：月營收成長加速 + 短期價格反轉
 ```
 
-若新增的價格反轉條件代表新的獨立報酬機制，應建立新 Strategy ID。
+若價格反轉代表新的獨立報酬機制，必須建立新 Strategy ID。
+
+### 7.2 MAJOR Version
+
+MAJOR Version 只適用於底層預期報酬機制、經濟或行為基礎與 Parent Mode 仍相同，但策略主要實作方式發生重大改變的情況，例如：
+
+- 主要訊號的量化操作化方式重大改變，但仍衡量同一理論現象
+- 主要進出場邏輯重大改變，但仍服務同一報酬機制
+- 持有期限或執行設計重大改變，但仍可合理視為同一 lineage
+- 研究問題重新表述，但沒有改變底層理論與報酬來源
+
+MAJOR Version 不得用來掩蓋新的投資假設或新的報酬機制。
+
+### 7.3 Decision Test
+
+判斷順序如下：
+
+```text
+底層預期報酬機制、經濟／行為基礎或 Parent Mode 是否改變？
+├── 是 → New Strategy ID
+└── 否
+    └── 主要策略行為是否重大改變？
+        ├── 是 → MAJOR Version
+        └── 否
+            └── 是否為重要但非核心的策略行為改變？
+                ├── 是 → MINOR Version
+                └── 否 → PATCH 或非 Strategy Version 變更
+```
+
+若無法明確判斷，必須由 `01` 判斷是否仍為同一研究假設，再由 `02` 決定版本落點。工程角色不得自行決定。
 
 ## 8. Strategy Version Rules
 
-### 8.1 MAJOR
+### 8.1 MINOR
 
-適用於：
-
-- 核心假設改變
-- 主要訊號改變
-- 主要進出場邏輯改變
-- 投資期限或持有邏輯重大改變
-- 研究問題重新定義但仍保留同一 lineage
-
-### 8.2 MINOR
-
-適用於會實質改變策略行為，但不改變核心假設的變更，例如：
+適用於會實質改變策略行為，但不改變核心報酬機制且未達 MAJOR 程度的變更，例如：
 
 - Eligibility Filter 改變
 - Ranking 組合或因子權重改變
@@ -270,7 +323,7 @@ MAJOR.MINOR.PATCH
 - 重要風控改變
 - Tradability Mask 改變
 
-### 8.3 PATCH
+### 8.2 PATCH
 
 只適用於不改變策略行為的變更，例如：
 
@@ -279,7 +332,7 @@ MAJOR.MINOR.PATCH
 - 文件連結修正
 - 不影響輸出的註解或格式修正
 
-### 8.4 Code-only Fix
+### 8.3 Code-only Fix
 
 若修正程式錯誤但策略規則不變：
 
@@ -289,7 +342,7 @@ MAJOR.MINOR.PATCH
 - 舊實驗應標記為 `Invalidated` 或保留原有效狀態，視錯誤影響而定
 - 必須記錄是否需要重新執行全部歷史測試
 
-### 8.5 Data-only Change
+### 8.4 Data-only Change
 
 若資料來源、清理或版本改變，但策略規則不變：
 
@@ -341,7 +394,9 @@ Idea Record 至少包含：
 - 是否與既有策略重複？
 - 是否具有形成可否證假設的可能？
 
-### 9.6 Allowed Decisions
+### 9.6 Owner Decision
+
+由 `01` 決定：
 
 - Proceed to Hypothesis
 - Revise Idea
@@ -394,7 +449,7 @@ Strategy Research Proposal 至少包含：
 
 ### 10.5 Exit Gate
 
-只有在以下條件成立時，才能 Promote 至 Research Specification：
+只有在以下條件成立時，才能進入 Research Specification：
 
 - 假設可被資料支持或否證
 - 預期報酬機制不是純事後敘事
@@ -403,13 +458,16 @@ Strategy Research Proposal 至少包含：
 - 研究價值足以合理投入規格化成本
 - 沒有與既有策略完全重複而無新增研究價值
 
-### 10.6 Allowed Audit Decision
+### 10.6 Owner Decision
 
-- Promote
+由 `01` 決定：
+
+- Proceed to Specification
 - Revise
-- Retire
+- Park
+- Reject
 
-此階段的 `Retire` 表示停止該研究方向，不代表已有回測證據證明其無效。
+此階段停止研究表示拒絕或暫停研究方向，不代表已有回測證據證明其無效。
 
 ### 10.7 Prohibited Actions
 
@@ -458,7 +516,7 @@ Executable Strategy Specification 至少包含：
 - Risk Controls
 - Benchmarks
 - Backtest Design
-- In-Sample, Validation, OOS design
+- In-Sample, Validation and OOS design
 - Sensitivity Tests
 - Robustness Tests
 - Acceptance and Rejection Gates
@@ -469,7 +527,7 @@ Executable Strategy Specification 至少包含：
 
 ### 11.5 Exit Gate
 
-只有在以下條件成立時，才能 Promote 至 Engineering Translation：
+只有在以下條件成立時，才能進入 Engineering Translation：
 
 - 不存在會改變策略行為的模糊描述
 - 所有必要時間點符合 Point-in-Time Policy
@@ -480,11 +538,16 @@ Executable Strategy Specification 至少包含：
 - Provisional Assumptions 已明確標記
 - 重大研究決策沒有被留給工程角色
 
-### 11.6 Allowed Audit Decision
+### 11.6 Owner Decision
 
-- Promote
-- Revise
-- Retire
+由 `02` 決定：
+
+- Ready for Engineering Translation
+- Provisional and Blocked
+- Return to Research Brain
+- Rejected as Non-executable
+
+`02` 不得自行改變上游投資假設；需要改變核心研究內容時必須退回 `01`。
 
 ### 11.7 Prohibited Actions
 
@@ -532,7 +595,7 @@ Executable Strategy Specification 至少包含：
 
 ### 12.5 Exit Gate
 
-只有在以下條件成立時，才能 Promote 至 Engineering Implementation：
+只有在以下條件成立時，才能進入 Engineering Implementation：
 
 - 每個 Issue 只有一個主要工程結果
 - 依賴順序明確
@@ -542,14 +605,18 @@ Executable Strategy Specification 至少包含：
 - Codex 被要求先產生 Plan，不立即實作
 - 人工已審查並核准 Plan
 
-### 12.6 Allowed Decision
+### 12.6 Owner Decision
 
-- Promote
-- Retest engineering decomposition
+由 `03` 與 Human Reviewer 決定：
+
+- Ready for Implementation
+- Rework Engineering Decomposition
 - Return to Specification
-- Retire task
+- Blocked
 
-若需要改變研究規則，必須退回 `02｜台股研究規格轉譯`，不得在本階段自行修改。
+這些不是正式策略審計決策。
+
+若需要改變研究規則，必須退回 `02`，不得在本階段自行修改。
 
 ## 13. Stage 5 — Engineering Implementation
 
@@ -583,7 +650,7 @@ Executable Strategy Specification 至少包含：
 
 ### 13.5 Exit Gate
 
-只有在以下條件成立時，才能 Promote 至 Historical Backtest：
+只有在以下條件成立時，才能進入 Historical Backtest：
 
 - PR 已通過人工審查並合併
 - 實作行為與規格及 YAML 一致
@@ -600,14 +667,15 @@ Executable Strategy Specification 至少包含：
 
 ```text
 Implementation defect
-→ Retest
-→ 修正程式
+→ Engineering correction
 → 新 Code Commit
 → 新 Experiment ID
 → 重跑受影響測試
 ```
 
 若錯誤改變了過去實驗結果，舊實驗必須標記為 `Invalidated`，不得刪除。
+
+在尚未形成正式回測證據前，此流程屬工程修正；正式回測後才由 `04` 作出 Retest 決定。
 
 ## 14. Stage 6 — Historical Backtest
 
@@ -667,7 +735,9 @@ Implementation defect
 - 資料與程式版本完整
 - 沒有 Blocker 級 Leakage
 
-### 14.7 Allowed Audit Decision
+### 14.7 Formal Audit Decision
+
+由 `04` 作出：
 
 - Promote to Robustness Validation
 - Retest
@@ -715,7 +785,7 @@ Implementation defect
 ```text
 Diagnostic finding
 → Revise
-→ 建立新 Strategy Version
+→ 依第 7 節判斷 New Strategy ID、MAJOR 或 MINOR
 → 更新 Specification and Config
 → 重新執行正式測試
 ```
@@ -731,7 +801,9 @@ Diagnostic finding
 - 沒有重大不可重現問題
 - OOS 區間尚未被用來調整策略
 
-### 15.6 Allowed Audit Decision
+### 15.6 Formal Audit Decision
+
+由 `04` 作出：
 
 - Promote to Out-of-Sample
 - Retest
@@ -761,7 +833,7 @@ OOS 必須：
 
 - 必須降低證據等級
 - 原區間不得再稱為未見樣本
-- 必須建立新 Strategy Version，如規則改變
+- 規則改變時必須依第 7 節建立新 Strategy ID 或新 Strategy Version
 - 必須準備新的保留樣本或進入更長 Paper Trading
 
 ### 16.4 Exit Gate
@@ -775,7 +847,9 @@ OOS 必須：
 - 結果可重現
 - 沒有未揭露的 OOS 污染
 
-### 16.5 Allowed Audit Decision
+### 16.5 Formal Audit Decision
+
+由 `04` 作出：
 
 - Promote to Paper Trading
 - Retest
@@ -842,7 +916,9 @@ Paper Trading 期間與樣本數必須足以涵蓋策略頻率與主要操作情
 - Paper Trading 證據沒有嚴重否證原始假設
 - 所有偏離與人工介入已揭露
 
-### 17.6 Allowed Audit Decision
+### 17.6 Formal Audit Decision
+
+由 `04` 作出：
 
 - Promote to Live Observation
 - Retest
@@ -894,7 +970,9 @@ Paper Trading 期間與樣本數必須足以涵蓋策略頻率與主要操作情
 
 ## 19. Formal Validation Decisions
 
-## 19.1 Promote
+本節只適用於 Stage 6 以後的正式審計。
+
+### 19.1 Promote
 
 適用於：
 
@@ -912,7 +990,7 @@ Paper Trading 期間與樣本數必須足以涵蓋策略頻率與主要操作情
 - Monitoring requirements
 - Revalidation trigger
 
-## 19.2 Revise
+### 19.2 Revise
 
 適用於需要改變策略研究內容或行為的情況，例如：
 
@@ -927,17 +1005,17 @@ Revise 流程：
 
 ```text
 Finding
-→ Revise Decision
+→ Revise Decision by 04
 → 回到 01 或 02
-→ 建立新 Strategy Version
-→ 保留舊版本
+→ 依第 7 節判斷 New Strategy ID、MAJOR 或 MINOR
+→ 保留舊版本與舊 lineage 證據
 → 重新 Engineering Translation
 → 重新測試
 ```
 
 Revise 後不得沿用舊版本的 OOS 身分或 Paper Trading 核准。
 
-## 19.3 Retest
+### 19.3 Retest
 
 適用於策略假設與正式規格暫時保留，但證據、資料、程式或測試需要重新執行的情況，例如：
 
@@ -954,7 +1032,7 @@ Retest 流程：
 
 ```text
 Finding
-→ Retest Decision
+→ Retest Decision by 04
 → 回到 Data / Engineering / Backtest / Validation
 → 修正問題
 → 新 Dataset / Code / Config version，如適用
@@ -967,9 +1045,31 @@ Retest 不一定需要新 Strategy Version。
 
 只要策略行為沒有改變，就可以維持同一 Strategy Version，但必須建立新 Experiment ID。
 
-## 19.4 Retire
+### 19.4 Retire
 
-適用於：
+Retire 必須明確指定：
+
+```text
+retirement_scope: VERSION | LINEAGE
+```
+
+#### VERSION
+
+只停止特定 Strategy Version 的進一步升級：
+
+- 其他版本不會自動被 Retire。
+- 必須記錄是否存在 successor version。
+- 該版本的實驗與決策紀錄永久保留。
+
+#### LINEAGE
+
+停止整條 Strategy ID lineage 的進一步升級：
+
+- 所有尚未 Retired 的版本都必須被關聯到該 Retirement Record。
+- 不得只建立新版本規避 lineage retirement。
+- 重新研究必須遵守第 29 節的 Reopening Rules。
+
+適用情況包括：
 
 - 核心經濟邏輯不成立
 - 成本後無研究價值
@@ -979,30 +1079,35 @@ Retest 不一定需要新 Strategy Version。
 - PIT 問題不可修復
 - 交易容量不可接受
 - 多次 Revise 或 Retest 仍無法通過最低標準
-- 策略已被更合理的版本取代
+- 特定版本已被更合理版本取代
 
 Retire 必須保存：
 
+- `retirement_scope`
 - Retirement reason
 - Supporting evidence
 - Failed Gates
+- Affected Strategy ID and Versions
 - Final Strategy and Experiment versions
 - Reopening conditions
-- Related successor strategy, if any
+- Related successor strategy or version, if any
 
-Retired 策略不得刪除。
+Retired 策略或版本不得刪除。
 
 ## 20. Retest and Revise Decision Test
 
 判斷原則：
 
 ```text
-是否需要改變策略行為？
-├── 是 → Revise
+是否需要改變底層報酬機制或研究假設？
+├── 是 → Revise → New Strategy ID 或 MAJOR，由 01／02 依第 7 節判定
 └── 否
-    └── 是否需要重新取得資料、修程式或補測試？
-        ├── 是 → Retest
-        └── 否 → Promote 或 Retire
+    └── 是否需要改變正式策略行為？
+        ├── 是 → Revise → MAJOR 或 MINOR
+        └── 否
+            └── 是否需要重新取得資料、修程式或補測試？
+                ├── 是 → Retest
+                └── 否 → Promote 或 Retire
 ```
 
 範例：
@@ -1010,9 +1115,10 @@ Retired 策略不得刪除。
 | Finding | Decision |
 |---|---|
 | 月營收公告時間欄位錯置，但訊號公式不變 | Retest |
-| 排名因子需要新增毛利率才能成立 | Revise |
+| 排名因子需要新增毛利率，且代表新的品質報酬機制 | Revise + New Strategy ID |
 | 回測 Bug 導致交易成本未扣除 | Retest |
-| 需要把持股數從 20 改為 10 作為正式規則 | Revise |
+| 需要把持股數從 20 改為 10 作為正式規則 | Revise + MINOR |
+| 主要訊號操作化方式重構，但仍衡量相同月營收動能 | Revise + MAJOR |
 | 缺少 2008 年市場環境測試 | Retest |
 | 核心假設在 OOS 與 Paper Trading 均持續失效 | Retire |
 
@@ -1147,14 +1253,16 @@ Revise 或 Retest 必須指定：
 | Activity | 01 Research Brain | 02 Spec Translator | 03 Engineering Translator | 04 Strategy Auditor |
 |---|---:|---:|---:|---:|
 | Define investment problem | Owner | Consulted | No | Reviewer |
-| Approve hypothesis | Owner | No | No | Reviewer |
+| Approve or reject Idea / Hypothesis | Owner | No | No | No |
 | Define executable formula | No | Owner | No | Reviewer |
+| Decide specification readiness | Consulted | Owner | No | No |
 | Define PIT and transaction assumptions | Consulted | Owner | Translate only | Audit |
 | Create GitHub engineering issues | No | No | Owner | No |
+| Decide engineering readiness | No | No | Owner with Human Review | No |
 | Direct Codex implementation | No | No | Plan and handoff | No |
 | Implement code | No | No | Engineering process | No |
 | Execute backtests | No | No | Engineering process | Audit evidence |
-| Decide Promote / Revise / Retest / Retire | No | No | No | Owner |
+| Decide formal Promote / Revise / Retest / Retire after experiments | No | No | No | Owner |
 | Change strategy rules after results | Research decision | Version specification | Never independently | Never independently |
 
 ## 25. GitHub Workflow Relationship
@@ -1198,7 +1306,8 @@ GitHub Labels 只作分類，不代表工作階段或策略生命週期。
 - Previous Lifecycle State
 - State entered at
 - Current decision status
-- Decision Record ID
+- Research Decision Record ID, if applicable
+- Validation Decision Record ID, if applicable
 - Responsible workspace
 - Specification Version
 - Config Version
@@ -1211,6 +1320,7 @@ GitHub Labels 只作分類，不代表工作階段或策略生命週期。
 - Blocking findings
 - Next required action
 - Next review date, if applicable
+- `retirement_scope`, if retired
 - Retirement or supersession reference, if applicable
 
 ## 27. Lifecycle Transition Rules
@@ -1230,6 +1340,7 @@ GitHub Labels 只作分類，不代表工作階段或策略生命週期。
 - From state
 - To state
 - Decision
+- Decision type: `RESEARCH / SPECIFICATION / ENGINEERING / VALIDATION`
 - Decision time
 - Evidence
 - Actor or workspace
@@ -1237,7 +1348,7 @@ GitHub Labels 只作分類，不代表工作階段或策略生命週期。
 
 ### 27.3 No Silent Backward Transition
 
-退回前一階段必須透過正式 `Revise` 或 `Retest` 紀錄，不能只在 GitHub 中移動卡片而不記錄原因。
+退回前一階段必須透過正式階段決策或 `Revise / Retest` 紀錄，不能只在 GitHub 中移動卡片而不記錄原因。
 
 ### 27.4 Superseded Versions
 
@@ -1247,6 +1358,19 @@ GitHub Labels 只作分類，不代表工作階段或策略生命週期。
 - 舊版本可標記 `SUPERSEDED_VERSION`
 - 舊版本的 Experiment 與 Decision Records 不得移轉成新版本證據
 - 新版本必須重新通過適用 Gates
+
+### 27.5 Retirement Transition
+
+當 `retirement_scope=VERSION`：
+
+- 只有指定 Strategy Version 轉為 `RETIRED`。
+- 其他版本維持各自原狀態。
+
+當 `retirement_scope=LINEAGE`：
+
+- 同一 Strategy ID 下尚未 Retired 的版本必須建立關聯 retirement transition。
+- Strategy lineage registry 必須標記為 retired。
+- 後續重新研究必須走第 29 節。
 
 ## 28. Special Handling of Exploratory Research
 
@@ -1269,19 +1393,32 @@ GitHub Labels 只作分類，不代表工作階段或策略生命週期。
 
 ## 29. Strategy Reopening Rules
 
-Retired 策略可以重新研究，但必須符合下列之一：
+Retired 策略可以重新研究，但必須先識別原本的 retirement scope。
 
-- 出現新的經濟或行為證據
-- 出現可修復的全新資料來源
+### 29.1 Reopen a Retired Version
+
+若 `retirement_scope=VERSION`，重新研究該版本原則上應：
+
+- 引用原 Retirement Record
+- 說明新的證據或可修復條件
+- 建立新 Strategy Version，而不是直接恢復原版本
+- 重新經過適用生命週期階段
+
+### 29.2 Reopen a Retired Lineage
+
+若 `retirement_scope=LINEAGE`，只有下列情況才可重新研究：
+
+- 出現足以改變原結論的新經濟或行為證據
+- 出現可修復原重大限制的全新資料來源
 - 市場制度發生重大變化
 - 原本不可交易的限制已實質改變
-- 建立具有不同假設的新 Strategy ID
 
 重新開啟時必須：
 
-- 引用原 Retirement Record
-- 說明重新開啟原因
-- 決定使用新 Strategy ID 或新 MAJOR Version
+- 引用原 Lineage Retirement Record
+- 由 `01` 判斷原報酬機制是否仍相同
+- 若假設或報酬機制改變，建立新 Strategy ID
+- 若底層機制仍相同但研究設計重大重構，建立新 MAJOR Version
 - 不得刪除原失敗證據
 - 重新經過適用生命週期階段
 
@@ -1313,14 +1450,16 @@ TWStock 禁止：
 - 省略交易成本、漲跌停、停牌與下市處理
 - 工程角色自行新增投資規則
 - 審計角色自行修改策略使結果通過
-- 修改策略行為但不升級 Strategy Version
+- 改變報酬機制卻只升級 MAJOR Version
+- 修改策略行為但不升級適當 Strategy Version
 - 重跑實驗但沿用同一 Experiment ID
 - 程式錯誤後刪除舊實驗
-- 刪除被 Retire 的策略
+- 刪除被 Retire 的策略或版本
 - 只保存成功版本
 - 用 GitHub Label 代替正式 Lifecycle State
 - 把 Live Observation 描述為 Live Capital Approval
 - 將歷史回測描述為未來獲利保證
+- 讓 `04` 取代 `01` 或 `02` 作出早期研究與規格決策
 
 ## 32. Exceptions
 
@@ -1341,10 +1480,12 @@ TWStock 禁止：
 未來生命週期與研究紀錄系統至少必須達成：
 
 - [ ] 每個 Strategy Version 具有唯一 Current Lifecycle State。
-- [ ] 每次狀態轉移都保存 From、To、Decision、Evidence 與 Timestamp。
-- [ ] Promote、Revise、Retest、Retire 均有正式 Decision Record。
+- [ ] 每次狀態轉移都保存 From、To、Decision、Decision Type、Evidence 與 Timestamp。
+- [ ] 早期 Research／Specification／Engineering 決策與正式 Validation Decision 分開儲存。
+- [ ] Formal Promote、Revise、Retest、Retire 只能由 `04` 在正式實驗形成後作出。
 - [ ] Retest 強制建立新 Experiment ID。
-- [ ] Revise 在策略行為改變時強制建立新 Strategy Version。
+- [ ] Revise 強制依第 7 節判定 New Strategy ID、MAJOR 或 MINOR。
+- [ ] Retire 強制指定 `retirement_scope: VERSION | LINEAGE`。
 - [ ] Retired 與 Superseded records 不得被刪除。
 - [ ] Lifecycle State 與 GitHub Project Status 分開儲存。
 - [ ] 缺少必要 Evidence Package 時系統不得標記 Promote。
@@ -1359,7 +1500,8 @@ TWStock 禁止：
 
 - Strategy ID and Version
 - Current Lifecycle State
-- Latest Validation Decision
+- Latest Research Decision, if pre-backtest
+- Latest Validation Decision, if applicable
 - Evidence classification
 - Latest Experiment IDs
 - PIT quality status
@@ -1368,6 +1510,7 @@ TWStock 禁止：
 - Known limitations
 - Next required action
 - Last review date
+- Retirement scope and successor reference, if applicable
 
 允許：
 
@@ -1384,12 +1527,13 @@ TWStock 禁止：
 - Lifecycle stages 改變
 - Promotion Gates 改變
 - Promote、Revise、Retest、Retire 定義改變
-- Strategy Version 規則改變
+- Strategy ID 與 Strategy Version 判準改變
 - OOS 或 Paper Trading 進出條件改變
 - Live Observation 定義改變
 - 四個工作模式責任邊界改變
 - Evidence Package 最低要求改變
 - Lifecycle Record 欄位改變
+- Retirement scope 規則改變
 
 版本變更必須記錄：
 
