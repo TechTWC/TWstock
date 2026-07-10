@@ -8,28 +8,28 @@
 
 ## 1. Purpose
 
-本文件定義 TWStock 如何建立、保存、查詢、重現、稽核與連結每一項研究實驗。
+本文件定義 TWStock 如何註冊、保存、查詢、重現、稽核與連結每一項研究實驗。
 
-Experiment Registry 的核心目的不是只保存績效數字，而是永久回答：
+Experiment Registry 必須永久回答：
 
 - 為什麼執行這項實驗？
-- 實驗在執行前承諾了哪些規則？
-- 使用哪一個 Strategy、Specification、Config、Code、Data 與 Feature 版本？
+- 執行前鎖定了哪些設計？
+- 使用哪一個 Strategy、Specification、Config、Code、Data、Feature、PIT 與 Calendar 版本？
 - 哪些樣本被用於探索、驗證、OOS 或前瞻測試？
 - 實際執行了什麼？
 - 產生了哪些結果、錯誤、警告與 artifacts？
 - 結果是否可重現？
-- 是否存在 Point-in-Time、資料、程式、交易或 OOS 污染問題？
+- 是否存在資料、PIT、程式、交易、依賴或 OOS 污染問題？
 - 此實驗是否仍可作為正式證據？
-- 它和先前實驗、Retest、Reproduction、Strategy Version、Campaign 與 Decision Record 有何關係？
+- 它和 Family、Batch、Campaign、Retest、Reproduction、Decision Record 有何關係？
 
-核心原則是：
+核心原則：
 
-> 每一次可獨立評估的正式研究執行，都必須留下不可靜默刪除、不可重複使用 ID、可追蹤版本、可重建輸入、可驗證輸出與可解釋證據狀態的永久紀錄。
+> 每一次可獨立評估的研究執行，都必須留下不可靜默刪除、不可重複使用 ID、可追蹤版本、可重建輸入、可驗證輸出與可解釋證據狀態的永久紀錄。
 
 本文件不判定任何策略有效，也不授權真實資金交易。
 
-## 2. Authority and Relationship to Other Documents
+## 2. Authority and Document Relationships
 
 本文件受以下正式文件約束：
 
@@ -38,7 +38,7 @@ Experiment Registry 的核心目的不是只保存績效數字，而是永久回
 3. `docs/data/POINT_IN_TIME_POLICY.md`
 4. `docs/research/STRATEGY_LIFECYCLE.md`
 
-本文件將由以下文件進一步具體化：
+後續文件將進一步具體化：
 
 - `docs/research/DECISION_SNAPSHOT_SCHEMA.md`
 - `docs/research/VALIDATION_PROTOCOL.md`
@@ -49,21 +49,21 @@ Experiment Registry 的核心目的不是只保存績效數字，而是永久回
 
 權限邊界：
 
-- Experiment Registry 負責保存事實、狀態、版本、依賴與證據關係。
+- Registry 保存事實、版本、狀態、依賴與證據關係。
 - Registry 不得自行把結果解讀為策略有效。
 - `04｜台股策略驗證與審計`依 Evidence Package 作出正式 Promote、Revise、Retest 或 Retire 決策。
-- Decision Record 可以引用 Registry；不得反向改寫原始實驗結果。
-- 若網站、報告或聊天內容與 Registry 的版本化紀錄衝突，以 Registry、事件紀錄與原始 artifacts 為準。
+- Decision Record 可以引用 Registry，但不得反向改寫原始實驗結果。
+- 若網站、報告或聊天內容與 Registry 衝突，以 Registry、事件紀錄與原始 artifacts 為準。
 
-## 3. Scope
+## 3. Scope and Non-goals
 
-本政策適用於：
+本文件適用於：
 
 - Exploratory research
 - Data profiling and data-quality experiments
 - Feature validation
-- Leakage tests
 - Numerical tests
+- Leakage tests
 - Implementation verification
 - Historical Backtest
 - Robustness Validation
@@ -79,9 +79,9 @@ Experiment Registry 的核心目的不是只保存績效數字，而是永久回
 
 本文件不直接定義：
 
-- 策略投資假設
+- 投資假設或策略規則
 - Strategy acceptance thresholds
-- 特定資料庫產品
+- 特定資料庫或雲端產品
 - 真實資金配置
 - 券商串接或自動下單
 
@@ -89,25 +89,25 @@ Experiment Registry 的核心目的不是只保存績效數字，而是永久回
 
 ### 4.1 One Independently Evaluable Execution, One Experiment ID
 
-每一個可被獨立檢視、比較、引用或審計的研究執行，必須使用獨立 Experiment ID。
+每個可被獨立比較、引用、檢視或審計的研究執行，必須使用獨立 Experiment ID。
 
-即使 Strategy Version、Config、Code、Data、期間與參數完全相同，正式重新執行也不得覆蓋舊 Experiment ID。
+即使 Strategy Version、Config、Code、Data、期間與參數完全相同，正式重跑也不得覆蓋舊 Experiment ID。
 
 ### 4.2 Containers Do Not Replace Experiments
 
 Family、Batch 與 Campaign 只負責分組與協調，不得取代子實驗紀錄。
 
-禁止只保存 Batch 或 Campaign 聚合績效而遺失：
+禁止只保存聚合績效而遺失：
 
 - 個別參數變體
-- 失敗變體
-- Walk-forward fold
+- 失敗或負結果變體
 - 被取消或未執行的 planned variant
+- Walk-forward fold
 - 個別狀態、警告與 artifacts
 
 ### 4.3 Append-only History
 
-Experiment Registry 必須採 append-only audit model。
+Registry 必須採 append-only audit model。
 
 允許：
 
@@ -122,13 +122,13 @@ Experiment Registry 必須採 append-only audit model。
 
 - 刪除失敗實驗
 - 覆蓋原始結果
-- 靜默修改事前規格
+- 靜默修改事前設計
 - 把 invalidated 實驗改寫成從未發生
 - 用新結果取代舊 Experiment ID
 
-### 4.4 Separate Execution from Evidence
+### 4.4 Execution Is Not Evidence
 
-「程式有跑完」不等於「結果可作為證據」。Registry 必須分開保存：
+Registry 必須分開保存：
 
 - Execution Status
 - Design Lock Status
@@ -145,11 +145,11 @@ Experiment Registry 必須採 append-only audit model。
 
 ### 4.5 Preserve Negative and Null Results
 
-結果不顯著、落後 Benchmark、成本後失效、OOS 失效、無法交易或執行失敗，都必須保存。
+結果不顯著、落後 Benchmark、成本後失效、OOS 失效、無法交易、執行失敗或無法重現，都必須保存。
 
 ### 4.6 Inputs Must Be Reconstructable
 
-依實驗性質，每個正式實驗必須能重建適用的：
+依實驗性質，正式實驗必須能重建適用的：
 
 - Strategy behavior
 - Data snapshot
@@ -161,33 +161,31 @@ Experiment Registry 必須採 append-only audit model。
 - Code and environment
 - Execution command
 
-若不能重建，必須降低 Evidence Eligibility 或標記 Non-reproducible。
+無法重建時，必須降低 Evidence Eligibility 或標記 Non-reproducible。
 
 ## 5. Canonical Research Unit Hierarchy
 
-Registry 必須明確區分以下層級。
-
 ### 5.1 Experiment Family
 
-`experiment_family_id` 代表同一研究問題、同一多重假設家族或同一策略研究 lineage 下的一組實驗。
+`experiment_family_id` 代表同一研究問題、多重假設家族或策略研究 lineage 下的一組實驗。
 
-Family 可以包含探索、確認性、OOS、Retest 與 Reproduction，但不具有自己的證據資格；證據資格屬於個別 Experiment。
+Family 不具有自己的證據資格；證據資格屬於個別 Experiment。
 
 ### 5.2 Campaign
 
-`campaign_id` 代表跨多次觀察或多個子實驗的持續性研究計畫，例如：
+`campaign_id` 代表持續性研究計畫，例如：
 
 - Walk-forward campaign
 - Paper Trading campaign
 - Live Observation campaign
 
-Campaign 必須保存其固定版本、開始時間、結束時間、子實驗與 Observation 清單。
+Campaign 必須保存 frozen-version manifest、期間、子實驗、fold 與 Observation 清單。
 
 ### 5.3 Batch
 
 `batch_id` 代表一次協調執行的參數網格或變體集合。
 
-Batch 只是執行容器。每個可獨立比較的參數變體必須有獨立 Experiment ID。
+Batch 只是執行容器；每個可獨立評估變體必須有 Experiment ID。
 
 ### 5.4 Experiment
 
@@ -204,23 +202,23 @@ Run Attempt 只適用於：
 - 網路中斷
 - 尚未產生研究輸出且輸入完全未變的技術重試
 
-若研究輸出已產生、結果已被查看或任何輸入改變，重新執行必須建立新 Experiment ID。
+若研究輸出已產生、結果已被查看或任何輸入改變，重跑必須建立新 Experiment ID。
 
 ### 5.6 Fold
 
 `fold_id` 代表 Walk-forward campaign 中的一個 Train／Validation／Test 切分。
 
-每個 fold 至少必須有獨立 input manifest、frozen test config、metrics、artifacts 與狀態。
+每個 fold 至少保存 input manifest、frozen test config、metrics、artifacts 與狀態。
 
-若 fold 會被獨立引用、比較或作為 Decision Evidence，該 fold 必須同時建立 child Experiment ID；否則可以保存為 campaign 下的 fold subrecord。
+若 fold 會被獨立引用、比較或作為 Decision Evidence，必須同時建立 child Experiment ID；否則可以保存為 campaign 下的 fold subrecord。
 
 ### 5.7 Observation
 
-`observation_id` 代表 Paper Trading 或 Live Observation campaign 中一次訊號週期、Decision Snapshot 或操作事件。
+`observation_id` 代表 Paper Trading 或 Live Observation campaign 中的一次訊號週期、Decision Snapshot 或操作事件。
 
-Observation 不等於 Experiment。當 Strategy、Config、Code behavior、Data Contract 或 Execution Model 改變時，必須終止原 Campaign 並建立新 Campaign 與新正式 Experiment。
+Observation 不等於 Experiment。
 
-## 6. Identity Rules
+## 6. Identity and Immutability Rules
 
 ### 6.1 Experiment ID
 
@@ -230,7 +228,7 @@ Experiment ID 必須：
 - 永久不變
 - 不得重新使用
 - 不依賴可變更名稱
-- 可安全作為資料庫主鍵與 artifact path
+- 可作為資料庫主鍵與 artifact path
 
 建議格式：
 
@@ -238,7 +236,7 @@ Experiment ID 必須：
 EXP-{YYYYMMDD}-{ULID}
 ```
 
-### 6.2 Container IDs
+### 6.2 Container and Child IDs
 
 建議格式：
 
@@ -263,17 +261,15 @@ BAT-{ULID}
 - 改變成本、滑價或執行模型
 - 改變 Universe 或 Tradability rules
 - 修正會影響結果的程式錯誤
-- 重新執行已產生研究輸出的實驗
+- 重跑已產生研究輸出的實驗
 - Retest
 - Reproduction
 - Diagnostic Variant
-- 參數 Batch 中的每個可獨立評估變體
+- Batch 中每個可獨立評估變體
 
 ## 7. Classification Axes
 
 ### 7.1 Research Subject Type
-
-`research_subject_type`：
 
 ```text
 STRATEGY
@@ -287,8 +283,6 @@ OTHER
 
 ### 7.2 Execution Mode
 
-`execution_mode`：
-
 ```text
 COMPUTATIONAL
 MANUAL_REVIEW
@@ -299,18 +293,14 @@ HYBRID
 
 ### 7.3 Registration Mode
 
-`registration_mode`：
-
 ```text
 PROSPECTIVE
 RETROSPECTIVE_BACKFILL
 ```
 
-`RETROSPECTIVE_BACKFILL` 不得具有偽造的事前 Design Lock。
+`RETROSPECTIVE_BACKFILL` 不得偽造事前 Design Lock。
 
 ### 7.4 Lifecycle Stage
-
-`lifecycle_stage`：
 
 ```text
 IDEA
@@ -328,8 +318,6 @@ LIVE_OBSERVATION
 正式計算型 Experiment 通常從 `IMPLEMENTATION` 或 `HISTORICAL_BACKTEST` 開始。
 
 ### 7.5 Experiment Purpose
-
-`experiment_purpose`：
 
 ```text
 EXPLORATORY
@@ -352,8 +340,6 @@ LIVE_OBSERVATION
 
 ### 7.6 Evidence Classification
 
-`evidence_classification`：
-
 ```text
 NON_EVIDENTIARY
 EXPLORATORY
@@ -366,8 +352,6 @@ FORWARD_OBSERVATION
 ```
 
 ### 7.7 Sample Role
-
-`sample_role`：
 
 ```text
 NOT_APPLICABLE
@@ -384,18 +368,16 @@ LIVE_FORWARD
 
 ### 7.8 Experiment Scope
 
-`experiment_scope`：
-
 ```text
 SINGLE_EXPERIMENT
 CHILD_EXPERIMENT
 ```
 
-Batch 與 Campaign 不得再冒充 Experiment Scope；它們使用獨立 `batch_id` 或 `campaign_id`。
+Batch 與 Campaign 使用獨立 `batch_id` 或 `campaign_id`，不得冒充 Experiment Scope。
 
 ## 8. Field Applicability Model
 
-每個欄位對每種實驗目的必須使用下列適用值之一：
+每個欄位對每種實驗目的必須使用：
 
 ```text
 REQUIRED
@@ -405,38 +387,41 @@ PROHIBITED_NULL
 ```
 
 - `REQUIRED`：該類型必須提供。
-- `WHEN_APPLICABLE`：符合明確條件時必須提供。
-- `NOT_APPLICABLE`：允許明確記錄 N/A，不得虛構值。
-- `PROHIBITED_NULL`：該欄位屬核心主鍵或狀態，不得為 null。
+- `WHEN_APPLICABLE`：符合條件時必須提供。
+- `NOT_APPLICABLE`：明確記錄 N/A，不得虛構。
+- `PROHIBITED_NULL`：核心主鍵或狀態不得為 null。
 
-### 8.1 Base Fields for All Experiments
+### 8.1 Base Fields
 
 所有 Experiment 均必須包含：
 
 - Experiment identity
-- Purpose and subject type
+- Research subject type
+- Experiment purpose
 - Registration mode
 - Execution mode
+- Lifecycle stage
 - Ownership
-- Registered timestamp
+- Registry timestamps
 - Execution status
 - Evidence eligibility status
 - Integrity status
 - Reproducibility status
+- Dependency impact status
 - Artifact or evidence references
 - Event history
 
 ### 8.2 Purpose Applicability Matrix
 
-| Field group | Strategy performance experiment | Data quality | Feature validation | Numerical / leakage test | Implementation verification | Manual review |
+| Field group | Strategy performance | Data quality | Feature validation | Numerical / leakage | Implementation verification | Manual review |
 |---|---|---|---|---|---|---|
 | Strategy ID / Version | REQUIRED | NOT_APPLICABLE unless strategy-scoped | WHEN_APPLICABLE | WHEN_APPLICABLE | WHEN_APPLICABLE | WHEN_APPLICABLE |
 | Specification / Config | REQUIRED | NOT_APPLICABLE unless strategy-scoped | WHEN_APPLICABLE | WHEN_APPLICABLE | WHEN_APPLICABLE | NOT_APPLICABLE |
-| Code / Environment | REQUIRED | REQUIRED if computational | REQUIRED if computational | REQUIRED if computational | REQUIRED | NOT_APPLICABLE unless tools used |
+| Code / Environment | REQUIRED | REQUIRED if computational | REQUIRED if computational | REQUIRED if computational | REQUIRED | WHEN_APPLICABLE |
 | Dataset manifest | REQUIRED | REQUIRED | REQUIRED | WHEN_APPLICABLE | WHEN_APPLICABLE | WHEN_APPLICABLE |
-| Feature versions | REQUIRED when features used | NOT_APPLICABLE | REQUIRED | WHEN_APPLICABLE | WHEN_APPLICABLE | NOT_APPLICABLE |
-| PIT policy / availability | REQUIRED | REQUIRED for time-sensitive data | REQUIRED for time-sensitive data | REQUIRED for PIT/leakage tests | WHEN_APPLICABLE | WHEN_APPLICABLE |
-| Transaction model | REQUIRED when trading performance evaluated | NOT_APPLICABLE | NOT_APPLICABLE | WHEN_APPLICABLE | WHEN_APPLICABLE | NOT_APPLICABLE |
+| Feature versions | REQUIRED when used | NOT_APPLICABLE | REQUIRED | WHEN_APPLICABLE | WHEN_APPLICABLE | NOT_APPLICABLE |
+| PIT / availability | REQUIRED | REQUIRED for time-sensitive data | REQUIRED for time-sensitive data | REQUIRED for PIT tests | WHEN_APPLICABLE | WHEN_APPLICABLE |
+| Transaction model | REQUIRED when trading evaluated | NOT_APPLICABLE | NOT_APPLICABLE | WHEN_APPLICABLE | WHEN_APPLICABLE | NOT_APPLICABLE |
 | Benchmark | REQUIRED when comparative performance evaluated | NOT_APPLICABLE | WHEN_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE |
 | Design lock | REQUIRED for formal confirmatory/OOS/robustness/Paper | WHEN_APPLICABLE | WHEN_APPLICABLE | WHEN_APPLICABLE | WHEN_APPLICABLE | NOT_APPLICABLE |
 
@@ -535,21 +520,21 @@ UNDER_REVIEW
 INVALIDATED
 ```
 
-Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 Integrity Status 混為一談。
+Dependency Impact 不得與 Integrity Status 混為一談。
 
 ## 10. Cross-status Consistency Rules
 
 ### 10.1 Eligibility Preconditions
 
-`evidence_eligibility_status = ELIGIBLE` 只有在全部適用條件成立時才允許：
+`evidence_eligibility_status = ELIGIBLE` 只有在全部適用條件成立時允許：
 
 - `execution_status = COMPLETED`
 - `integrity_status = VERIFIED`
-- 正式需鎖定的實驗為 `design_lock_status = LOCKED_BEFORE_EXECUTION`
+- 需要設計鎖定者為 `LOCKED_BEFORE_EXECUTION`
 - 沒有 unresolved `BLOCKER`
 - 必要版本、manifest、metrics 與核心 artifacts 完整
-- `dependency_impact_status` 不得為 `AFFECTED`、`UNDER_REVIEW` 或 `INVALIDATED`
-- OOS 實驗不得為 `SUSPECTED` 或 `CONFIRMED`
+- `dependency_impact_status = UNAFFECTED`
+- OOS 實驗為 `CLEAN`
 - `reproducibility_status` 不得為 `NON_REPRODUCIBLE`
 
 ### 10.2 Non-terminal Execution
@@ -558,32 +543,106 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 
 ### 10.3 Failed Execution
 
-`FAILED`、`ABORTED`、`CANCELLED` 不得為 `ELIGIBLE`。若已有部分可用輸出，最多標記 `RESTRICTED`，並明確限制範圍。
+`FAILED`、`ABORTED`、`CANCELLED` 不得為 `ELIGIBLE`。
+
+若已有部分可用輸出，最多為 `RESTRICTED`，且必須定義限制範圍。
 
 ### 10.4 Broken or Missing Design Lock
 
 對必須事前鎖定的實驗：
 
 - `EXECUTED_WITHOUT_LOCK`：Evidence Eligibility 不得高於 `PROVISIONAL`。
-- `LOCK_BROKEN`：Evidence Eligibility 必須為 `INELIGIBLE`，除非僅為不影響研究結果的 metadata correction 且有審計紀錄。
+- `LOCK_BROKEN`：Evidence Eligibility 必須為 `INELIGIBLE`，除非只是有稽核紀錄且不影響結果的 metadata correction。
 
 ### 10.5 Invalidated and Non-reproducible
 
-- `integrity_status = INVALIDATED` → Evidence Eligibility 必須為 `INELIGIBLE`。
-- `reproducibility_status = NON_REPRODUCIBLE` → Evidence Eligibility 必須為 `INELIGIBLE`。
+- `integrity_status = INVALIDATED` → `INELIGIBLE`
+- `reproducibility_status = NON_REPRODUCIBLE` → `INELIGIBLE`
 
-### 10.6 OOS Contamination
+### 10.6 Dependency Impact
 
-- `CONFIRMED` OOS 不得維持 `evidence_classification = OUT_OF_SAMPLE` 的 clean evidence 語意。
-- Registry 必須保留原 sample role，但 Evidence Eligibility 必須降為 `RESTRICTED` 或 `INELIGIBLE`，並記錄 replacement holdout plan。
+- `POTENTIALLY_AFFECTED`：Evidence Eligibility 必須降為 `NOT_ASSESSED` 或 `PROVISIONAL`，不得維持 `ELIGIBLE`。
+- `UNDER_REVIEW`：不得維持 `ELIGIBLE`。
+- `AFFECTED`：不得高於 `RESTRICTED`。
+- `INVALIDATED`：必須為 `INELIGIBLE`。
 
-### 10.7 Supersession
+### 10.7 OOS Contamination
 
-`SUPERSEDED` 可以保持 `VERIFIED` 與歷史上的 `ELIGIBLE`，但網站必須顯示已有後續 Experiment，不得把它當作 current evidence。
+- `SUSPECTED`：不得標記 clean OOS ELIGIBLE。
+- `CONFIRMED`：Evidence Eligibility 必須為 `RESTRICTED` 或 `INELIGIBLE`，並記錄 replacement holdout plan。
+- 原 Sample Role 必須保留，不能改寫歷史用途。
 
-## 11. Pre-registration and Design Lock
+### 10.8 Supersession
 
-### 11.1 Mandatory Pre-registration
+`SUPERSEDED` 可以保持歷史上的 `VERIFIED` 與 `ELIGIBLE`，但網站必須顯示已有後續 Experiment，且不得作為 current evidence。
+
+## 11. Time Model
+
+### 11.1 Registry Time Fields
+
+所有 Experiment 均保存：
+
+- `registry_registered_at`
+- `registry_last_updated_at`
+- `registration_mode`
+- `backfilled_at`, when retrospective
+
+### 11.2 Prospective Execution Time Fields
+
+`registration_mode = PROSPECTIVE` 時，適用欄位包括：
+
+- `design_locked_at`
+- `queued_at`
+- `started_at`
+- `completed_at`
+
+原則上：
+
+```text
+registry_registered_at
+≤ design_locked_at
+≤ queued_at
+≤ started_at
+≤ completed_at
+```
+
+只對適用欄位檢查。
+
+### 11.3 Retrospective Backfill Time Fields
+
+`registration_mode = RETROSPECTIVE_BACKFILL` 時，必須分開保存：
+
+- `original_started_at`
+- `original_completed_at`
+- `original_design_locked_at`, only when documentary evidence exists
+- `original_execution_date_precision`
+- `timestamp_source`
+- `timestamp_confidence`
+- `backfilled_at`
+
+不得把 `backfilled_at` 當成原始執行時間，也不得偽造原始 Design Lock。
+
+時間規則：
+
+```text
+original_started_at
+≤ original_completed_at
+≤ backfilled_at
+```
+
+若原始時間精度不足，必須標記 precision 與 confidence，不得虛構秒級時間。
+
+### 11.4 General Timestamp Rules
+
+- `completed_at` 不得早於 `started_at`。
+- Correction event 必須晚於被修正紀錄。
+- Invalidation、Supersession、Decision linkage 不得早於相關 Experiment registration。
+- Event `occurred_at` 不得早於其引用事件。
+- 所有 timestamp 必須帶時區。
+
+## 12. Pre-registration and Design Lock
+
+### 12.1 Mandatory Pre-registration
 
 下列實驗在讀取結果前必須完成 Pre-registration：
 
@@ -594,20 +653,20 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - Formal Robustness test
 - Paper Trading campaign
 
-### 11.2 Required Fields
+### 12.2 Required Design Fields
 
 至少包括：
 
 - Research question
 - Hypothesis or test objective
-- Strategy ID and Version，若適用
+- Strategy ID and Version, when applicable
 - Experiment purpose
 - Evidence classification
 - Sample roles and windows
 - Universe reference
 - Parameters
-- Transaction cost assumptions，若適用
-- Benchmark，若適用
+- Transaction cost assumptions, when applicable
+- Benchmark, when applicable
 - Metrics
 - Gates
 - Planned variants
@@ -616,7 +675,7 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - Design owner
 - Design locked at
 
-### 11.3 Design Hash
+### 12.3 Design Hash
 
 鎖定時必須產生 `design_manifest_hash`，涵蓋適用的：
 
@@ -628,7 +687,7 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - Gates
 - Planned variants
 
-### 11.4 Post-lock Changes
+### 12.4 Post-lock Changes
 
 任何影響結果解讀的變更都必須：
 
@@ -637,9 +696,9 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 3. 建立新 Experiment ID。
 4. 不得把已查看結果包裝成事前設計。
 
-## 12. Minimum Experiment Record
+## 13. Minimum Experiment Record
 
-### 12.1 Identity
+### 13.1 Identity
 
 - `experiment_id`
 - `experiment_family_id`, when applicable
@@ -656,22 +715,19 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - `evidence_classification`
 - `sample_role`
 
-### 12.2 Ownership and Time
+### 13.2 Ownership
 
-- `registered_at`
-- `design_locked_at`, when applicable
-- `queued_at`, when applicable
-- `started_at`, when applicable
-- `completed_at`, when applicable
 - `registered_by`
 - `execution_owner`
 - `audit_owner`, when applicable
 
-所有時間必須保存時區。
+### 13.3 Time
 
-### 12.3 Strategy and Specification
+依第 11 節保存 Registry、Prospective 或 Retrospective 時間欄位。
 
-依第 8 節適用矩陣保存：
+### 13.4 Strategy and Specification
+
+依適用矩陣保存：
 
 - `strategy_id`
 - `strategy_version`
@@ -681,11 +737,12 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - `config_uri`
 - `config_hash`
 
-### 12.4 Code and Environment
+### 13.5 Code and Environment
 
 計算型實驗至少保存：
 
 - `code_commit_sha`
+- `code_behavior_version`
 - `repository`
 - `working_tree_clean`
 - `runtime_name`
@@ -697,15 +754,16 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - `execution_command`
 - `random_seed`, when randomness exists
 
-正式計算型實驗的 dirty working tree，Evidence Eligibility 不得高於 `PROVISIONAL`。
+正式計算型實驗 dirty tree 時，Evidence Eligibility 不得高於 `PROVISIONAL`。
 
-### 12.5 Data and PIT
+### 13.6 Data and PIT
 
 依適用性保存：
 
 - `dataset_manifest_id`
 - `dataset_versions`
 - `source_versions`
+- `data_contract_versions`
 - `feature_versions`
 - `pit_policy_version`
 - `availability_rule_versions`
@@ -715,7 +773,7 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - `pit_quality_status`
 - `input_manifest_hash`
 
-### 12.6 Research Design
+### 13.7 Research Design
 
 - `hypothesis_reference`, when applicable
 - `research_question` or test objective
@@ -727,7 +785,7 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - `planned_variant_count`, when applicable
 - `design_manifest_hash`, when applicable
 
-### 12.7 Sample Windows
+### 13.8 Sample Windows
 
 每個 window 至少包含：
 
@@ -741,10 +799,12 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - `market_regime_tags`
 - `accessed_before_lock`
 
-### 12.8 Transaction Model
+### 13.9 Transaction and Execution Model
 
 當實驗評估交易績效時，至少保存：
 
+- `transaction_model_version`
+- `execution_model_version`
 - Commission contract and version
 - Tax contract and version
 - Slippage model and version
@@ -758,7 +818,7 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - Missing-price handling
 - Capacity assumptions
 
-### 12.9 Parameters
+### 13.10 Parameters
 
 每個 parameter 至少包含：
 
@@ -769,7 +829,7 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - `source`: `SPECIFICATION` / `CONFIG` / `DIAGNOSTIC`
 - `locked_before_execution`
 
-## 13. Run Attempt Schema
+## 14. Run Attempt Schema
 
 每個 Run Attempt 至少包含：
 
@@ -787,29 +847,76 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 - `log_artifact_id`
 - `produced_research_output`
 
-若 `produced_research_output = true`，後續重跑原則上必須建立新 Experiment ID。
+若 `produced_research_output = true`，後續重跑必須建立新 Experiment ID。
 
-## 14. Campaign, Batch, Fold, and Observation Schemas
+## 15. Campaign Frozen-version Contract
 
-### 14.1 Campaign Record
+### 15.1 Campaign Record
 
-至少包含：
+每個 Campaign 至少包含：
 
 - `campaign_id`
 - `campaign_type`
 - `experiment_family_id`
-- `strategy_id` and `strategy_version`, when applicable
-- `config_hash`, when applicable
 - `campaign_started_at`
 - `campaign_planned_end_at`
 - `campaign_ended_at`
-- `status`
+- `campaign_status`
 - `child_experiment_ids`
 - `fold_ids`
 - `observation_ids`
 - `termination_reason`
+- `frozen_version_manifest`
+- `frozen_version_manifest_hash`
 
-### 14.2 Batch Record
+### 15.2 Frozen Version Manifest
+
+適用時必須包含：
+
+- `strategy_id`
+- `strategy_version`
+- `specification_version`
+- `config_version`
+- `config_hash`
+- `code_commit_sha`
+- `code_behavior_version`
+- `data_contract_versions`
+- `dataset_versions` or live dataset contract references
+- `feature_versions`
+- `pit_policy_version`
+- `availability_rule_versions`
+- `exchange_calendar_version`
+- `transaction_model_version`
+- `execution_model_version`
+- `monitoring_policy_version`
+- `incident_policy_version`
+
+### 15.3 Campaign Consistency
+
+每個 Observation、Fold 與 Child Experiment 必須：
+
+- 引用 `campaign_id`
+- 引用 `frozen_version_manifest_hash`
+- 通過版本一致性檢查
+- 保存任何偏離紀錄
+
+下列任一項發生 material change 時，必須終止舊 Campaign，建立新 Campaign 與新正式 Experiment：
+
+- Strategy Version
+- Specification or Config
+- Code behavior
+- Data Contract
+- Feature behavior
+- PIT or availability rule
+- Exchange Calendar
+- Transaction or Execution Model
+- Monitoring or Incident Policy
+
+同一 Campaign 不得混用不同 frozen-version manifest 後報告單一績效。
+
+## 16. Batch, Fold, and Observation Schemas
+
+### 16.1 Batch Record
 
 至少包含：
 
@@ -823,12 +930,13 @@ Dependency Impact 是針對上游 defect 或 invalidation 的影響，不得和 
 
 Batch aggregation 不得隱藏 child Experiment 的失敗或負結果。
 
-### 14.3 Fold Record
+### 16.2 Fold Record
 
 至少包含：
 
 - `fold_id`
 - `campaign_id`
+- `frozen_version_manifest_hash`
 - `child_experiment_id`, when independently evaluated
 - Train, Validation and Test windows
 - Purge and embargo
@@ -837,12 +945,13 @@ Batch aggregation 不得隱藏 child Experiment 的失敗或負結果。
 - Fold metrics and artifacts
 - Fold execution and integrity status
 
-### 14.4 Observation Record
+### 16.3 Observation Record
 
 至少包含：
 
 - `observation_id`
 - `campaign_id`
+- `frozen_version_manifest_hash`
 - `observed_at`
 - `decision_snapshot_id`, when applicable
 - `signal_reference`
@@ -850,10 +959,11 @@ Batch aggregation 不得隱藏 child Experiment 的失敗或負結果。
 - `fill_reference`
 - `data_incident_reference`
 - `manual_intervention`
+- `version_consistency_status`
 
-## 15. Experiment Lineage and Dependencies
+## 17. Experiment Lineage and Dependencies
 
-### 15.1 Lineage Relationship Types
+### 17.1 Lineage Relationship Types
 
 ```text
 RETEST_OF
@@ -867,7 +977,7 @@ CHILD_OF_CAMPAIGN
 INVALIDATES
 ```
 
-### 15.2 Evidence Dependency Types
+### 17.2 Evidence Dependency Types
 
 ```text
 DEPENDS_ON_EXPERIMENT
@@ -891,7 +1001,7 @@ DEPENDS_ON_CALENDAR_VERSION
 - `is_material`
 - `registered_at`
 
-### 15.3 Retest
+### 17.3 Retest
 
 Retest 必須：
 
@@ -902,7 +1012,7 @@ Retest 必須：
 - 記錄哪些規則保持不變
 - 保留原實驗及狀態
 
-### 15.4 Reproduction
+### 17.4 Reproduction
 
 Reproduction 必須：
 
@@ -912,7 +1022,7 @@ Reproduction 必須：
 - 定義容忍度
 - 保存差異報告
 
-### 15.5 Diagnostic Variant
+### 17.5 Diagnostic Variant
 
 Diagnostic Variant 必須：
 
@@ -921,7 +1031,7 @@ Diagnostic Variant 必須：
 - 不得自動取得 Confirmatory 或 OOS 資格
 - 不得靜默取代正式 Strategy Version
 
-### 15.6 Lineage Integrity
+### 17.6 Lineage Integrity
 
 必須：
 
@@ -930,7 +1040,7 @@ Diagnostic Variant 必須：
 - 支援完整 lineage 回溯
 - 區分研究 lineage 與 dependency graph
 
-## 16. Multiple Testing and Experiment Families
+## 18. Multiple Testing and Experiment Families
 
 包含多參數、多因子、多 Universe、多 window 或多策略變體的研究，必須保存：
 
@@ -950,9 +1060,9 @@ Diagnostic Variant 必須：
 
 探索後選定正式策略時，必須建立新的 Confirmatory Experiment，且不得把探索樣本重新命名為 OOS。
 
-## 17. OOS and Walk-forward Requirements
+## 19. OOS and Walk-forward Requirements
 
-### 17.1 OOS Registration
+### 19.1 OOS Registration
 
 至少保存：
 
@@ -965,7 +1075,7 @@ Diagnostic Variant 必須：
 - Contamination reason
 - Replacement holdout plan
 
-### 17.2 Confirmed Contamination
+### 19.2 Confirmed Contamination
 
 下列情況原則上構成 `CONFIRMED`：
 
@@ -977,30 +1087,23 @@ Diagnostic Variant 必須：
 
 Contaminated OOS 必須保存，但不得再宣稱為 clean OOS evidence。
 
-### 17.3 Walk-forward
+### 19.3 Walk-forward
 
 Walk-forward Campaign 必須保存每一 fold，不得只保存總績效。
 
-每個可獨立審計 fold 應建立 child Experiment；只作內部切分者至少保存完整 Fold Record。
+每個可獨立審計 fold 應建立 child Experiment；內部切分至少保存完整 Fold Record。
 
-## 18. Paper Trading Campaigns
+## 20. Paper Trading and Live Observation Campaigns
 
-每個 Paper Trading 計畫使用一個 `campaign_id`，並至少關聯一個正式 Paper Trading Experiment ID。
+每個 Paper Trading 或 Live Observation 計畫使用一個 `campaign_id`，並至少關聯一個正式 Experiment ID。
 
 每日或每次訊號週期建立 Observation 或 Decision Snapshot，不需要每天建立 Experiment ID。
 
-下列情況必須終止舊 Campaign 並建立新 Campaign 與新 Experiment ID：
+Campaign 必須遵守第 15 節 frozen-version contract。
 
-- Strategy Version 改變
-- Config 改變
-- Code behavior 改變
-- Data Contract 改變
-- Execution model 改變
-- 重大 incident 後需要正式 Retest
+不得在同一 Campaign 混用多個版本後報告單一績效。
 
-不得在同一 Campaign 中混用多個 Strategy Version 後報告單一績效。
-
-## 19. Metric Schema
+## 21. Metric Schema
 
 每個 metric 至少包含：
 
@@ -1021,7 +1124,7 @@ Walk-forward Campaign 必須保存每一 fold，不得只保存總績效。
 
 每個報告數字必須回指 Metric Record 或 Artifact。
 
-## 20. Artifact Schema
+## 22. Artifact Schema
 
 每個 artifact 至少包含：
 
@@ -1044,7 +1147,7 @@ Walk-forward Campaign 必須保存每一 fold，不得只保存總績效。
 
 Registry 與 artifacts 禁止保存 API secret、Password、Broker credential、Private key 或未經允許的個人資料。
 
-## 21. Issue and Incident Schema
+## 23. Issue and Incident Schema
 
 每個 issue 至少包含：
 
@@ -1073,12 +1176,13 @@ BLOCKER
 
 任何 `ERROR` 或 `BLOCKER` 不得只寫入 log 而不更新 Registry。
 
-## 22. Invalidation and Dependency Propagation
+## 24. Invalidation and Dependency Propagation
 
-### 22.1 Invalidation Record
+### 24.1 Invalidation Record
 
 必須保存：
 
+- `invalidation_id`
 - Invalidated at
 - Invalidated by
 - Finding
@@ -1089,18 +1193,19 @@ BLOCKER
 - Required Retest scope
 - Replacement Experiment ID, if available
 
-### 22.2 Propagation Procedure
+### 24.2 Propagation Procedure
 
-當 Experiment、Artifact、Dataset Version、Feature、Code、Config、Policy 或 Calendar 被 invalidated：
+當 Experiment、Artifact、Dataset、Feature、Code、Config、Policy 或 Calendar 被 invalidated：
 
 1. 查詢全部直接 dependency edges。
 2. 對直接下游建立 `POTENTIALLY_AFFECTED` impact record。
-3. 若 dependency 標記 material，將下游設為 `UNDER_REVIEW`，Evidence Eligibility 不得為 `ELIGIBLE`。
-4. 審計後更新為 `UNAFFECTED`、`AFFECTED` 或 `INVALIDATED`。
-5. 對被判定 `AFFECTED` 或 `INVALIDATED` 的下游繼續遞迴傳遞。
-6. 所有引用受影響實驗的 Decision Record 必須建立 Decision Impact Record。
+3. `POTENTIALLY_AFFECTED` 不得維持 ELIGIBLE。
+4. 若 dependency 為 material，將下游設為 `UNDER_REVIEW`。
+5. 審計後更新為 `UNAFFECTED`、`AFFECTED` 或 `INVALIDATED`。
+6. 對 `AFFECTED` 或 `INVALIDATED` 的下游繼續遞迴傳遞。
+7. 所有引用受影響實驗的 Decision Record 必須建立 Decision Impact Record。
 
-### 22.3 Dependency Impact Record
+### 24.3 Dependency Impact Record
 
 至少包含：
 
@@ -1117,7 +1222,7 @@ BLOCKER
 
 不得只修正上游紀錄而維持下游 Promote 決策不變。
 
-## 23. Gate Evaluation Schema
+## 25. Gate Evaluation Schema
 
 每個 Gate Result 至少包含：
 
@@ -1145,7 +1250,7 @@ NOT_APPLICABLE
 
 看過結果後修改 Gate，必須建立適用的新版本與新 Experiment ID。
 
-## 24. Decision Record Linkage
+## 26. Decision Record Linkage
 
 Registry 必須能關聯：
 
@@ -1167,9 +1272,9 @@ RETIRE
 
 Experiment 不得自行產生 Promote 結論。
 
-## 25. Registry Event Log and Timestamp Ordering
+## 27. Registry Event Log and Corrections
 
-每個狀態或重要欄位變動必須建立 event：
+每個重要欄位或狀態變動必須建立 event：
 
 - `event_id`
 - `entity_type`
@@ -1182,46 +1287,18 @@ Experiment 不得自行產生 Promote 結論。
 - `reason`
 - `source_reference`
 
-### 25.1 Timestamp Monotonicity
-
-原則上必須滿足：
-
-```text
-registered_at
-≤ design_locked_at
-≤ queued_at
-≤ started_at
-≤ completed_at
-```
-
-只對適用欄位檢查。若技術重試存在，多個 Run Attempt 各自維持時間順序。
-
-規則：
-
-- `completed_at` 不得早於 `started_at`。
-- Event `occurred_at` 不得早於其所引用事件的發生時間。
-- Correction event 必須晚於被修正紀錄。
-- Invalidation、Supersession 與 Decision linkage 不得早於相關 Experiment registration。
-- 所有 timestamp 必須帶時區。
-
-## 26. Correction Policy
-
-純 metadata 錯字或錯誤引用可以修正，但必須保存：
-
-- 原值
-- 新值
-- Correction reason
-- Actor and timestamp
+純 metadata 錯誤可以修正，但必須保存原值、新值、原因、actor 與 timestamp。
 
 若修正影響結果、設計或結論，必須建立新 Experiment ID。
 
-## 27. Canonical Storage Model
+## 28. Canonical Storage Model
 
-至少支援下列邏輯集合：
+至少支援：
 
 ```text
 experiment_families
 campaigns
+campaign_version_manifests
 batches
 experiment_records
 run_attempts
@@ -1241,7 +1318,7 @@ decision_impacts
 experiment_events
 ```
 
-### 27.1 Required Constraints
+### 28.1 Required Constraints
 
 至少包括：
 
@@ -1254,11 +1331,13 @@ experiment_events
 - Hash format validation
 - Field applicability validation
 - Cross-status consistency validation
+- Registration-mode-specific time validation
 - Completed experiments require terminal timestamps
 - Formal experiments require applicable version manifests
 - Campaign aggregate cannot exist without child or observation references
+- Campaign children must match frozen-version manifest
 
-### 27.2 Query Requirements
+### 28.2 Query Requirements
 
 系統至少支援：
 
@@ -1267,14 +1346,15 @@ experiment_events
 - 查詢所有 failed、invalidated 或 non-reproducible experiments
 - 查詢 Retest and Reproduction lineage
 - 查詢 OOS contamination
-- 查詢使用特定 Dataset、Feature、Code、Config 或 Policy Version 的全部實驗
+- 查詢使用特定 Dataset、Feature、Code、Config、Policy 或 Calendar Version 的實驗
 - 查詢 defect 的完整下游 dependency graph
 - 查詢受影響 Decision Records
 - 重建 Evidence Package
+- 查詢 Campaign frozen-version manifest 與所有偏離
 
-## 28. Canonical YAML Examples
+## 29. Canonical YAML Examples
 
-### 28.1 Formal Strategy Experiment
+### 29.1 Formal Strategy Experiment
 
 ```yaml
 experiment_id: EXP-20260710-01J2TWSTOCKA7M4K9Z8Q6P
@@ -1291,7 +1371,15 @@ execution_mode: COMPUTATIONAL
 lifecycle_stage: HISTORICAL_BACKTEST
 evidence_classification: CONFIRMATORY_IN_SAMPLE
 sample_role: IN_SAMPLE
-
+registry_registered_at: 2026-07-10T19:00:00+08:00
+registry_last_updated_at: 2026-07-10T22:00:00+08:00
+design_locked_at: 2026-07-10T19:30:00+08:00
+queued_at: 2026-07-10T20:00:00+08:00
+started_at: 2026-07-10T20:05:00+08:00
+completed_at: 2026-07-10T21:30:00+08:00
+registered_by: research-system
+execution_owner: backtest-runner
+audit_owner: workspace-04
 strategy:
   strategy_id: TW-M03-MONTHLY-REVENUE-MOMENTUM
   strategy_version: 1.0.0
@@ -1299,10 +1387,10 @@ strategy:
   config_version: 1.0.0
   config_uri: configs/strategies/tw-m03-monthly-revenue-momentum/1.0.0.yaml
   config_hash: sha256:example
-
 code:
   repository: TechTWC/TWstock
   code_commit_sha: abcdef1234567890
+  code_behavior_version: 1.0.0
   working_tree_clean: true
   runtime_name: python
   runtime_version: 3.13.0
@@ -1311,13 +1399,15 @@ code:
   architecture: arm64
   execution_command: twstock backtest --experiment EXP-20260710-01J2TWSTOCKA7M4K9Z8Q6P
   random_seed: 20260710
-
 data:
   dataset_manifest_id: DSM-20260710-001
   dataset_versions:
     market_daily: 1.0.0
     monthly_revenue: 1.0.0
     security_master: 1.0.0
+  data_contract_versions:
+    market_daily: 1.0.0
+    monthly_revenue: 1.0.0
   feature_versions:
     revenue_momentum: 1.0.0
   pit_policy_version: 1.0.0
@@ -1327,17 +1417,9 @@ data:
   data_cutoff_at: 2026-07-09T23:59:59+08:00
   pit_quality_status: PIT_PROVISIONAL
   input_manifest_hash: sha256:example
-
-design:
-  research_question: Does point-in-time monthly revenue acceleration predict subsequent Taiwan equity returns after costs?
-  primary_metric: net_excess_cagr
-  acceptance_gate_version: 1.0.0
-  design_lock_status: LOCKED_BEFORE_EXECUTION
-  design_locked_at: 2026-07-10T20:00:00+08:00
-  design_manifest_hash: sha256:example
-
 status:
   execution_status: COMPLETED
+  design_lock_status: LOCKED_BEFORE_EXECUTION
   evidence_eligibility_status: PROVISIONAL
   integrity_status: VERIFIED
   reproducibility_status: NOT_TESTED
@@ -1346,226 +1428,208 @@ status:
   dependency_impact_status: UNAFFECTED
 ```
 
-### 28.2 Non-strategy Data-quality Experiment
+### 29.2 Retrospective Backfill
 
 ```yaml
-experiment_id: EXP-20260710-01J2DATAQUALITY
-experiment_family_id: null
-campaign_id: null
-batch_id: null
-parent_experiment_id: null
-experiment_name: monthly-revenue-announcement-timestamp-coverage
-research_subject_type: DATASET
-experiment_purpose: DATA_QUALITY
+experiment_id: EXP-20260710-01J2BACKFILL
+experiment_name: legacy-backtest-backfill
+research_subject_type: STRATEGY
+experiment_purpose: HISTORICAL_BACKTEST
 experiment_scope: SINGLE_EXPERIMENT
-registration_mode: PROSPECTIVE
+registration_mode: RETROSPECTIVE_BACKFILL
 execution_mode: COMPUTATIONAL
-lifecycle_stage: IMPLEMENTATION
+lifecycle_stage: HISTORICAL_BACKTEST
 evidence_classification: DEVELOPMENT
-sample_role: NOT_APPLICABLE
-
-strategy: null
-
-code:
-  repository: TechTWC/TWstock
-  code_commit_sha: 1234567890abcdef
-  working_tree_clean: true
-  runtime_name: python
-  runtime_version: 3.13.0
-  dependency_lock_hash: sha256:example
-  operating_system: linux
-  architecture: arm64
-  execution_command: twstock data-audit monthly-revenue-timestamps
-
-data:
-  dataset_manifest_id: DSM-20260710-002
-  dataset_versions:
-    monthly_revenue: 1.0.0
-  feature_versions: {}
-  pit_policy_version: 1.0.0
-  availability_rule_versions:
-    monthly_revenue: 1.0.0
-  exchange_calendar_version: 1.0.0
-  input_manifest_hash: sha256:example
-
+sample_role: IN_SAMPLE
+registry_registered_at: 2026-07-10T21:00:00+08:00
+registry_last_updated_at: 2026-07-10T21:00:00+08:00
+backfilled_at: 2026-07-10T21:00:00+08:00
+original_started_at: 2025-12-15T10:00:00+08:00
+original_completed_at: 2025-12-15T10:30:00+08:00
+original_design_locked_at: null
+original_execution_date_precision: SECOND
+timestamp_source: archived-run-log
+timestamp_confidence: HIGH
 status:
   execution_status: COMPLETED
-  design_lock_status: NOT_APPLICABLE
-  evidence_eligibility_status: NOT_ASSESSED
-  integrity_status: VERIFIED
+  design_lock_status: EXECUTED_WITHOUT_LOCK
+  evidence_eligibility_status: PROVISIONAL
+  integrity_status: NOT_ASSESSED
   reproducibility_status: NOT_TESTED
   supersession_status: CURRENT
   oos_contamination_status: NOT_APPLICABLE
   dependency_impact_status: UNAFFECTED
 ```
 
-範例只示範結構，不代表策略或資料已獲核准。
+### 29.3 Campaign Frozen Manifest
 
-## 29. Validation Rules
+```yaml
+campaign_id: CAM-01J2PAPER
+campaign_type: PAPER_TRADING
+experiment_family_id: FAM-01J2FAMILY
+campaign_started_at: 2026-08-01T00:00:00+08:00
+campaign_planned_end_at: 2026-11-01T00:00:00+08:00
+campaign_ended_at: null
+campaign_status: ACTIVE
+frozen_version_manifest:
+  strategy_id: TW-M03-MONTHLY-REVENUE-MOMENTUM
+  strategy_version: 1.0.0
+  specification_version: 1.0.0
+  config_version: 1.0.0
+  config_hash: sha256:config
+  code_commit_sha: abcdef1234567890
+  code_behavior_version: 1.0.0
+  data_contract_versions:
+    monthly_revenue_live: 1.0.0
+  feature_versions:
+    revenue_momentum: 1.0.0
+  pit_policy_version: 1.0.0
+  availability_rule_versions:
+    monthly_revenue: 1.0.0
+  exchange_calendar_version: 1.0.0
+  transaction_model_version: 1.0.0
+  execution_model_version: 1.0.0
+  monitoring_policy_version: 1.0.0
+  incident_policy_version: 1.0.0
+frozen_version_manifest_hash: sha256:campaign
+child_experiment_ids:
+  - EXP-20260801-01J2PAPEREXP
+observation_ids: []
+fold_ids: []
+```
 
-### Rule 1: Unique IDs
+範例示範本文件所述 profile 的必要欄位；實際 Data Contract 可以增加欄位，但不得刪除必要語意。
 
-所有 ID 重複必須拒絕。
+## 30. Validation Rules
 
-### Rule 2: Applicability Validation
+1. 所有 ID 重複必須拒絕。
+2. 依 subject、purpose、execution mode 套用欄位適用矩陣。
+3. Batch／Campaign 不得取代 child experiments。
+4. 可獨立比較 variant 必須有 Experiment ID。
+5. OOS 在 design lock 前已存取時不能標記 CLEAN。
+6. `COMPLETED` 必須有適用的有效終止時間。
+7. RETEST 與 REPRODUCTION 必須有父實驗關係。
+8. 所有狀態組合必須符合第 10 節。
+9. 正式計算型實驗 dirty tree 時不得高於 PROVISIONAL。
+10. Registry、Config、Specification 與 artifacts 的 Strategy Version 必須一致。
+11. unresolved BLOCKER 時不得 ELIGIBLE。
+12. `POTENTIALLY_AFFECTED`、`UNDER_REVIEW` 時不得維持 ELIGIBLE。
+13. 正式 Experiment hard delete 必須拒絕。
+14. Lineage 或 dependency cycle 必須拒絕。
+15. 看過結果後修改 Gate 的實驗不得聲稱通過原事前 Gate。
+16. PROSPECTIVE 與 RETROSPECTIVE_BACKFILL 使用不同時間驗證規則。
+17. Backfill 不得偽造 Design Lock。
+18. Campaign 子紀錄必須引用並符合 frozen-version manifest hash。
+19. Campaign frozen manifest material change 必須終止舊 Campaign。
+20. Event 與 timestamp 順序必須有效。
 
-依 `research_subject_type`、`experiment_purpose` 與 `execution_mode` 套用第 8 節矩陣；不得要求不適用欄位，也不得接受缺少 REQUIRED 欄位。
-
-### Rule 3: Container Integrity
-
-Batch／Campaign 不能取代 child experiments；可獨立比較的 variant 必須有 Experiment ID。
-
-### Rule 4: OOS Lock
-
-OOS 在 design lock 前已存取時，不能標記 CLEAN。
-
-### Rule 5: Terminal Timestamps
-
-`COMPLETED` 必須有有效的 `started_at` 與 `completed_at`。
-
-### Rule 6: Retest and Reproduction Links
-
-RETEST 與 REPRODUCTION 必須有對應父實驗關係。
-
-### Rule 7: Invalidated Evidence
-
-`INVALIDATED` 必須對應 `INELIGIBLE`。
-
-### Rule 8: Cross-status Consistency
-
-所有狀態組合必須符合第 10 節。
-
-### Rule 9: Dirty Working Tree
-
-正式計算型實驗 dirty tree 時，Evidence Eligibility 不得高於 PROVISIONAL。
-
-### Rule 10: Strategy Version Consistency
-
-Registry、Config、Specification 與 artifacts 的 Strategy Version 必須一致。
-
-### Rule 11: No Silent Blocker
-
-存在 unresolved BLOCKER 時不得 ELIGIBLE。
-
-### Rule 12: Campaign Version Freeze
-
-同一 Paper Trading Campaign 不得跨 Strategy Version。
-
-### Rule 13: No Hard Delete
-
-正式紀錄 hard delete 必須被禁止。
-
-### Rule 14: Graph Integrity
-
-Lineage 與 dependency cycle 必須拒絕。
-
-### Rule 15: Gate Integrity
-
-看過結果後修改 Gate 的實驗不得聲稱通過原事前 Gate。
-
-### Rule 16: Dependency Propagation
-
-上游 invalidation 必須建立 impact records，並阻止受影響下游 Evidence 維持 ELIGIBLE。
-
-### Rule 17: Timestamp Monotonicity
-
-時間欄位與事件順序必須符合第 25 節。
-
-### Rule 18: Retrospective Registration
-
-`RETROSPECTIVE_BACKFILL` 不得標記 `LOCKED_BEFORE_EXECUTION`，除非有可驗證的原始事前註冊證據並引用其 artifact。
-
-## 30. Engineering Acceptance Criteria
+## 31. Engineering Acceptance Criteria
 
 第一版實作至少必須達成：
 
-- [ ] Experiment、Family、Batch、Campaign、Fold、Observation 與 Run Attempt 分開儲存。
-- [ ] 每個可獨立評估的 variant 具有 Experiment ID。
+- [ ] 每個可獨立評估執行自動產生唯一 Experiment ID。
 - [ ] Experiment ID 不可修改或重複使用。
+- [ ] Family、Batch、Campaign、Fold、Observation 與 Experiment 分開儲存。
+- [ ] 非策略實驗不需要虛構 Strategy metadata。
+- [ ] Field applicability 可以 machine-validate。
 - [ ] Registry 使用多軸狀態。
-- [ ] Field applicability matrix 可機器驗證。
-- [ ] 非策略實驗不需虛構 Strategy ID。
-- [ ] Cross-status consistency rules 會阻擋矛盾狀態。
-- [ ] 正式實驗可鎖定 design manifest。
-- [ ] 所有適用版本可追蹤。
-- [ ] IS、Validation、OOS、Walk-forward 與 Paper windows 可分開保存。
-- [ ] Retest、Reproduction、Diagnostic Variant 與 Supersession 可查詢。
-- [ ] Failed、Invalidated、Non-reproducible 與 Superseded 永久保存。
-- [ ] OOS contamination 可阻止錯誤標示 clean evidence。
-- [ ] Run Attempt 無法規避新 Experiment ID。
-- [ ] Dependency graph 可追蹤 Dataset／Code／Artifact 對實驗與決策的影響。
-- [ ] Invalidation propagation 會建立 impact records。
-- [ ] Decision Record 不得改寫 Registry。
-- [ ] Campaign 版本改變時強制建立新 Campaign 與 Experiment。
-- [ ] 所有重要變更產生 append-only Event。
-- [ ] Timestamp ordering 可驗證。
-- [ ] 正式紀錄禁止 hard delete。
-- [ ] 可由 Experiment ID 重建 Evidence Package。
+- [ ] Cross-status rules 阻止矛盾組合。
+- [ ] PROSPECTIVE 與 RETROSPECTIVE_BACKFILL 時間模型分離。
+- [ ] Backfill 不可偽造事前註冊。
+- [ ] Strategy、Config、Code、Data、Feature、PIT 與 Calendar 版本可追蹤。
+- [ ] Campaign frozen-version manifest 可被驗證。
+- [ ] Observation 與 Child Experiment 必須符合 Campaign manifest。
+- [ ] Retest、Reproduction、Diagnostic Variant 與 Supersession 關係可查詢。
+- [ ] Failed、Invalidated、Non-reproducible 與 Superseded 實驗永久保存。
+- [ ] OOS contamination 阻止錯誤 clean OOS 標示。
+- [ ] Run Attempt 與新 Experiment 的邊界受到驗證。
+- [ ] Dependency graph 支援遞迴 invalidation propagation。
+- [ ] `POTENTIALLY_AFFECTED` 不得維持 ELIGIBLE。
+- [ ] Decision Impact Records 可追蹤。
+- [ ] BLOCKER 阻止 ELIGIBLE。
+- [ ] 可由 Experiment ID 重建完整 Evidence Package。
 
-## 31. Manual Acceptance Tests
+## 32. Manual Acceptance Tests
 
-### Test A: Parameter Batch Preservation
+### Test A: Duplicate ID
 
-Given：Batch 有十個參數變體，其中兩個失敗。
+Given：Experiment ID 已存在。
 
-Expected：十個 child Experiment 均存在，失敗變體不可只消失在聚合結果中。
+Expected：再次建立相同 ID 時拒絕寫入。
 
-### Test B: Non-strategy Data Experiment
+### Test B: Batch Variant Preservation
 
-Given：Foundation Engine 的 Data Quality 實驗不屬於任何策略。
+Given：Batch 包含成功、失敗與未執行變體。
 
-Expected：不需 Strategy ID；Code、Dataset 與 PIT 欄位依矩陣驗證。
+Expected：每個可獨立評估變體均有 child Experiment 或 planned variant record，聚合結果不得隱藏失敗。
 
-### Test C: Contradictory Status
+### Test C: Non-strategy Experiment
 
-Given：Execution Status 為 RUNNING。
+Given：DATA_QUALITY 實驗與任何策略無關。
 
-When：嘗試設定 Evidence Eligibility 為 ELIGIBLE。
+Expected：Strategy ID 為 N/A，不得要求虛構值。
 
-Expected：拒絕。
+### Test D: Running plus Eligible
 
-### Test D: Broken Design Lock
+Given：`execution_status = RUNNING`。
 
-Given：正式 OOS 實驗為 LOCK_BROKEN。
+Expected：Evidence Eligibility 必須為 `NOT_ASSESSED`。
 
-When：嘗試設定 ELIGIBLE。
+### Test E: Potential Dependency Impact
 
-Expected：拒絕並要求新 Experiment ID。
+Given：上游 Dataset 被 invalidated，下游為 `POTENTIALLY_AFFECTED`。
 
-### Test E: Invalidation Propagation
+Expected：下游不得維持 ELIGIBLE，並進入 materiality review。
 
-Given：Dataset Version 被 invalidated，且三個 Experiment 與兩個 Decision Record 依賴它。
+### Test F: Campaign Version Drift
 
-Expected：全部建立 dependency impact，material dependency 進入 UNDER_REVIEW，原 ELIGIBLE 狀態被阻擋。
+Given：Paper Trading Campaign 進行中，Code Behavior Version 改變。
 
-### Test F: Walk-forward Fold Preservation
+Expected：舊 Campaign 終止；建立新 Campaign、新 frozen manifest 與新 Experiment ID。
 
-Given：Campaign 有十二個 fold。
+### Test G: Observation Manifest Mismatch
 
-Expected：每個 fold 有獨立狀態、metrics 與 artifacts；不可只保存聚合績效。
+Given：Observation 引用的 manifest hash 與 Campaign 不一致。
 
-### Test G: Retrospective Backfill
+Expected：寫入被拒絕或標記 BLOCKER，不得納入 Campaign 績效。
 
-Given：補登舊回測但沒有原始事前鎖定證據。
+### Test H: Retrospective Backfill Time
 
-Expected：registration mode 為 RETROSPECTIVE_BACKFILL，禁止偽造 LOCKED_BEFORE_EXECUTION。
+Given：2025 年執行的實驗於 2026 年補登。
 
-### Test H: Paper Version Change
+Expected：保存 original execution timestamps 與 backfilled_at；不得要求 registry registration 早於原始執行。
 
-Given：Paper Trading Campaign 進行中。
+### Test I: Fabricated Backfill Lock
 
-When：Strategy Version 改變。
+Given：補登實驗沒有事前鎖定證據。
 
-Expected：舊 Campaign 結束，建立新 Campaign 與新 Experiment ID。
+Expected：`original_design_locked_at = null`，不得標記 `LOCKED_BEFORE_EXECUTION`。
 
-## 32. Research Reporting Requirements
+### Test J: OOS Contamination
 
-正式頁面或報告至少顯示：
+Given：OOS 在鎖定前已被查看。
+
+Expected：不能標記 CLEAN 或 ELIGIBLE clean OOS。
+
+### Test K: Invalidation Propagation
+
+Given：上游資料缺陷影響多個實驗與決策。
+
+Expected：可查出完整 dependency path、impact status 與 affected Decision Records。
+
+### Test L: Failed Experiment Retention
+
+Given：Experiment execution failed。
+
+Expected：Registry 仍可搜尋、顯示與統計該實驗。
+
+## 33. Research Reporting Requirements
+
+正式研究頁面至少顯示：
 
 - Experiment ID
-- Family／Batch／Campaign references
-- Experiment purpose and subject type
-- Strategy ID and Version，若適用
+- Experiment purpose
+- Strategy ID and Version, when applicable
 - Registration mode
 - Evidence classification
 - Execution status
@@ -1582,9 +1646,9 @@ Expected：舊 Campaign 結束，建立新 Campaign 與新 Experiment ID。
 - Known issues
 - Decision Record reference
 
-報告不得只顯示最佳實驗而隱藏同 Family 或 Batch 的其他 variants。
+報告不得只顯示最佳實驗而隱藏同 family 的其他 variants。
 
-## 33. Prohibited Practices
+## 34. Prohibited Practices
 
 TWStock 禁止：
 
@@ -1592,62 +1656,73 @@ TWStock 禁止：
 - 覆蓋舊結果
 - 刪除失敗或無效實驗
 - 只登錄成功實驗
-- 用 Batch 或 Campaign 隱藏 child results
-- 把 Run Attempt 當作規避新 Experiment ID 的方式
+- 用 Run Attempt 規避新 Experiment ID
+- 用 Batch／Campaign 隱藏 child failures
 - 先看結果再偽造 design lock
+- 補登時偽造原始執行時間或鎖定時間
 - 把 exploratory result 標記為 confirmatory
 - 把反覆查看的樣本標記為 clean OOS
 - 用 Superseded 隱藏 Invalidated
 - 用 Completed 代表 Valid
-- 接受矛盾的多軸狀態
-- 讓非策略實驗虛構 Strategy ID
-- 忽略上游 invalidation 的 dependency propagation
-- 在同一 Paper Campaign 混用多個 Strategy Version
-- 不保存 Dataset 或 Code Version
+- 讓 `POTENTIALLY_AFFECTED` 實驗維持 ELIGIBLE
+- 在同一 Campaign 混用不同 frozen manifest
+- 不保存 Dataset、Code、Config 或 Policy Version
 - 手動修改 metric 而不保存來源
 - 靜默忽略 BLOCKER
-- 讓 Decision Record 改寫原始結果
-- 將回測描述為未來獲利保證
+- 讓 Decision Record 改寫原始實驗結果
+- 將回測結果描述為未來獲利保證
 
-## 34. Exceptions
+## 35. Exceptions and Backfill
 
 任何例外都必須：
 
 1. 明確記錄。
-2. 指定 Experiment 或類型。
+2. 指定 Experiment、Campaign 或實驗類型。
 3. 說明必要性。
-4. 評估重現性與偏誤。
+4. 評估對重現性與偏誤的影響。
 5. 設定到期或重審條件。
 6. Evidence Eligibility 不得高於 Provisional，除非正式政策修訂另有規定。
 7. 不得用例外結果直接支持 Promote。
 
-## 35. Migration and Backfill
-
-補登既有歷史回測時：
+歷史補登必須：
 
 - `registration_mode = RETROSPECTIVE_BACKFILL`
-- 保存原執行日期，如可取得
-- 保存補登日期
-- 不得偽造事前 design lock
-- 有原始 preregistration artifact 時才可引用其原始 lock time
+- 保存 `backfilled_at`
+- 保存原始執行時間與來源，如可取得
+- 保存 timestamp precision and confidence
+- 不得偽造事前 Design Lock
 - 缺少版本或 artifact 時標記 Provisional、Restricted 或 Ineligible
-- 不得因補登提高證據等級
+- 不得因補登提高原證據等級
 
 ## 36. Revision Policy
 
 下列變更需要建立本文件新版本並透過 Pull Request 審查：
 
-- Identity hierarchy 改變
-- Experiment ID 規則改變
-- Classification enums 改變
-- Field applicability matrix 改變
-- Status axes 或 cross-status constraints 改變
-- Design lock 規則改變
-- Dependency types 或 propagation 改變
-- Retest or Reproduction lineage 改變
-- OOS contamination 規則改變
-- Artifact retention 改變
-- Engineering acceptance criteria 改變
+- Experiment ID 規則
+- Research unit hierarchy
+- Classification enums
+- Field applicability rules
+- Status axes or cross-status rules
+- Time model
+- Design lock rules
+- Campaign frozen-version contract
+- Retest or Reproduction lineage
+- OOS contamination rules
+- Dependency propagation
+- Artifact retention
+- Gate linkage
+- Engineering acceptance criteria
+
+版本變更必須記錄：
+
+- Previous Version
+- New Version
+- Change Summary
+- Change Reason
+- Expected Impact
+- Required Migration
+- Affected Experiments and Campaigns
+- Required Reclassification or Retest
 
 ## 37. Next Documents
 
