@@ -278,7 +278,7 @@ WONT_FIX_RETIRED
 當 `review_execution_status = ABORTED`：
 
 - `validation_outcome_status` 必須為 `NOT_ASSESSED` 或 `NOT_DEMONSTRATED`。
-- `requested_decision` 必須為 null，除非只記錄 `RETEST`／`REVISE` 建議且明確標記非正式。
+- `requested_decision` 必須為 null；後續建議只能保存於 Finding 的 `recommended_action`。
 - `decision_record_id` 必須為 null。
 - 必須保存 abort reason、已完成 checks 與未完成 checks。
 
@@ -306,7 +306,9 @@ WONT_FIX_RETIRED
 
 ### 8.6 Integrity Constraints
 
-- `audit_integrity_status = COMPROMISED` 時，不得 requested decision = `PROMOTE`。
+- `audit_integrity_status = COMPROMISED` 時：
+  - `validation_outcome_status` 不得為 `PASS` 或 `CONDITIONAL_PASS`。
+  - `requested_decision` 不得為 `PROMOTE`。
 - `audit_integrity_status = INVALIDATED` 時：
   - `validation_outcome_status` 必須為 `FAIL` 或 `NOT_DEMONSTRATED`。
   - `requested_decision` 不得為 `PROMOTE`。
@@ -1480,13 +1482,11 @@ RETROSPECTIVE_BACKFILL
 時間規則：
 
 ```text
-registry_registered_at
-≤ evidence_cutoff_at
-≤ review_started_at
-≤ review_completed_at
+registry_registered_at ≤ review_started_at ≤ review_completed_at
+evidence_cutoff_at ≤ review_started_at
 ```
 
-只對已存在的 applicable timestamps 檢查。
+`registry_registered_at` 與 `evidence_cutoff_at` 不要求彼此固定先後；Review 可以在資料截止時間之後才完成註冊，但不得使用 cutoff 後形成的 evidence。只對已存在的 applicable timestamps 檢查。
 
 ### 34.3 Retrospective Backfill
 
