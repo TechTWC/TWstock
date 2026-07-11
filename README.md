@@ -93,6 +93,59 @@ TWStock 使用四個分離的工作模式：
 
 第一個策略垂直切片原則上優先研究台股月營收／盈餘動能，但目前不得將其視為已驗證有效策略。
 
+
+## Website Bootstrap
+
+Issue #9 introduces the first minimal Astro static website scaffold for TWStock.
+The website entry point is a bootstrap page for `TWStock Research Console v0.1`;
+it does not contain strategy rules, backtesting, registry data, APIs, login,
+authentication, deployment configuration, market data, analytics, or investment
+recommendations.
+
+Static production output is generated in `dist/`.
+
+### Prerequisites
+
+- Node.js `24.18.0`
+- pnpm `11.11.0`
+
+Enable the pinned package manager with Corepack:
+
+```bash
+corepack enable
+corepack prepare pnpm@11.11.0 --activate
+```
+
+### Install
+
+```bash
+pnpm install --frozen-lockfile
+```
+
+### Development server
+
+```bash
+pnpm dev
+```
+
+### Typecheck
+
+```bash
+pnpm typecheck
+```
+
+### Build
+
+```bash
+pnpm build
+```
+
+### Preview production build
+
+```bash
+pnpm preview
+```
+
 ## Status
 
 ```text
