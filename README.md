@@ -93,6 +93,20 @@ TWStock 使用四個分離的工作模式：
 
 第一個策略垂直切片原則上優先研究台股月營收／盈餘動能，但目前不得將其視為已驗證有效策略。
 
+## Experimental Phase A1 Logic Sandbox
+
+`Phase A1 Logic Sandbox v0.1` 是 `Fundamental_Valuation_Trend_Breakout_v1` 的最小可執行規則沙盒。它只讀取已標準化的合成／人工快照 CSV，執行流動性、財務生存、絕對 PE、營業利益方向與 Primary Action 規則。
+
+```bash
+python -m twstock_engine.runner \
+  --input data/sample/phase_a1_snapshot.csv \
+  --output-dir outputs/latest
+
+python -m pytest tests/test_phase_a1_rules.py
+```
+
+此沙盒不是正式資料管線、不是 production-ready 系統，也不是已驗證的投資策略。
+
 ## Status
 
 ```text
