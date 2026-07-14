@@ -101,3 +101,14 @@ Production readiness: Not ready
 Validated strategies: None
 Live trading approval: None
 ```
+
+
+## Experimental Phase A1 Logic Sandbox
+
+This repository includes an experimental deterministic Python sandbox for `Fundamental_Valuation_Trend_Breakout_v1` under `twstock_engine/`. It reads a normalized CSV snapshot and writes CSV, JSON, and static HTML reports. It is not production-ready and is not a validated investment strategy.
+
+Run it with:
+
+```bash
+python -m twstock_engine.runner --input data/sample/phase_a1_snapshot.csv --output-dir outputs/latest
+```

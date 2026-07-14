@@ -1,0 +1,12 @@
+phase_a1:
+  release_name: "Phase A1 Logic Sandbox v0.1"
+  liquidity:
+    TW:
+      min_average_turnover_20d: 20000000
+  fundamentals:
+    high_debt_ratio: 0.75
+    low_current_ratio: 1.0
+  valuation:
+    very_low_pe_max: 10
+    absolute_cheap_pe_max: 15
+    fair_pe_max: 30
