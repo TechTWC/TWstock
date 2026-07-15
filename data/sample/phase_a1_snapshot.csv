@@ -1,0 +1,11 @@
+symbol,name,market,security_type,price_date,required_data_valid,financial_data_usable,average_turnover_20d,market_cap,ttm_net_income,ttm_operating_income,ttm_operating_cash_flow,latest_equity,latest_total_assets,latest_total_liabilities,latest_current_assets,latest_current_liabilities,latest_q_operating_income,previous_q_operating_income,prior_year_q_operating_income,is_synthetic,source_note
+SYN001.TW,Synthetic PE10 Context,TW,COMMON,2026-07-10,true,true,50000000,1000,100,220,80,500,1000,400,90,100,120,100,100,true,SYNTHETIC TEST DATA ONLY
+SYN002.TW,Synthetic PE15 Turnaround,TW,COMMON,2026-07-10,true,true,45000000,1500,100,180,60,450,900,350,150,100,50,40,-20,true,SYNTHETIC TEST DATA ONLY
+SYN003.TW,Synthetic PE30 Watch,TW,COMMON,2026-07-10,true,true,60000000,3000,100,240,90,600,1200,500,200,100,100,90,100,true,SYNTHETIC TEST DATA ONLY
+SYN004.TW,Synthetic Value Trap,TW,COMMON,2026-07-10,true,true,52000000,1200,100,190,50,500,1000,420,160,100,80,90,100,true,SYNTHETIC TEST DATA ONLY
+SYN005.TW,Synthetic Fundamental Review,TW,COMMON,2026-07-10,true,true,55000000,900,100,160,0,400,1000,600,80,100,70,60,60,true,SYNTHETIC TEST DATA ONLY
+SYN006.TW,Synthetic Fundamental Fail,TW,COMMON,2026-07-10,true,true,70000000,800,100,150,40,0,800,300,140,100,90,80,80,true,SYNTHETIC TEST DATA ONLY
+SYN007.TW,Synthetic Illiquid,TW,COMMON,2026-07-10,true,true,10000000,1000,100,200,70,500,1000,400,130,100,110,100,100,true,SYNTHETIC TEST DATA ONLY
+SYN008.TW,Synthetic Valuation Unknown,TW,COMMON,2026-07-10,true,true,50000000,1000,0,200,70,500,1000,400,130,100,110,100,100,true,SYNTHETIC TEST DATA ONLY
+SYN009.TW,Synthetic Valuation Wait,TW,COMMON,2026-07-10,true,true,50000000,4000,100,200,70,500,1000,400,130,100,110,100,100,true,SYNTHETIC TEST DATA ONLY
+SYN010.TW,Synthetic One Warning Pass,TW,COMMON,2026-07-10,true,true,80000000,800,100,260,100,300,1000,800,120,100,140,120,100,true,SYNTHETIC TEST DATA ONLY

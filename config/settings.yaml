@@ -1,0 +1,33 @@
+strategy:
+  name: Fundamental_Valuation_Trend_Breakout_v1
+  version: "1.10"
+
+release:
+  name: "Phase A1 Logic Sandbox v0.1"
+
+scope:
+  supported_market: TW
+  supported_security_type: COMMON
+
+liquidity:
+  tw_min_average_turnover_20d: 20000000
+
+fundamental:
+  equity_failure_threshold: 0
+  ttm_operating_income_failure_threshold: 0
+  negative_quarter_threshold: 0
+  nonpositive_ocf_threshold: 0
+  debt_ratio_warning_threshold: 0.75
+  current_ratio_threshold: 1.0
+  warning_watch_min_count: 2
+
+valuation:
+  net_income_positive_threshold: 0
+  market_cap_positive_threshold: 0
+  very_low_pe_max: 10
+  absolute_cheap_pe_max: 15
+  fair_pe_max: 30
+
+earnings:
+  positive_threshold: 0
+  yoy_ok_threshold: 0
