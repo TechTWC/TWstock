@@ -17,12 +17,39 @@ from twstock_engine.rules import (
     evaluate_eligibility,
     evaluate_fundamental_status,
 )
-from twstock_engine.runner import run, screen_snapshot
+from twstock_engine.runner import load_snapshots, run, screen_snapshot
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SETTINGS = Settings.load(ROOT / "config/settings.yaml")
 
+def csv_row(**overrides: str) -> dict[str, str]:
+    row = {
+        "symbol": "2330.TW",
+        "name": "Canonical Test",
+        "market": "TW",
+        "security_type": "COMMON",
+        "price_date": "2026-07-10",
+        "required_data_valid": "true",
+        "financial_data_usable": "true",
+        "average_turnover_20d": "30000000",
+        "market_cap": "1000",
+        "ttm_net_income": "100",
+        "ttm_operating_income": "200",
+        "ttm_operating_cash_flow": "100",
+        "latest_equity": "500",
+        "latest_total_assets": "1000",
+        "latest_total_liabilities": "400",
+        "latest_current_assets": "150",
+        "latest_current_liabilities": "100",
+        "latest_q_operating_income": "120",
+        "previous_q_operating_income": "100",
+        "prior_year_q_operating_income": "100",
+        "is_synthetic": "true",
+        "source_note": "SYNTHETIC TEST DATA ONLY",
+    }
+    row.update(overrides)
+    return row
 
 def snapshot(**overrides: object) -> StockSnapshot:
     values: dict[str, object] = {
@@ -216,6 +243,37 @@ def test_missing_required_data_flag_forces_data_review() -> None:
     result = screen_snapshot(snapshot(required_data_valid=False), SETTINGS)
     assert result.action.primary_action == "DATA_REVIEW"
     assert result.action.data_quality_flags == ("REQUIRED_DATA_INVALID",)
+
+@pytest.mark.parametrize("symbol", ["2330.TW", "SYN001.TW"])
+def test_tw_canonical_symbols_are_accepted(symbol: str) -> None:
+    item = StockSnapshot.from_csv_row(csv_row(symbol=symbol))
+    assert item.symbol == symbol
+
+
+@pytest.mark.parametrize("symbol", ["2330", "2330.TWO", "2330.tw", ".TW"])
+def test_invalid_tw_canonical_symbols_are_rejected(symbol: str) -> None:
+    with pytest.raises(InputValidationError, match="Invalid canonical symbol"):
+        StockSnapshot.from_csv_row(csv_row(symbol=symbol))
+
+
+def test_blank_tw_symbol_is_rejected_as_blank_required_value() -> None:
+    with pytest.raises(
+        InputValidationError, match="Blank required CSV values: symbol"
+    ):
+        StockSnapshot.from_csv_row(csv_row(symbol="   "))
+
+
+def test_load_snapshots_reports_row_number_for_invalid_symbol(tmp_path: Path) -> None:
+    input_path = tmp_path / "snapshot.csv"
+    row = csv_row(symbol="2330")
+    columns = list(row)
+    with input_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        writer.writerow(row)
+
+    with pytest.raises(InputValidationError, match="Row 2: Invalid canonical symbol"):
+        load_snapshots(input_path)
 
 
 def test_csv_missing_required_column_is_rejected() -> None:

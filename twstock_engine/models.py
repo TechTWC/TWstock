@@ -230,6 +230,14 @@ def _parse_finite_float(value: str, field_name: str) -> float:
     return parsed
 
 
+def _validate_canonical_symbol(symbol: str, market: str) -> None:
+    if market == "TW" and (not symbol.endswith(".TW") or not symbol[:-3]):
+        raise InputValidationError(
+            "Invalid canonical symbol for market TW: symbol must use the exact "
+            "uppercase .TW suffix with a non-blank prefix"
+        )
+
+
 @dataclass(frozen=True)
 class StockSnapshot:
     symbol: str
@@ -268,6 +276,10 @@ class StockSnapshot:
                 "Blank required CSV values: " + ", ".join(sorted(blank))
             )
 
+        symbol = row["symbol"].strip()
+        market = row["market"].strip()
+        _validate_canonical_symbol(symbol, market)
+
         try:
             parsed_date = date.fromisoformat(row["price_date"].strip())
         except ValueError as exc:
@@ -276,9 +288,9 @@ class StockSnapshot:
             ) from exc
 
         snapshot = cls(
-            symbol=row["symbol"].strip(),
+            symbol=symbol,
             name=row["name"].strip(),
-            market=row["market"].strip(),
+            market=market,
             security_type=row["security_type"].strip(),
             price_date=parsed_date,
             required_data_valid=_parse_bool(
