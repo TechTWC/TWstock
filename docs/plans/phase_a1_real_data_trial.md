@@ -16,18 +16,29 @@ cp data/trial/phase_a1_real_snapshot_template.csv data/trial/phase_a1_real_snaps
 
 Then replace the placeholder row with manually sourced point-in-time records for TWSE-listed common stocks. The runner expects one stock per row and the exact canonical columns below. `is_synthetic` and `source_note` are optional parser fields already supported by the sandbox, but they are included in the trial template so data provenance and placeholder status remain explicit.
 
+## Canonical symbol convention
+
+For this release, every TWSE-listed common-stock row must use the `.TW` suffix in the canonical `symbol` field.
+
+```text
+TWSE source/exchange code: 2330
+Canonical Phase A1 symbol: 2330.TW
+```
+
+Bare exchange codes may be used only when querying TWSE, MOPS, or issuer source systems. They must be converted to the canonical suffix form before joining source data, writing the trial CSV, running the engine, comparing outputs, or storing audit notes. Do not mix `2330` and `2330.TW` as row identities because that can split or miss the same security across datasets.
+
 ## Field meanings, units, and eventual sources
 
 All money amounts are raw TWD unless a future source contract explicitly normalizes them differently. Do not mix TWD with thousands of TWD or millions of TWD in the same file. Ratios are not entered directly; the sandbox derives debt ratio and current ratio from balance-sheet fields.
 
 | Field | Required | Unit / type | Time basis | Data category | Eventual source | Meaning and trial note |
 |---|---:|---|---|---|---|---|
-| `symbol` | yes | string | row identity | reference data | TWSE security master or manually verified TWSE listing reference | TWSE-listed stock identifier using the project-selected suffix convention. Must not be blank. |
+| `symbol` | yes | string | row identity | reference data | TWSE security master or manually verified TWSE listing reference | Canonical TWSE-listed stock identifier ending in `.TW`, for example `2330.TW`. Bare source codes such as `2330` are not valid canonical row identities. Must not be blank. |
 | `name` | yes | string | row identity | reference data | TWSE security master or manually verified TWSE listing reference | Company display name. Must match the intended TWSE-listed symbol. |
 | `market` | yes | string | snapshot | reference data | TWSE listing reference | Use `TW` for this Phase A1 sandbox release. |
 | `security_type` | yes | string | snapshot | reference data | TWSE listing reference | Use `COMMON` for TWSE-listed common stocks supported by this release. |
 | `price_date` | yes | ISO date `YYYY-MM-DD` | market close date | market data | TWSE daily market data or manually recorded market data source | Date for market capitalization and average turnover. |
-| `required_data_valid` | yes | boolean | row validation | inspection flag | Manual data QA | Set `true` only when every required field is sourced, unit-checked, TWSE-listed common-stock scoped, and point-in-time acceptable. Set `false` to mark the row unusable. |
+| `required_data_valid` | yes | boolean | row validation | inspection flag | Manual data QA | Set `true` only when every required field is sourced, unit-checked, TWSE-listed common-stock scoped, canonically identified, and point-in-time acceptable. Set `false` to mark the row unusable. |
 | `financial_data_usable` | yes | boolean | financial statement availability | inspection flag | Manual data QA based on published financial statements | Set `true` only when financial statement values were publicly available by the intended decision date and pass consistency checks. Set `false` to mark financial data unusable. |
 | `average_turnover_20d` | yes | TWD numeric | trailing 20 trading sessions through `price_date` | market data | TWSE daily traded value data | Average daily traded value over the latest 20 trading sessions. Must be finite and nonnegative. |
 | `market_cap` | yes | TWD numeric | `price_date` | market data | TWSE market price and common shares outstanding from exchange/company sources | Common-equity market capitalization as of `price_date`, on the same valuation basis as `ttm_net_income`. Must be finite. |
@@ -106,7 +117,7 @@ The absolute PE calculation depends on a consistent numerator and denominator:
 
 A row can be structurally valid but intentionally unusable:
 
-- Set `required_data_valid` to `false` when required inputs are missing, unit-conflicted, out of TWSE-listed common-stock scope, stale, or fail manual QA.
+- Set `required_data_valid` to `false` when required inputs are missing, unit-conflicted, out of TWSE-listed common-stock scope, use a noncanonical symbol, are stale, or fail manual QA.
 - Set `financial_data_usable` to `false` when financial statements are unavailable, publication dates are uncertain, statement bases conflict, PE basis cannot be reconciled, cumulative values cannot be converted to standalone quarters, or values cannot be reconciled.
 - Add `UNUSABLE: <reason>` to `source_note` for auditability.
 - Keep required numeric cells finite and structurally valid even for unusable rows so the runner can inspect and report the row instead of failing CSV parsing.
@@ -138,6 +149,7 @@ Before treating any output as a real-data trial result:
 - [ ] The working CSV is named `data/trial/phase_a1_real_snapshot.csv`, not the template file.
 - [ ] Every placeholder row was removed.
 - [ ] Every row is a TWSE-listed common stock; TWO/TPEx rows are excluded for this release.
+- [ ] Every `symbol` uses the canonical `.TW` suffix, such as `2330.TW`; no bare exchange code is used as a row identity.
 - [ ] Every required field is present and nonblank.
 - [ ] All numeric fields are finite raw TWD values, except booleans and identifiers.
 - [ ] `latest_total_assets` is greater than zero for every row.
