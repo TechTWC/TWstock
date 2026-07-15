@@ -256,6 +256,13 @@ def test_invalid_tw_canonical_symbols_are_rejected(symbol: str) -> None:
         StockSnapshot.from_csv_row(csv_row(symbol=symbol))
 
 
+def test_blank_tw_symbol_is_rejected_as_blank_required_value() -> None:
+    with pytest.raises(
+        InputValidationError, match="Blank required CSV values: symbol"
+    ):
+        StockSnapshot.from_csv_row(csv_row(symbol="   "))
+
+
 def test_load_snapshots_reports_row_number_for_invalid_symbol(tmp_path: Path) -> None:
     input_path = tmp_path / "snapshot.csv"
     row = csv_row(symbol="2330")
