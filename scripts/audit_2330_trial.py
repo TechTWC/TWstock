@@ -18,6 +18,29 @@ EXPECTED_TTM_OPERATING_INCOME_RAW = Decimal("2187977000000")
 EXPECTED_TTM_OPERATING_CASH_FLOW_RAW = Decimal("2348378000000")
 EXPECTED_PERIODS = frozenset({"2025 Q2", "2025 Q3", "2025 Q4", "2026 Q1"})
 
+EXPECTED_FINANCIAL_ROWS = {
+    "2025 Q2": {
+        "operating_income_million_twd": Decimal("463423"),
+        "parent_net_income_million_twd": Decimal("398273"),
+        "operating_cash_flow_million_twd": Decimal("497064"),
+    },
+    "2025 Q3": {
+        "operating_income_million_twd": Decimal("500685"),
+        "parent_net_income_million_twd": Decimal("452302"),
+        "operating_cash_flow_million_twd": Decimal("426829"),
+    },
+    "2025 Q4": {
+        "operating_income_million_twd": Decimal("564903"),
+        "parent_net_income_million_twd": Decimal("505744"),
+        "operating_cash_flow_million_twd": Decimal("725509"),
+    },
+    "2026 Q1": {
+        "operating_income_million_twd": Decimal("658966"),
+        "parent_net_income_million_twd": Decimal("572480"),
+        "operating_cash_flow_million_twd": Decimal("698976"),
+    },
+}
+
 FINANCIAL_FIELDS = (
     "operating_income",
     "parent_net_income",
@@ -77,8 +100,16 @@ def audit_financial_extract(
 
     totals = {field: Decimal("0") for field in FINANCIAL_FIELDS}
     for row in rows:
+        period = row["period"].strip()
+        expected_row = EXPECTED_FINANCIAL_ROWS[period]
         for field in FINANCIAL_FIELDS:
-            million = _decimal(row[f"{field}_million_twd"])
+            million_field = f"{field}_million_twd"
+            million = _decimal(row[million_field])
+            expected_million = expected_row[million_field]
+            if million != expected_million:
+                raise AssertionError(
+                    f"{period} {million_field}: {million} != expected {expected_million}"
+                )
             raw = _decimal(row[f"{field}_raw_twd"])
             expected = million * MILLION
             if raw != expected:

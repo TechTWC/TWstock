@@ -111,7 +111,7 @@ def test_financial_extract_rejects_internally_consistent_zero_rows(tmp_path: Pat
             row[f"{field}_million_twd"] = "0"
             row[f"{field}_raw_twd"] = "0"
     path = _write_financial_rows(tmp_path / "zero.csv", rows)
-    with pytest.raises(AssertionError, match="TTM parent net income mismatch"):
+    with pytest.raises(AssertionError, match="million_twd"):
         audit_financial_extract(path)
 
 
@@ -120,7 +120,7 @@ def test_financial_extract_rejects_correct_rows_with_wrong_ttm_total(tmp_path: P
     rows[0]["parent_net_income_million_twd"] = "1"
     rows[0]["parent_net_income_raw_twd"] = _raw_from_million("1")
     path = _write_financial_rows(tmp_path / "wrong-total.csv", rows)
-    with pytest.raises(AssertionError, match="TTM parent net income mismatch"):
+    with pytest.raises(AssertionError, match="million_twd"):
         audit_financial_extract(path)
 
 
@@ -130,4 +130,28 @@ def test_financial_extract_rejects_unexpected_fifth_period(tmp_path: Path) -> No
     rows.append(extra)
     path = _write_financial_rows(tmp_path / "unexpected-fifth.csv", rows)
     with pytest.raises(AssertionError, match="Expected exactly four financial extract rows"):
+        audit_financial_extract(path)
+
+
+def test_financial_extract_rejects_shifted_values_with_unchanged_ttm_total(
+    tmp_path: Path,
+) -> None:
+    rows = _read_financial_rows()
+    rows[0]["parent_net_income_million_twd"] = str(
+        Decimal(rows[0]["parent_net_income_million_twd"]) + Decimal("1")
+    )
+    rows[0]["parent_net_income_raw_twd"] = _raw_from_million(
+        rows[0]["parent_net_income_million_twd"]
+    )
+    rows[1]["parent_net_income_million_twd"] = str(
+        Decimal(rows[1]["parent_net_income_million_twd"]) - Decimal("1")
+    )
+    rows[1]["parent_net_income_raw_twd"] = _raw_from_million(
+        rows[1]["parent_net_income_million_twd"]
+    )
+    path = _write_financial_rows(tmp_path / "shifted-unchanged-ttm.csv", rows)
+    with pytest.raises(
+        AssertionError,
+        match="2025 Q2 parent_net_income_million_twd: 398274 != expected 398273",
+    ):
         audit_financial_extract(path)
