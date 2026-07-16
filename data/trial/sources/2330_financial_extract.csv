@@ -1,0 +1,5 @@
+period,publication_date,operating_income_million_twd,operating_income_raw_twd,parent_net_income_million_twd,parent_net_income_raw_twd,operating_cash_flow_million_twd,operating_cash_flow_raw_twd,source_document,source_page_or_line,conversion_to_raw_twd
+2025 Q2,2025-10-16,463423,463423000000,398273,398273000000,497064,497064000000,TSMC 2025 Q3 Financial Statements,PDF lines 46-59 70-71 115-126,"raw_twd = million_twd × 1,000,000"
+2025 Q3,2025-10-16,500685,500685000000,452302,452302000000,426829,426829000000,TSMC 2025 Q3 Financial Statements,PDF lines 46-59 70-71 115-126,"raw_twd = million_twd × 1,000,000"
+2025 Q4,2026-04-16,564903,564903000000,505744,505744000000,725509,725509000000,TSMC 2026 Q1 Financial Statements,PDF lines 46-59 70-71 80-91,"raw_twd = million_twd × 1,000,000"
+2026 Q1,2026-04-16,658966,658966000000,572480,572480000000,698976,698976000000,TSMC 2026 Q1 Financial Statements,PDF lines 46-59 70-71 80-91,"raw_twd = million_twd × 1,000,000"
