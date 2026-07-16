@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "date": "2026-07-15",
+      "stock_id": "2330",
+      "Trading_Volume": 20000,
+      "Trading_money": 30000000,
+      "open": 100,
+      "max": 101,
+      "min": 99,
+      "close": 100,
+      "Trading_turnover": 1234
+    }
+  ]
+}
