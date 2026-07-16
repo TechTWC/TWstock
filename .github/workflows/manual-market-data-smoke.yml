@@ -1,0 +1,61 @@
+name: Manual Market Data Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: Canonical Taiwan stock symbol to fetch
+        required: true
+        default: 2330.TW
+      start:
+        description: Inclusive ISO start date
+        required: true
+        default: 2026-06-01
+      end:
+        description: Inclusive ISO end date
+        required: true
+        default: 2026-07-15
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    env:
+      SYMBOL: ${{ inputs.symbol }}
+      START: ${{ inputs.start }}
+      END: ${{ inputs.end }}
+      FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch live market data
+        run: |
+          python -m twstock_data.cli fetch-market \
+            --symbol "${SYMBOL}" \
+            --start "${START}" \
+            --end "${END}" \
+            --output-dir outputs/live_smoke \
+            --raw-cache-dir outputs/live_smoke/raw
+
+      - name: Validate live smoke outputs
+        run: |
+          python scripts/validate_market_data_smoke.py \
+            --output-dir outputs/live_smoke \
+            --symbol "${SYMBOL}" \
+            --start "${START}" \
+            --end "${END}" \
+            --secret "${FINMIND_TOKEN}"
+
+      - name: Upload live smoke artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-smoke-${{ inputs.symbol }}-${{ inputs.start }}-${{ inputs.end }}-${{ github.run_id }}
+          path: outputs/live_smoke
+          if-no-files-found: warn
+          retention-days: 14
