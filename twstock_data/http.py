@@ -3,6 +3,7 @@ import time, urllib.error, urllib.request
 from dataclasses import dataclass
 from typing import Protocol
 from .errors import SourceUnavailableError
+from .normalization import sanitize_url
 
 @dataclass(frozen=True)
 class HttpResponse:
@@ -25,8 +26,8 @@ def get_with_retry(url: str, transport: HttpTransport | None = None, timeout: fl
         try:
             r = transport.get(url, timeout)
             if 200 <= r.status < 300: return r
-            last = SourceUnavailableError(f"HTTP {r.status} for {url}")
+            last = SourceUnavailableError(f"HTTP {r.status} for {sanitize_url(url)}")
         except (TimeoutError, urllib.error.URLError, OSError) as e:
             last = e
         if attempt < retries: time.sleep(backoff * (2 ** attempt))
-    raise SourceUnavailableError(f"failed to fetch {url}: {last}")
+    raise SourceUnavailableError(f"failed to fetch {sanitize_url(url)}: {last}")
