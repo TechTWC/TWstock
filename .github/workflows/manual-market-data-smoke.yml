@@ -1,28 +1,36 @@
-name: Manual Market Data Smoke Test
+name: Manual market data smoke
 
 on:
   workflow_dispatch:
     inputs:
       symbol:
-        description: Canonical Taiwan stock symbol to fetch
+        description: Canonical TWSE symbol
         required: true
         default: 2330.TW
+        type: string
       start:
-        description: Inclusive ISO start date
+        description: Inclusive start date (YYYY-MM-DD)
         required: true
         default: 2026-06-01
+        type: string
       end:
-        description: Inclusive ISO end date
+        description: Inclusive end date (YYYY-MM-DD)
         required: true
         default: 2026-07-15
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
-  live-smoke:
+  live-market-data-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       SYMBOL: ${{ inputs.symbol }}
-      START: ${{ inputs.start }}
-      END: ${{ inputs.end }}
+      START_DATE: ${{ inputs.start }}
+      END_DATE: ${{ inputs.end }}
+      OUTPUT_DIR: outputs/live_smoke
       FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
     steps:
       - name: Check out repository
@@ -31,31 +39,31 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.12"
 
       - name: Fetch live market data
         run: |
           python -m twstock_data.cli fetch-market \
             --symbol "${SYMBOL}" \
-            --start "${START}" \
-            --end "${END}" \
-            --output-dir outputs/live_smoke \
-            --raw-cache-dir outputs/live_smoke/raw
+            --start "${START_DATE}" \
+            --end "${END_DATE}" \
+            --output-dir "${OUTPUT_DIR}" \
+            --raw-cache-dir "${OUTPUT_DIR}/raw"
 
       - name: Validate live smoke outputs
+        if: always()
         run: |
           python scripts/validate_market_data_smoke.py \
-            --output-dir outputs/live_smoke \
+            --output-dir "${OUTPUT_DIR}" \
             --symbol "${SYMBOL}" \
-            --start "${START}" \
-            --end "${END}" \
-            --secret "${FINMIND_TOKEN}"
+            --start "${START_DATE}" \
+            --end "${END_DATE}"
 
       - name: Upload live smoke artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: live-smoke-${{ inputs.symbol }}-${{ inputs.start }}-${{ inputs.end }}-${{ github.run_id }}
+          name: market-data-smoke-${{ inputs.symbol }}-${{ inputs.start }}-${{ inputs.end }}-${{ github.run_id }}
           path: outputs/live_smoke
           if-no-files-found: warn
           retention-days: 14
