@@ -77,6 +77,43 @@ def _scan_for_secret(output_dir: Path, secret_value: str | None) -> None:
             raise SmokeValidationError(f"secret value leaked into artifact: {path}")
 
 
+def _validate_reconciliation(
+    manifest: dict[str, Any],
+    reconciliation: dict[str, Any],
+) -> None:
+    manifest_state = manifest.get("reconciliation_state")
+    reconciliation_state = reconciliation.get("state")
+
+    if manifest_state != reconciliation_state:
+        raise SmokeValidationError(
+            "reconciliation state mismatch between source_manifest.json and "
+            f"reconciliation.json: {manifest_state!r} != {reconciliation_state!r}"
+        )
+
+    if reconciliation_state != "PRIMARY_VERIFIED":
+        raise SmokeValidationError(
+            "live cross-source reconciliation did not verify the primary data: "
+            f"{reconciliation_state or 'UNKNOWN'}"
+        )
+
+    manifest_cross_check = manifest.get("cross_check_unavailable")
+    reconciliation_cross_check = reconciliation.get("cross_check_unavailable")
+    if manifest_cross_check != reconciliation_cross_check:
+        raise SmokeValidationError(
+            "cross_check_unavailable mismatch between source_manifest.json and "
+            "reconciliation.json"
+        )
+
+    finmind_available = bool(manifest.get("finmind_secondary_available")) or (
+        manifest.get("finmind_state") == "SECONDARY_ONLY"
+    )
+    if finmind_available and manifest_cross_check is True:
+        raise SmokeValidationError(
+            "FinMind secondary data is available but reconciliation reports the "
+            "cross-check as unavailable"
+        )
+
+
 def _validate_raw_evidence(
     raw_dir: Path,
     normalized_hashes: set[str],
@@ -131,7 +168,7 @@ def validate_smoke_output(
 ) -> dict[str, Any]:
     output_dir = Path(output_dir)
     manifest = _load_json(output_dir / "source_manifest.json")
-    _load_json(output_dir / "reconciliation.json")
+    reconciliation = _load_json(output_dir / "reconciliation.json")
 
     source_symbol = source_symbol_from_input(symbol)
     expected_canonical = canonical_symbol(source_symbol, "TW")
@@ -141,20 +178,27 @@ def validate_smoke_output(
             f"{manifest.get('canonical_symbol')!r} != {expected_canonical!r}"
         )
     if manifest.get("requested_start") != start or manifest.get("requested_end") != end:
-        raise SmokeValidationError("source manifest requested range does not match workflow inputs")
+        raise SmokeValidationError(
+            "source manifest requested range does not match workflow inputs"
+        )
 
     twse_state = manifest.get("twse_state")
     if twse_state != "PRIMARY_VERIFIED":
         raise SmokeValidationError(
-            f"TWSE live smoke did not verify the primary source: {twse_state or 'UNKNOWN'}"
+            f"TWSE live smoke did not verify the primary source: "
+            f"{twse_state or 'UNKNOWN'}"
         )
+
+    _validate_reconciliation(manifest, reconciliation)
 
     rows = _read_twse_rows(output_dir / "twse_normalized.csv")
     try:
         start_date = date.fromisoformat(start)
         end_date = date.fromisoformat(end)
     except ValueError as exc:
-        raise SmokeValidationError("workflow date inputs must use ISO YYYY-MM-DD") from exc
+        raise SmokeValidationError(
+            "workflow date inputs must use ISO YYYY-MM-DD"
+        ) from exc
     if start_date > end_date:
         raise SmokeValidationError("workflow start date is after end date")
 
@@ -181,11 +225,13 @@ def validate_smoke_output(
             )
         if row["source_tier"] != "PRIMARY":
             raise SmokeValidationError(
-                f"row {row_number} has non-primary source tier: {row['source_tier']!r}"
+                f"row {row_number} has non-primary source tier: "
+                f"{row['source_tier']!r}"
             )
         if row["canonical_symbol"] != expected_canonical:
             raise SmokeValidationError(
-                f"row {row_number} canonical symbol mismatch: {row['canonical_symbol']!r}"
+                f"row {row_number} canonical symbol mismatch: "
+                f"{row['canonical_symbol']!r}"
             )
 
         try:
@@ -196,10 +242,13 @@ def validate_smoke_output(
             ) from exc
         if not (start_date <= trade_date <= end_date):
             raise SmokeValidationError(
-                f"row {row_number} trade_date is outside the requested range: {trade_date}"
+                f"row {row_number} trade_date is outside the requested range: "
+                f"{trade_date}"
             )
         dates.append(trade_date)
-        _positive_integer(row["traded_share_volume"], "traded_share_volume", row_number)
+        _positive_integer(
+            row["traded_share_volume"], "traded_share_volume", row_number
+        )
         _positive_integer(
             row["official_traded_value_twd"],
             "official_traded_value_twd",
@@ -209,14 +258,19 @@ def validate_smoke_output(
         raw_content_hash = row["raw_content_hash"]
         if len(raw_content_hash) != 64:
             raise SmokeValidationError(
-                f"row {row_number} has invalid raw_content_hash: {raw_content_hash!r}"
+                f"row {row_number} has invalid raw_content_hash: "
+                f"{raw_content_hash!r}"
             )
         normalized_hashes.add(raw_content_hash)
 
     if len(dates) != len(set(dates)):
-        raise SmokeValidationError("TWSE normalized records contain duplicate trade dates")
+        raise SmokeValidationError(
+            "TWSE normalized records contain duplicate trade dates"
+        )
     if dates != sorted(dates):
-        raise SmokeValidationError("TWSE normalized records are not sorted by trade_date")
+        raise SmokeValidationError(
+            "TWSE normalized records are not sorted by trade_date"
+        )
 
     metadata_count, preserved_hashes = _validate_raw_evidence(
         output_dir / "raw",
@@ -226,6 +280,7 @@ def validate_smoke_output(
 
     return {
         "status": "PRIMARY_VERIFIED",
+        "reconciliation_state": "PRIMARY_VERIFIED",
         "canonical_symbol": expected_canonical,
         "record_count": len(rows),
         "first_trade_date": dates[0].isoformat(),
