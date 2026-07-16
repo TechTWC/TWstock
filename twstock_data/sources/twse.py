@@ -1,13 +1,13 @@
 from __future__ import annotations
-import json
-from datetime import date
+import json, re
+from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 from ..http import HttpTransport, get_with_retry
 from ..models import MarketDataRecord, SourceTier
 from ..normalization import canonical_symbol, parse_float, parse_int, raw_hash, utc_now_iso, validate_date_range
 from ..raw_cache import preserve_raw_response
-from ..errors import MalformedSourceError, DuplicateTradeDateError
+from ..errors import MalformedSourceError, DuplicateTradeDateError, DataValidationError
 
 TWSE_STOCK_DAY_ENDPOINT = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
 FIELDS = ("日期", "成交股數", "成交金額", "開盤價", "最高價", "最低價", "收盤價", "成交筆數")
@@ -27,6 +27,21 @@ def _month_starts(start: date, end: date) -> list[date]:
         else:
             current = current.replace(month=current.month + 1)
     return months
+
+def _verify_response_identity(payload: dict, source_symbol: str) -> None:
+    candidates = []
+    for key in ("stockNo", "stock_no", "stock_id", "stockCode", "stock_code"):
+        value = payload.get(key)
+        if value is not None:
+            candidates.append(str(value).strip())
+    title = str(payload.get("title", ""))
+    title_match = re.search(r"(?:^|[^0-9])([0-9]{4,6})(?:[^0-9]|$)", title)
+    if title_match:
+        candidates.append(title_match.group(1))
+    if not candidates:
+        raise MalformedSourceError("missing TWSE response identity")
+    if source_symbol not in candidates:
+        raise DataValidationError(f"TWSE response identity mismatch for requested symbol {source_symbol}")
 
 def build_url(source_symbol: str, month: str) -> str:
     return TWSE_STOCK_DAY_ENDPOINT + "?" + urlencode({"response": "json", "date": month, "stockNo": source_symbol})
@@ -61,9 +76,14 @@ def fetch_twse_daily(
             source_url=response.url,
             http_status=response.status,
             body=response.body,
+            request_identifier=f"twse_{month_param}",
         )
         payload = json.loads(response.body.decode("utf-8-sig"))
-        for record in parse_twse_payload(payload, source_symbol, start, end, response.body, response.url, retrieved_at):
+        next_month = month.replace(year=month.year + 1, month=1) if month.month == 12 else month.replace(month=month.month + 1)
+        month_end = next_month - timedelta(days=1)
+        window_start = max(start_date, month).isoformat()
+        window_end = min(end_date, month_end).isoformat()
+        for record in parse_twse_payload(payload, source_symbol, window_start, window_end, response.body, response.url, retrieved_at):
             if record.trade_date in seen:
                 raise DuplicateTradeDateError(f"duplicate TWSE trade date across monthly responses {record.trade_date}")
             seen.add(record.trade_date)
@@ -82,6 +102,7 @@ def parse_twse_payload(
     validate_date_range(start, end)
     if not isinstance(payload, dict) or payload.get("stat") not in ("OK", "很抱歉，沒有符合條件的資料!") or "fields" not in payload or "data" not in payload:
         raise MalformedSourceError("unexpected TWSE STOCK_DAY schema")
+    _verify_response_identity(payload, source_symbol)
     fields = tuple(payload["fields"])
     for field in FIELDS:
         if field not in fields:

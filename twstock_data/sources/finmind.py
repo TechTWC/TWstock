@@ -4,9 +4,9 @@ from pathlib import Path
 from urllib.parse import urlencode
 from ..http import HttpTransport, get_with_retry
 from ..models import MarketDataRecord, SourceTier, SourceResult, SourceState
-from ..normalization import parse_float, parse_int, raw_hash, sanitize_url, utc_now_iso, validate_date_range
+from ..normalization import canonical_symbol as to_canonical_symbol, parse_float, parse_int, raw_hash, redact_tokens_in_text, sanitize_url, utc_now_iso, validate_date_range
 from ..raw_cache import preserve_raw_response
-from ..errors import MalformedSourceError, DuplicateTradeDateError, SourceUnavailableError
+from ..errors import MalformedSourceError, DuplicateTradeDateError, SourceUnavailableError, DataValidationError
 
 FINMIND_DAILY_ENDPOINT = "https://api.finmindtrade.com/api/v4/data"
 
@@ -28,6 +28,9 @@ def fetch_finmind_daily(
     raw_cache_dir: Path | str | None = None,
 ) -> SourceResult:
     validate_date_range(start, end)
+    expected_canonical = to_canonical_symbol(source_symbol, "TW")
+    if canonical_symbol != expected_canonical:
+        raise DataValidationError("FinMind canonical symbol mismatch")
     token = os.environ.get(token_env)
     if not token:
         return SourceResult(SourceState.SOURCE_UNAVAILABLE, error=f"{token_env} is not set")
@@ -47,12 +50,13 @@ def fetch_finmind_daily(
             source_url=response.url,
             http_status=response.status,
             body=response.body,
+            request_identifier=raw_hash(sanitize_url(url))[:12],
         )
         payload = json.loads(response.body.decode("utf-8"))
         records = parse_finmind_payload(payload, source_symbol, canonical_symbol, start, end, response.body, FINMIND_DAILY_ENDPOINT, retrieved_at)
         return SourceResult(SourceState.SECONDARY_ONLY, records)
     except SourceUnavailableError as e:
-        return SourceResult(SourceState.SOURCE_UNAVAILABLE, error=str(e).replace(token, "<redacted>"))
+        return SourceResult(SourceState.SOURCE_UNAVAILABLE, error=redact_tokens_in_text(str(e).replace(token, "<redacted>")))
 
 def parse_finmind_payload(
     payload: dict,
@@ -65,6 +69,8 @@ def parse_finmind_payload(
     retrieved_at: str | None = None,
 ) -> tuple[MarketDataRecord, ...]:
     validate_date_range(start, end)
+    if canonical_symbol != to_canonical_symbol(source_symbol, "TW"):
+        raise DataValidationError("FinMind canonical symbol mismatch")
     if not isinstance(payload, dict) or "data" not in payload or not isinstance(payload["data"], list):
         raise MalformedSourceError("unexpected FinMind TaiwanStockPrice schema")
     required = {"date", "stock_id", "Trading_Volume", "Trading_money", "open", "max", "min", "close", "Trading_turnover"}

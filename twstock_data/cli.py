@@ -3,7 +3,7 @@ import argparse, csv, json
 from dataclasses import asdict
 from pathlib import Path
 from .errors import SourceUnavailableError
-from .normalization import canonical_symbol, sanitize_url, source_symbol_from_input, validate_date_range
+from .normalization import canonical_symbol, redact_tokens_in_text, sanitize_url, source_symbol_from_input, validate_date_range
 from .sources.twse import fetch_twse_daily, TWSE_STOCK_DAY_ENDPOINT
 from .sources.finmind import fetch_finmind_daily, FINMIND_DAILY_ENDPOINT
 from .reconciliation import reconcile_market_data
@@ -63,7 +63,7 @@ def main(argv=None) -> int:
             twse_error = "TWSE returned no records for requested range"
     except SourceUnavailableError as e:
         twse_state = SourceState.SOURCE_UNAVAILABLE
-        twse_error = sanitize_url(str(e))
+        twse_error = redact_tokens_in_text(sanitize_url(str(e)))
     finmind_result = fetch_finmind_daily(source_symbol, canonical, args.start, args.end, raw_cache_dir=raw_cache_dir)
     reconciliation = reconcile_market_data(twse_records, finmind_result.records, twse_error)
     _write_csv(out / "twse_normalized.csv", twse_records)
@@ -76,12 +76,14 @@ def main(argv=None) -> int:
         "requested_start": args.start,
         "requested_end": args.end,
         "twse_endpoint": TWSE_STOCK_DAY_ENDPOINT,
-        "twse_state": twse_state.value if twse_error else reconciliation.state.value,
+        "twse_state": twse_state.value,
         "twse_error": twse_error,
         "finmind_endpoint": FINMIND_DAILY_ENDPOINT,
         "finmind_state": finmind_result.state.value,
         "finmind_error": finmind_result.error,
         "finmind_secondary_available": bool(finmind_result.records),
+        "reconciliation_state": reconciliation.state.value,
+        "cross_check_unavailable": reconciliation.cross_check_unavailable,
         "record_count": len(twse_records),
     }
     (out / "source_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")

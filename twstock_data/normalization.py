@@ -61,6 +61,16 @@ def sanitize_url(url: str) -> str:
     pairs = [(key, "<redacted>" if key.lower() == "token" else value) for key, value in parse_qsl(parts.query, keep_blank_values=True)]
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(pairs), parts.fragment))
 
+def redact_tokens_in_text(text: str) -> str:
+    token_patterns = (
+        re.compile(r"([?&]token=)[^&\s]+", re.IGNORECASE),
+        re.compile(r"(token=)[^&\s]+", re.IGNORECASE),
+    )
+    redacted = text
+    for pattern in token_patterns:
+        redacted = pattern.sub(r"\1<redacted>", redacted)
+    return redacted
+
 def stable_json_bytes(data: object) -> bytes:
     return json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
 

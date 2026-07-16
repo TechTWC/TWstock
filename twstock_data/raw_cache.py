@@ -17,13 +17,15 @@ def preserve_raw_response(
     source_url: str,
     http_status: int,
     body: bytes,
+    request_identifier: str | None = None,
 ) -> dict[str, Any] | None:
     if raw_cache_dir is None:
         return None
     root = Path(raw_cache_dir)
     root.mkdir(parents=True, exist_ok=True)
     digest = raw_hash(body)
-    stem = f"{source.lower()}_{source_symbol}_{requested_start}_{requested_end}_{digest[:12]}"
+    safe_request = (request_identifier or raw_hash(sanitize_url(source_url))[:12]).replace("/", "_").replace(":", "_")
+    stem = f"{source.lower()}_{source_symbol}_{requested_start}_{requested_end}_{safe_request}_{digest[:12]}"
     raw_path = root / f"{stem}.raw"
     meta_path = root / f"{stem}.metadata.json"
     raw_path.write_bytes(body)
