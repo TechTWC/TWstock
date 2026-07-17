@@ -1,0 +1,6 @@
+period,period_end,publication_date,research_available_date,diluted_eps_twd,data_status,source_note,source_url
+2025Q2,2025-06-30,2025-07-17,2025-07-18,15.36,OFFICIAL_ACTUAL,TSMC 2Q25 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2025/q2
+2025Q3,2025-09-30,2025-10-16,2025-10-17,17.44,OFFICIAL_ACTUAL,TSMC 3Q25 Quarterly Results,https://investor.tsmc.com/english/quarterly-results/2025/q3
+2025Q4,2025-12-31,2026-01-15,2026-01-16,19.50,OFFICIAL_ACTUAL,TSMC 4Q25 Quarterly Results,https://investor.tsmc.com/english/quarterly-results/2025/q4
+2026Q1,2026-03-31,2026-04-16,2026-04-17,22.08,OFFICIAL_ACTUAL,TSMC 1Q26 Quarterly Results,https://investor.tsmc.com/english/quarterly-results/2026/q1
+2026Q2,2026-06-30,2026-07-16,2026-07-17,27.25,OFFICIAL_ACTUAL,TSMC 2Q26 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2026/q2
