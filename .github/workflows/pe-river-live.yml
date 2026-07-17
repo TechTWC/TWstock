@@ -1,0 +1,67 @@
+name: 2330 live PE river experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      history_start:
+        description: Official TWSE history start (YYYY-MM-DD)
+        required: true
+        default: "2024-01-01"
+        type: string
+  push:
+    branches:
+      - experiment/2330-pe-river-mvp
+    paths:
+      - "twstock_experiments/**"
+      - "twstock_data/**"
+      - "data/experiments/2330_pe_river/**"
+      - "tests/test_pe_river_live.py"
+      - "tests/fixtures/yahoo_2330_delayed.json"
+      - ".github/workflows/pe-river-live.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependency
+        run: python -m pip install pytest
+      - name: Run live-experiment deterministic tests
+        run: python -m pytest tests/test_pe_river_experiment.py tests/test_pe_river_live.py
+      - name: Compile experiment code
+        run: python -m compileall -q twstock_experiments twstock_data tests
+
+  build-live-report:
+    needs: deterministic-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HISTORY_START: ${{ inputs.history_start || '2024-01-01' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch official history and delayed quote
+        run: |
+          python -m twstock_experiments.pe_river_live \
+            --history-start "${HISTORY_START}" \
+            --output-dir outputs/experiments/2330_pe_river_live
+      - name: Upload live research report
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2330-live-pe-river-${{ github.run_id }}
+          path: outputs/experiments/2330_pe_river_live
+          if-no-files-found: error
+          retention-days: 14
