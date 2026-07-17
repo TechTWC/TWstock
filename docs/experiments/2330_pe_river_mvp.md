@@ -101,12 +101,59 @@ The report also includes an `ALL` row for each horizon.
 
 These observations overlap because signals are monthly while holding periods may be up to one year. They are not independent statistical samples and cannot establish alpha.
 
+## v0.4 separate decision-checklist website page
+
+The generated research artifact now behaves as a small two-page website:
+
+```text
+index.html
+live_report.html
+decision_checklist.html
+```
+
+`index.html` is the landing page. It links to:
+
+1. the five-year PIT valuation river and evidence report; and
+2. a separate interactive page for regular investing and tactical-add checks.
+
+The checklist separates:
+
+- personal-finance gates: five-year horizon, emergency fund, no borrowed money and no near-term cash need;
+- portfolio concentration: current position weight versus target-position ceiling;
+- current fundamentals: operating margin and recent revenue direction;
+- valuation: five-year trailing-P/E percentile;
+- trend: price versus MA200;
+- Forward-evidence availability.
+
+It returns independent research classifications:
+
+```text
+DCA_ACTION = INCREASE | CONTINUE | REDUCE | PAUSE
+DCA_MULTIPLIER = 0.00 | 0.25 | 0.50 | 0.75 | 1.00 | 1.50
+TACTICAL_ADD_ACTION = NONE | SMALL | MODERATE | STRONG
+DECISION_CONFIDENCE = LOW | MEDIUM_LOW | MEDIUM | MEDIUM_HIGH
+```
+
+The personal inputs are processed in the browser and stored only in browser local storage. They are not uploaded by this static experiment page.
+
+Important boundaries:
+
+- a hard personal-finance or concentration failure overrides valuation;
+- unavailable historical Forward P/E prevents `MODERATE` or `STRONG` tactical-add classifications;
+- the page does not submit an order or create an investment recommendation;
+- the displayed result changes when the user changes personal assumptions.
+
 ## Run
 
 ```bash
 python -m twstock_experiments.pe_river_live \
   --analysis-years 5 \
   --output-dir outputs/experiments/2330_pe_river_live
+
+python -m twstock_experiments.decision_checklist \
+  --analysis outputs/experiments/2330_pe_river_live/live_analysis.json \
+  --output outputs/experiments/2330_pe_river_live/decision_checklist.html \
+  --index-output outputs/experiments/2330_pe_river_live/index.html
 ```
 
 Optional exact window controls:
@@ -120,14 +167,16 @@ python -m twstock_experiments.pe_river_live \
 ## Outputs
 
 ```text
+outputs/experiments/2330_pe_river_live/index.html
 outputs/experiments/2330_pe_river_live/live_report.html
+outputs/experiments/2330_pe_river_live/decision_checklist.html
 outputs/experiments/2330_pe_river_live/live_analysis.json
 outputs/experiments/2330_pe_river_live/historical_pe.csv
 outputs/experiments/2330_pe_river_live/historical_forward_pe.csv
 outputs/experiments/2330_pe_river_live/multi_horizon_backtest.csv
 ```
 
-The workflow `.github/workflows/pe-river-live.yml` runs deterministic tests, compiles the experiment code, fetches current data, validates all expected outputs and uploads a 14-day artifact.
+The workflow `.github/workflows/pe-river-live.yml` runs deterministic tests, compiles the experiment code, fetches current data, generates both website pages, validates all expected outputs and uploads a 14-day artifact.
 
 ## Point-in-Time boundaries
 
@@ -141,7 +190,11 @@ The workflow `.github/workflows/pe-river-live.yml` runs deterministic tests, com
 ## Tests
 
 ```bash
-python -m pytest tests/test_pe_river_experiment.py tests/test_pe_river_live.py
+python -m pytest \
+  tests/test_pe_river_experiment.py \
+  tests/test_pe_river_live.py \
+  tests/test_decision_checklist.py
+
 python -m compileall -q twstock_experiments twstock_data tests
 ```
 
@@ -152,3 +205,4 @@ python -m compileall -q twstock_experiments twstock_data tests
 3. Cross-sectional portfolio backtests with transaction costs.
 4. Robustness, non-overlapping inference, multiple-testing control and clean out-of-sample validation.
 5. Any real-capital or automated-trading authorization.
+6. Production authentication, database storage or server-side personal portfolio persistence.
