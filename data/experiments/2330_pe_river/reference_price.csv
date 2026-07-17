@@ -1,0 +1,2 @@
+symbol,name,price_date,close_twd,data_status,source_note,source_url
+2330.TW,台積電,2026-07-16,2470,PUBLIC_REFERENCE_NOT_RECONCILED,2026-07-16 close used only as a fixed bridge reference; replace with verified TWSE adapter output when available,https://tw.finance.yahoo.com/quote/2330.TW

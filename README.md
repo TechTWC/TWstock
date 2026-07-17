@@ -107,6 +107,17 @@ python -m pytest tests/test_phase_a1_rules.py
 
 此沙盒不是正式資料管線、不是 production-ready 系統，也不是已驗證的投資策略。
 
+## Experimental 2330 PE River
+
+這個隔離的 Point-in-Time 本益比河流原型，比較新季度資料成為可用資訊前後的 TTM 估值，並輸出可編輯的 Forward 情境與市場隱含 EPS 表格。
+
+```bash
+python -m twstock_experiments.pe_river
+python -m pytest tests/test_pe_river_experiment.py
+```
+
+輸出位於 `outputs/experiments/2330_pe_river/`。這是探索性研究成果，不是已驗證策略或投資建議。
+
 ## Status
 
 ```text
