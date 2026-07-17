@@ -18,6 +18,14 @@ on:
       - "tests/test_pe_river_live.py"
       - "tests/fixtures/yahoo_2330_delayed.json"
       - ".github/workflows/pe-river-live.yml"
+  pull_request:
+    paths:
+      - "twstock_experiments/**"
+      - "twstock_data/**"
+      - "data/experiments/2330_pe_river/**"
+      - "tests/test_pe_river_live.py"
+      - "tests/fixtures/yahoo_2330_delayed.json"
+      - ".github/workflows/pe-river-live.yml"
 
 permissions:
   contents: read
