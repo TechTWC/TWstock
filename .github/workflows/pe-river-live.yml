@@ -16,6 +16,7 @@ on:
       - "twstock_data/**"
       - "data/experiments/2330_pe_river/**"
       - "tests/test_pe_river_live.py"
+      - "tests/test_decision_checklist.py"
       - "tests/fixtures/yahoo_2330_delayed.json"
       - ".github/workflows/pe-river-live.yml"
   pull_request:
@@ -24,6 +25,7 @@ on:
       - "twstock_data/**"
       - "data/experiments/2330_pe_river/**"
       - "tests/test_pe_river_live.py"
+      - "tests/test_decision_checklist.py"
       - "tests/fixtures/yahoo_2330_delayed.json"
       - ".github/workflows/pe-river-live.yml"
 
@@ -44,7 +46,11 @@ jobs:
       - name: Install test dependency
         run: python -m pip install pytest
       - name: Run experiment deterministic tests
-        run: python -m pytest tests/test_pe_river_experiment.py tests/test_pe_river_live.py
+        run: |
+          python -m pytest \
+            tests/test_pe_river_experiment.py \
+            tests/test_pe_river_live.py \
+            tests/test_decision_checklist.py
       - name: Compile experiment code
         run: python -m compileall -q twstock_experiments twstock_data tests
 
@@ -54,6 +60,7 @@ jobs:
     timeout-minutes: 30
     env:
       ANALYSIS_YEARS: ${{ inputs.analysis_years || '5' }}
+      OUTPUT_DIR: outputs/experiments/2330_pe_river_live
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -65,15 +72,25 @@ jobs:
         run: |
           python -m twstock_experiments.pe_river_live \
             --analysis-years "${ANALYSIS_YEARS}" \
-            --output-dir outputs/experiments/2330_pe_river_live
+            --output-dir "${OUTPUT_DIR}"
+      - name: Generate website decision page
+        run: |
+          python -m twstock_experiments.decision_checklist \
+            --analysis "${OUTPUT_DIR}/live_analysis.json" \
+            --output "${OUTPUT_DIR}/decision_checklist.html" \
+            --index-output "${OUTPUT_DIR}/index.html"
       - name: Validate expected outputs
         run: |
-          test -s outputs/experiments/2330_pe_river_live/live_report.html
-          test -s outputs/experiments/2330_pe_river_live/live_analysis.json
-          test -s outputs/experiments/2330_pe_river_live/historical_pe.csv
-          test -s outputs/experiments/2330_pe_river_live/historical_forward_pe.csv
-          test -s outputs/experiments/2330_pe_river_live/multi_horizon_backtest.csv
-      - name: Upload live research report
+          test -s "${OUTPUT_DIR}/index.html"
+          test -s "${OUTPUT_DIR}/live_report.html"
+          test -s "${OUTPUT_DIR}/decision_checklist.html"
+          test -s "${OUTPUT_DIR}/live_analysis.json"
+          test -s "${OUTPUT_DIR}/historical_pe.csv"
+          test -s "${OUTPUT_DIR}/historical_forward_pe.csv"
+          test -s "${OUTPUT_DIR}/multi_horizon_backtest.csv"
+          grep -q "定期定額與加碼進場檢核" "${OUTPUT_DIR}/decision_checklist.html"
+          grep -q "live_report.html" "${OUTPUT_DIR}/index.html"
+      - name: Upload live research website
         uses: actions/upload-artifact@v4
         with:
           name: 2330-five-year-pe-river-${{ github.run_id }}
