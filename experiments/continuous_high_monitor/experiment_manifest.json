@@ -1,0 +1,24 @@
+{
+  "experiment_id": "TW-CONTINUOUS-HIGH-V0-1-0001",
+  "experiment_type": "IMPLEMENTATION_VERIFICATION",
+  "git_sha": "SET_AT_EXECUTION_TIME",
+  "data_reference": "tests/test_continuous_high_monitor.py synthetic bars",
+  "data_hash": "SET_AT_EXECUTION_TIME",
+  "config": "experiments/continuous_high_monitor/default_config.json",
+  "parameter_version": "CH-PARAM-001",
+  "parameter_hash": "28e19afb37df7c6630fd57e8b38a4b770a107068e27c7c8fcc743e2a0577df18",
+  "test_period": null,
+  "universe": ["SYNTHETIC.TW"],
+  "metrics": [
+    "prior-only-new-high-comparison",
+    "first-discovery-immutability",
+    "stage-and-risk-transitions",
+    "event-id-determinism",
+    "prefix-replay-consistency",
+    "config-validation",
+    "standalone-html-svg-output"
+  ],
+  "output_path": "outputs/experiments/continuous_high_monitor/",
+  "status": "TEMPLATE",
+  "notes": "Synthetic implementation verification only. No real-market data, cross-sectional relative-strength rank, backtest, machine learning, alpha claim, or investment instruction."
+}

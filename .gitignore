@@ -1,2 +1,4 @@
 
 data/runtime/raw/
+__pycache__/
+*.py[cod]

@@ -90,6 +90,17 @@ python -m unittest -v tests.test_breakout_tracker_v5
 
 事件定義與明確排除項目見 [`docs/specs/breakout_tracker_v5.md`](docs/specs/breakout_tracker_v5.md)。
 
+持續創高的早期雷達為獨立實驗，可執行：
+
+```bash
+python -m unittest -v tests.test_continuous_high_monitor
+python scripts/run_continuous_high_demo.py
+```
+
+第二個指令會在 `outputs/experiments/continuous_high_monitor/` 產生獨立 HTML/SVG
+強勢發展圖、完整事件時間線 CSV，以及包含未進雷達日期的客觀特徵 CSV。規則、參數治理與 v0.1 排除項目見
+[`docs/specs/continuous_high_monitor_v0_1.md`](docs/specs/continuous_high_monitor_v0_1.md)。
+
 ## Experimental Phase A1 Logic Sandbox
 
 `Phase A1 Logic Sandbox v0.1` 是 `Fundamental_Valuation_Trend_Breakout_v1` 的最小可執行規則沙盒。它只讀取已標準化的合成／人工快照 CSV，執行流動性、財務生存、絕對 PE、營業利益方向與 Primary Action 規則。
