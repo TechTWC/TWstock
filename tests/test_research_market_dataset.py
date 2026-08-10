@@ -97,6 +97,29 @@ class ResearchMarketDatasetTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("--raw-cache-dir", completed.stdout)
 
+    def test_runner_rejects_nonfinite_or_nonpositive_timeout(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            for value in ("nan", "inf", "-inf", "0"):
+                with self.subTest(timeout=value):
+                    with self.assertRaises(SystemExit) as raised:
+                        run_real_market_monitor(
+                            [
+                                "--symbol",
+                                "2330",
+                                "--start",
+                                "2026-07-01",
+                                "--end",
+                                "2026-07-31",
+                                "--output-dir",
+                                str(Path(directory) / "output"),
+                                "--raw-cache-dir",
+                                str(Path(directory) / "raw"),
+                                f"--timeout={value}",
+                            ],
+                            transport=RoutingTransport(),
+                        )
+                    self.assertEqual(raised.exception.code, 2)
+
     def test_fetch_pipeline_primary_with_optional_secondary_cross_check(self) -> None:
         with patch.dict(os.environ, {"FINMIND_TOKEN": "FAKE"}, clear=False):
             dataset = fetch_research_dataset(
@@ -281,9 +304,53 @@ class ResearchMarketDatasetTests(unittest.TestCase):
         self.assertEqual(dataset.source_state, SourceState.SECONDARY_ONLY)
         self.assertEqual(dataset.price_basis, "RAW_SECONDARY_DAILY")
 
+    def test_source_state_requires_the_contractually_named_provider(self) -> None:
+        cases = (
+            (
+                ReconciliationResult(
+                    SourceState.PRIMARY_VERIFIED,
+                    (record(source="Yahoo"),),
+                    cross_check_unavailable=True,
+                ),
+                (),
+                False,
+            ),
+            (
+                ReconciliationResult(
+                    SourceState.SECONDARY_ONLY,
+                    (record(source="Yahoo", tier=SourceTier.SECONDARY),),
+                ),
+                (),
+                True,
+            ),
+            (
+                ReconciliationResult(SourceState.PRIMARY_VERIFIED, (record(),)),
+                (
+                    record(
+                        source="Yahoo",
+                        tier=SourceTier.SECONDARY,
+                        raw_hash="b" * 64,
+                    ),
+                ),
+                False,
+            ),
+        )
+        for reconciliation, verification, allow_secondary in cases:
+            with self.subTest(state=reconciliation.state.value):
+                with self.assertRaisesRegex(DataValidationError, "source provider"):
+                    build_research_dataset(
+                        reconciliation,
+                        requested_symbol="2330",
+                        requested_start="2026-07-01",
+                        requested_end="2026-07-31",
+                        allow_secondary_only=allow_secondary,
+                        verification_records=verification,
+                    )
+
     def test_invalid_record_date_and_hash_fail_with_controlled_error(self) -> None:
         for bad, message in (
             (replace(record(), trade_date="2026/07/15"), "trade date"),
+            (replace(record(), trade_date=None), "trade date"),
             (replace(record(), raw_content_hash="z" * 64), "raw content hash"),
         ):
             with self.subTest(message=message):
@@ -298,6 +365,21 @@ class ResearchMarketDatasetTests(unittest.TestCase):
                         requested_start="2026-07-01",
                         requested_end="2026-07-31",
                     )
+
+        with self.assertRaisesRegex(DataValidationError, "trade date"):
+            build_research_dataset(
+                ReconciliationResult(
+                    SourceState.PRIMARY_VERIFIED,
+                    (
+                        record(trade_date="2026-07-14"),
+                        replace(record(), trade_date=None),
+                    ),
+                    cross_check_unavailable=True,
+                ),
+                requested_symbol="2330",
+                requested_start="2026-07-01",
+                requested_end="2026-07-31",
+            )
 
     def test_csv_round_trip_preserves_engine_bars_and_manifest(self) -> None:
         records = (
@@ -350,6 +432,68 @@ class ResearchMarketDatasetTests(unittest.TestCase):
                     replace(dataset, dataset_hash="0" * 64),
                     Path(directory),
                 )
+
+            for field, detached in (
+                (
+                    "adjustment policy",
+                    replace(dataset, adjustment_policy="TOTAL_RETURN"),
+                ),
+                (
+                    "corporate actions",
+                    replace(dataset, corporate_actions_applied=True),
+                ),
+                (
+                    "raw hashes",
+                    replace(dataset, raw_content_hashes=("f" * 64,)),
+                ),
+                (
+                    "retrieval timestamps",
+                    replace(
+                        dataset,
+                        retrieval_timestamps=("2099-01-01T00:00:00+00:00",),
+                    ),
+                ),
+                (
+                    "requested symbol",
+                    replace(dataset, requested_symbol="9999"),
+                ),
+            ):
+                with self.subTest(field=field):
+                    with self.assertRaisesRegex(
+                        DataValidationError, "dataset metadata does not match"
+                    ):
+                        detached.manifest()
+                    with self.assertRaisesRegex(
+                        DataValidationError, "dataset metadata does not match"
+                    ):
+                        write_research_dataset(detached, Path(directory))
+
+    def test_writer_rejects_detached_secondary_verification_provenance(self) -> None:
+        primary = record()
+        secondary = record(
+            source="FinMind",
+            tier=SourceTier.SECONDARY,
+            raw_hash="b" * 64,
+        )
+        dataset = build_research_dataset(
+            ReconciliationResult(SourceState.PRIMARY_VERIFIED, (primary,)),
+            requested_symbol="2330",
+            requested_start="2026-07-01",
+            requested_end="2026-07-31",
+            verification_records=(secondary,),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            write_research_dataset(dataset, Path(directory))
+            detached = replace(
+                dataset,
+                verification_retrieval_timestamps=(
+                    "2099-01-01T00:00:00+00:00",
+                ),
+            )
+            with self.assertRaisesRegex(
+                DataValidationError, "dataset metadata does not match"
+            ):
+                write_research_dataset(detached, Path(directory))
 
     def test_continuous_high_uses_official_value_when_available(self) -> None:
         bars = build_research_dataset(

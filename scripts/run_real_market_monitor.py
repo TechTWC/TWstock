@@ -5,6 +5,7 @@ import csv
 from dataclasses import asdict
 import hashlib
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -36,8 +37,8 @@ def run(argv: list[str] | None = None, *, transport: HttpTransport | None = None
     parser.add_argument("--timeout", type=float, default=10.0)
     parser.add_argument("--retries", type=int, default=2)
     args = parser.parse_args(argv)
-    if args.timeout <= 0:
-        parser.error("--timeout must be positive")
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        parser.error("--timeout must be finite and positive")
     if args.retries < 0:
         parser.error("--retries must be nonnegative")
 

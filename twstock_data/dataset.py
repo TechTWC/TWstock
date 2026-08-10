@@ -47,6 +47,7 @@ class ResearchMarketDataset:
     cross_check_unavailable: bool
     bars: tuple[MarketBar, ...]
     records: tuple[MarketDataRecord, ...]
+    verification_records: tuple[MarketDataRecord, ...]
     reconciliation_issues: tuple[ReconciliationIssue, ...]
     dataset_hash: str
     raw_content_hashes: tuple[str, ...]
@@ -59,6 +60,7 @@ class ResearchMarketDataset:
     corporate_actions_applied: bool = False
 
     def manifest(self) -> dict[str, object]:
+        _validate_dataset_consistency(self)
         return {
             "schema_version": "TWSTOCK-RESEARCH-DATASET-001",
             "requested_symbol": self.requested_symbol,
@@ -193,6 +195,10 @@ def build_research_dataset(
         )
     if not reconciliation.records:
         raise DataValidationError("research dataset contains no market records")
+    if reconciliation.issues:
+        raise DataValidationError(
+            f"{reconciliation.state.value} cannot be promoted with reconciliation issues"
+        )
     if (
         reconciliation.state is SourceState.PRIMARY_VERIFIED
         and not reconciliation.cross_check_unavailable
@@ -206,7 +212,7 @@ def build_research_dataset(
             "cross_check_unavailable conflicts with verification provenance"
         )
 
-    records = tuple(sorted(reconciliation.records, key=lambda item: item.trade_date))
+    records = _sort_records(reconciliation.records, label="selected")
     _validate_records(
         records,
         expected_source_symbol=source_symbol,
@@ -215,9 +221,7 @@ def build_research_dataset(
         end=end,
         state=reconciliation.state,
     )
-    verified_records = tuple(
-        sorted(verification_records, key=lambda item: item.trade_date)
-    )
+    verified_records = _sort_records(verification_records, label="verification")
     if verified_records:
         _validate_records(
             verified_records,
@@ -267,6 +271,7 @@ def build_research_dataset(
         cross_check_unavailable=reconciliation.cross_check_unavailable,
         bars=bars,
         records=records,
+        verification_records=verified_records,
         reconciliation_issues=reconciliation.issues,
         dataset_hash=dataset_hash,
         raw_content_hashes=tuple(sorted({item.raw_content_hash for item in records})),
@@ -326,21 +331,7 @@ def _compute_dataset_hash(
 
 
 def write_research_dataset(dataset: ResearchMarketDataset, output_dir: Path) -> None:
-    if dataset.bars != tuple(_to_bar(item) for item in dataset.records):
-        raise DataValidationError("dataset bars do not match source records")
-    expected_hash = _compute_dataset_hash(
-        canonical=dataset.canonical_symbol,
-        requested_start=dataset.requested_start,
-        requested_end=dataset.requested_end,
-        source_state=dataset.source_state,
-        selected_source=dataset.selected_source,
-        price_basis=dataset.price_basis,
-        records=dataset.records,
-        verification_sources=dataset.verification_sources,
-        verification_raw_content_hashes=dataset.verification_raw_content_hashes,
-    )
-    if dataset.dataset_hash != expected_hash:
-        raise DataValidationError("dataset hash does not match dataset content")
+    expected = _validate_dataset_consistency(dataset)
     output_dir.mkdir(parents=True, exist_ok=True)
     bars_path = output_dir / "market_bars.csv"
     fieldnames = (
@@ -360,7 +351,7 @@ def write_research_dataset(dataset: ResearchMarketDataset, output_dir: Path) -> 
     with bars_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
-        for bar, record in zip(dataset.bars, dataset.records, strict=True):
+        for bar, record in zip(expected.bars, expected.records, strict=True):
             writer.writerow(
                 {
                     "symbol": bar.symbol,
@@ -380,9 +371,41 @@ def write_research_dataset(dataset: ResearchMarketDataset, output_dir: Path) -> 
                 }
             )
     (output_dir / "dataset_manifest.json").write_text(
-        json.dumps(dataset.manifest(), ensure_ascii=False, indent=2),
+        json.dumps(expected.manifest(), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+
+def _validate_dataset_consistency(
+    dataset: ResearchMarketDataset,
+) -> ResearchMarketDataset:
+    try:
+        expected = build_research_dataset(
+            ReconciliationResult(
+                state=dataset.source_state,
+                records=dataset.records,
+                issues=dataset.reconciliation_issues,
+                cross_check_unavailable=dataset.cross_check_unavailable,
+            ),
+            requested_symbol=dataset.requested_symbol,
+            requested_start=dataset.requested_start,
+            requested_end=dataset.requested_end,
+            allow_secondary_only=True,
+            verification_records=dataset.verification_records,
+        )
+    except DataValidationError as error:
+        raise DataValidationError(
+            "dataset metadata does not match retained source records"
+        ) from error
+    if dataset.bars != expected.bars:
+        raise DataValidationError("dataset bars do not match source records")
+    if dataset.dataset_hash != expected.dataset_hash:
+        raise DataValidationError("dataset hash does not match dataset content")
+    if dataset != expected:
+        raise DataValidationError(
+            "dataset metadata does not match retained source records"
+        )
+    return expected
 
 
 def read_research_bars_csv(path: Path) -> tuple[MarketBar, ...]:
@@ -418,6 +441,13 @@ def _validate_records(
 ) -> None:
     previous: date | None = None
     source = records[0].source
+    expected_provider = (
+        "FinMind" if state is SourceState.SECONDARY_ONLY else "TWSE"
+    )
+    if source != expected_provider:
+        raise DataValidationError(
+            f"{state.value} records have inconsistent source provider"
+        )
     for index, item in enumerate(records):
         if item.source_symbol != expected_source_symbol or item.market != "TW":
             raise DataValidationError(
@@ -451,6 +481,21 @@ def _validate_records(
         raise DataValidationError(
             f"{state.value} records have inconsistent source tier"
         )
+
+
+def _sort_records(
+    records: Sequence[MarketDataRecord], *, label: str
+) -> tuple[MarketDataRecord, ...]:
+    parsed: list[tuple[date, MarketDataRecord]] = []
+    for index, item in enumerate(records):
+        try:
+            trade_date = date.fromisoformat(item.trade_date)
+        except (TypeError, ValueError) as error:
+            raise DataValidationError(
+                f"{label} record {index} contains invalid trade date"
+            ) from error
+        parsed.append((trade_date, item))
+    return tuple(item for _, item in sorted(parsed, key=lambda pair: pair[0]))
 
 
 def _validate_record_values(item: MarketDataRecord, index: int) -> None:

@@ -83,6 +83,9 @@ The dataset hash changes with market content, requested interval, source state, 
 source, price policy, selected-source raw identity, or secondary verification raw identity.
 It does not change solely because the same payload was retrieved later. A dataset cannot
 claim an available cross-check without preserving secondary verification provenance.
+Before writing, the dataset is rebuilt from its retained primary and secondary records;
+detached bars, hashes, retrieval timestamps, query identity, or price-policy metadata are
+rejected instead of being serialized into a contradictory manifest.
 
 The bounded runner also writes:
 
