@@ -1,0 +1,82 @@
+name: FinMind Live Smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finmind-live-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: finmind-live-smoke
+
+    steps:
+      - name: Check out selected ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install fixed development dependencies
+        run: python -m pip install --disable-pip-version-check --requirement requirements-dev.txt
+
+      - name: Restrict selected ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$GITHUB_REF_NAME" in
+            main|codex/corporate-action-guard-v0-2) ;;
+            *)
+              echo "Live smoke is restricted to main or the bounded guard branch." >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Require configured FinMind secret
+        shell: bash
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${#FINMIND_TOKEN}" -lt 8 ]; then
+            echo "FINMIND_TOKEN is missing or unexpectedly short." >&2
+            exit 1
+          fi
+
+      - name: Run guarded 13-month live smoke
+        shell: bash
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          set +x
+          run_root="$(mktemp -d)"
+          trap 'rm -rf -- "$run_root"' EXIT
+          end_date="$(date -u -d '1 day ago' +%F)"
+          start_date="$(date -u -d "$end_date -13 months" +%F)"
+
+          python scripts/run_real_market_monitor.py \
+            --symbol 2330 \
+            --start "$start_date" \
+            --end "$end_date" \
+            --output-dir "$run_root/output" \
+            --raw-cache-dir "$run_root/raw" \
+            --timeout 20 \
+            --retries 2
+
+          python scripts/validate_live_smoke.py \
+            --output-dir "$run_root/output" \
+            --raw-cache-dir "$run_root/raw" \
+            --expected-symbol 2330.TW \
+            --expected-start "$start_date" \
+            --expected-end "$end_date"

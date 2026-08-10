@@ -97,4 +97,6 @@ The governance refresh does not relax:
 - Yahoo-derived research, if added later, remains exploratory and separate from the
   official TWSE dataset contract.
 - The existing Phase A1 settings and actions are not generic strategy infrastructure.
-- A clean development dependency manifest is not yet present; do not assume `pytest` is installed.
+- A fixed pytest development dependency manifest and PR CI are present. Live FinMind checks
+  remain manual, secret-backed operational evidence and are not a substitute for official
+  source verification or strategy validation.

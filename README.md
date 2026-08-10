@@ -120,6 +120,20 @@ python scripts/run_real_market_monitor.py \
 規則、內容雜湊與明確排除項見
 [`docs/specs/real_market_data_ingestion_v0_1.md`](docs/specs/real_market_data_ingestion_v0_1.md)。
 
+## Test Infrastructure
+
+固定的 Python 3.12 開發測試依賴與完整測試可執行：
+
+```bash
+python -m pip install --requirement requirements-dev.txt
+python -m pytest -q
+```
+
+一般 CI 不取得 FinMind Secret，也不執行 live network call。受控的 13 個月
+FinMind live smoke 僅能由 GitHub Actions 手動啟動；Secret 設定、執行順序、
+fail-closed 驗證條件與限制見
+[`docs/operations/test_infrastructure_live_smoke.md`](docs/operations/test_infrastructure_live_smoke.md)。
+
 ## Experimental Phase A1 Logic Sandbox
 
 `Phase A1 Logic Sandbox v0.1` 是 `Fundamental_Valuation_Trend_Breakout_v1` 的最小可執行規則沙盒。它只讀取已標準化的合成／人工快照 CSV，執行流動性、財務生存、絕對 PE、營業利益方向與 Primary Action 規則。
