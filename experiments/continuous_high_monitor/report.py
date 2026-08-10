@@ -164,7 +164,16 @@ def render_html_report(
     if bars and result.symbol != bars[0].symbol:
         raise ValueError("result symbol does not match chart bars")
     expected_rows = tuple(
-        (item.symbol, item.trade_date, item.close, item.close * item.volume)
+        (
+            item.symbol,
+            item.trade_date,
+            item.close,
+            (
+                item.official_traded_value_twd
+                if item.official_traded_value_twd is not None
+                else item.close * item.volume
+            ),
+        )
         for item in bars
     )
     actual_rows = tuple(

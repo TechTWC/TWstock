@@ -6,6 +6,8 @@ from enum import Enum
 import math
 from numbers import Real
 
+from twstock_data.models import MarketBar as PriceBar
+
 
 class BreakoutState(str, Enum):
     SETUP = "SETUP"
@@ -14,17 +16,6 @@ class BreakoutState(str, Enum):
     RETEST = "RETEST"
     EXTENDED = "EXTENDED"
     FAILED = "FAILED"
-
-
-@dataclass(frozen=True)
-class PriceBar:
-    symbol: str
-    trade_date: date
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
 
 
 @dataclass(frozen=True)

@@ -101,6 +101,25 @@ python scripts/run_continuous_high_demo.py
 強勢發展圖、完整事件時間線 CSV，以及包含未進雷達日期的客觀特徵 CSV。規則、參數治理與 v0.1 排除項目見
 [`docs/specs/continuous_high_monitor_v0_1.md`](docs/specs/continuous_high_monitor_v0_1.md)。
 
+真實日線資料的第一個 bounded 接入工作包使用既有 TWSE primary adapter 與可選的
+FinMind secondary cross-check，產生兩個監控器共用的 canonical bars 與資料／執行
+manifest：
+
+```bash
+python -m unittest -v tests.test_research_market_dataset
+
+python scripts/run_real_market_monitor.py \
+  --symbol 2330 \
+  --start 2025-01-01 \
+  --end 2026-08-10 \
+  --output-dir outputs/real_market/2330 \
+  --raw-cache-dir outputs/raw_market/2330
+```
+
+資料仍為未還原權值、未處理公司行動的 raw daily bars；來源信任、fail-closed
+規則、內容雜湊與明確排除項見
+[`docs/specs/real_market_data_ingestion_v0_1.md`](docs/specs/real_market_data_ingestion_v0_1.md)。
+
 ## Experimental Phase A1 Logic Sandbox
 
 `Phase A1 Logic Sandbox v0.1` 是 `Fundamental_Valuation_Trend_Breakout_v1` 的最小可執行規則沙盒。它只讀取已標準化的合成／人工快照 CSV，執行流動性、財務生存、絕對 PE、營業利益方向與 Primary Action 規則。

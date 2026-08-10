@@ -183,7 +183,11 @@ class ContinuousHighMonitor:
             moving_average=moving_average,
             ma_extension_pct=extension,
             drawdown_from_recent_high_pct=drawdown,
-            trading_value=bar.close * bar.volume,
+            trading_value=(
+                bar.official_traded_value_twd
+                if bar.official_traded_value_twd is not None
+                else bar.close * bar.volume
+            ),
         )
 
     def _stage(
@@ -323,4 +327,13 @@ class ContinuousHighMonitor:
                 or bar.volume < 0
             ):
                 raise ValueError(f"bar {index} contains invalid volume")
+            if bar.official_traded_value_twd is not None and (
+                isinstance(bar.official_traded_value_twd, bool)
+                or not isinstance(bar.official_traded_value_twd, Real)
+                or not math.isfinite(bar.official_traded_value_twd)
+                or bar.official_traded_value_twd <= 0
+            ):
+                raise ValueError(
+                    f"bar {index} contains invalid official traded value"
+                )
             previous_date = bar.trade_date
