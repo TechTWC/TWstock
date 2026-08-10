@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import date
+import csv
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
 from experiments.continuous_high_monitor import ContinuousHighMonitor, MonitorConfig
 from experiments.continuous_high_monitor.report import render_html_report
@@ -20,7 +22,7 @@ from twstock_data.dataset import (
     read_research_bars_csv,
     write_research_dataset,
 )
-from twstock_data.errors import DataValidationError
+from twstock_data.errors import DataValidationError, SourceUnavailableError
 from twstock_data.models import (
     MarketDataRecord,
     ReconciliationIssue,
@@ -48,6 +50,9 @@ class RoutingTransport:
             if self.fail_primary:
                 raise OSError("primary blocked")
             return HttpResponse(url, 200, TWSE_PAYLOAD)
+        dataset_name = parse_qs(urlsplit(url).query).get("dataset", [""])[0]
+        if dataset_name != "TaiwanStockPrice":
+            return HttpResponse(url, 200, json.dumps({"data": []}).encode())
         payload = json.loads(FINMIND_PAYLOAD)
         if self.mismatch:
             payload["data"][0]["Trading_Volume"] = 1
@@ -179,6 +184,7 @@ class ResearchMarketDatasetTests(unittest.TestCase):
             root = Path(directory)
             output = root / "output"
             raw = root / "raw"
+            transport = RoutingTransport()
             with patch.dict(os.environ, {"FINMIND_TOKEN": "FAKE"}, clear=False):
                 code = run_real_market_monitor(
                     [
@@ -195,22 +201,35 @@ class ResearchMarketDatasetTests(unittest.TestCase):
                         "--retries",
                         "0",
                     ],
-                    transport=RoutingTransport(),
+                    transport=transport,
                 )
             manifest = json.loads(
                 (output / "run_manifest.json").read_text(encoding="utf-8")
             )
             names = {item.name for item in output.iterdir()}
+            requested_urls = list(transport.urls)
 
         self.assertEqual(code, 0)
         self.assertEqual(manifest["dataset_source_state"], "PRIMARY_VERIFIED")
         self.assertEqual(manifest["status"], "EXPLORATORY_NOT_VALIDATED")
         self.assertFalse(manifest["history_sufficient_for_longest_high_window"])
+        self.assertFalse(manifest["clean_history_sufficient_for_longest_high_window"])
         self.assertEqual(manifest["minimum_history_bars"], 251)
+        self.assertTrue(manifest["corporate_action_guard_applied"])
+        self.assertEqual(
+            manifest["corporate_action_coverage_state"], "SECONDARY_COMPLETE"
+        )
+        self.assertEqual(manifest["corporate_action_event_count"], 0)
+        self.assertEqual(manifest["continuous_high_html_bar_count"], 1)
+        self.assertTrue(all("FAKE" not in url for url in requested_urls))
+        self.assertTrue(all("token=" not in url for url in requested_urls))
         self.assertEqual(
             names,
             {
+                "analysis_guard.csv",
                 "breakout_snapshots.csv",
+                "corporate_action_manifest.json",
+                "corporate_actions.csv",
                 "continuous_high.html",
                 "continuous_high_features.csv",
                 "continuous_high_timeline.csv",
@@ -219,6 +238,91 @@ class ResearchMarketDatasetTests(unittest.TestCase):
                 "run_manifest.json",
             },
         )
+
+    def test_real_market_runner_fails_closed_without_action_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "output"
+            with patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(SourceUnavailableError, "corporate-action"):
+                    run_real_market_monitor(
+                        [
+                            "--symbol",
+                            "2330",
+                            "--start",
+                            "2026-07-01",
+                            "--end",
+                            "2026-07-31",
+                            "--output-dir",
+                            str(output),
+                            "--raw-cache-dir",
+                            str(root / "raw"),
+                            "--retries",
+                            "0",
+                        ],
+                        transport=RoutingTransport(),
+                    )
+            self.assertFalse(output.exists())
+
+    def test_real_market_runner_blocks_outputs_after_effective_event(self) -> None:
+        class EventTransport(RoutingTransport):
+            def get(self, url: str, timeout: float) -> HttpResponse:
+                dataset_name = parse_qs(urlsplit(url).query).get("dataset", [""])[0]
+                if dataset_name == "TaiwanStockDividendResult":
+                    payload = {
+                        "status": 200,
+                        "msg": "success",
+                        "data": [
+                            {
+                                "date": "2026-07-15",
+                                "stock_id": "2330",
+                                "before_price": 102.0,
+                                "after_price": 100.0,
+                                "stock_or_cache_dividend": "息",
+                            }
+                        ],
+                    }
+                    self.urls.append(url)
+                    return HttpResponse(url, 200, json.dumps(payload).encode())
+                return super().get(url, timeout)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "output"
+            with patch.dict(os.environ, {"FINMIND_TOKEN": "FAKE"}, clear=False):
+                code = run_real_market_monitor(
+                    [
+                        "--symbol",
+                        "2330",
+                        "--start",
+                        "2026-07-01",
+                        "--end",
+                        "2026-07-31",
+                        "--output-dir",
+                        str(output),
+                        "--raw-cache-dir",
+                        str(root / "raw"),
+                        "--retries",
+                        "0",
+                    ],
+                    transport=EventTransport(),
+                )
+            manifest = json.loads(
+                (output / "run_manifest.json").read_text(encoding="utf-8")
+            )
+            with (output / "corporate_actions.csv").open(encoding="utf-8") as handle:
+                action_rows = list(csv.DictReader(handle))
+            with (output / "analysis_guard.csv").open(encoding="utf-8") as handle:
+                guard_rows = list(csv.DictReader(handle))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(len(action_rows), 1)
+        self.assertEqual({row["state"] for row in guard_rows}, {"ANALYSIS_BLOCKED"})
+        self.assertEqual(manifest["corporate_action_event_count"], 1)
+        self.assertEqual(manifest["analysis_blocked_row_count"], 2)
+        self.assertFalse(manifest["continuous_high_guard_ready_on_last_bar"])
+        self.assertFalse(manifest["breakout_guard_ready_on_last_bar"])
+        self.assertEqual(manifest["continuous_high_html_bar_count"], 0)
 
     def test_primary_dataset_preserves_official_value_and_provenance(self) -> None:
         source = record()

@@ -1,7 +1,7 @@
 # TWStock Current Status
 
 - Document ID: `TWSTOCK-CURRENT-STATUS-001`
-- Version: `1.0.0`
+- Version: `1.1.0`
 - Status: Active
 - Effective date: `2026-08-10`
 - Scope: Repository status, document applicability, and current development flow
@@ -17,10 +17,11 @@ early-strength companion, `Continuous High Monitor v0.1`:
 2. implement Pivot, first-breakout event, and cross-day state tracking with synthetic data;
 3. connect the existing TWSE primary adapter and optional FinMind cross-check through a
    fail-closed canonical research-dataset contract;
-4. replay historical dates using only information available at each date;
-5. test parameters, robustness, and walk-forward behavior;
-6. add official-market verification and historical-universe controls;
-7. run daily shadow observation before any investment-use claim.
+4. block raw-price analysis windows that cross a known corporate action;
+5. replay historical dates using only information available at each date;
+6. test parameters, robustness, and walk-forward behavior;
+7. add official-market verification and historical-universe controls;
+8. run daily shadow observation before any investment-use claim.
 
 `Breakout Tracker v5` detects a close above a confirmed frozen resistance Pivot.
 `Continuous High Monitor v0.1` detects rolling closing highs and preserves the first
@@ -31,9 +32,11 @@ validation, notification delivery, and machine learning remain later work packag
 
 `Real Market Data Ingestion v0.1` now provides a bounded TWSE-listed-stock path into both
 engines. It preserves raw responses, official traded value, reconciliation state, and
-content hashes; rejects source mismatch; and labels all prices as raw/unadjusted with no
-corporate-action handling. A fixture-backed implementation is not a live-network or
-strategy-validation claim.
+content hashes and rejects source mismatch. `Corporate Action Safety Guard v0.2` adds a
+secondary-only, four-dataset FinMind event contract and prevents either engine from using
+a lookback window across a known action. It does not adjust prices, returns, or holdings,
+and it is not official TWSE event verification. Fixture-backed implementation is not a
+live-network or strategy-validation claim.
 
 ## 2. Effective document rules
 
@@ -63,6 +66,7 @@ Chat history is not a repository source of truth.
 | Phase A1 plans/spec/config/engine | Legacy isolated experiment | Do not reuse as general Breakout v5 requirements |
 | `docs/specs/continuous_high_monitor_v0_1.md` | Active exploratory specification | Continuous-high event, timeline, parameter, and chart contract |
 | `docs/specs/real_market_data_ingestion_v0_1.md` | Active bounded specification | Canonical TWSE/FinMind research dataset and runner contract |
+| `docs/specs/corporate_action_guard_v0_2.md` | Active bounded specification | Corporate-action provenance, segmentation, and analysis-blocking contract |
 
 ## 4. Lightweight exploratory governance
 
@@ -92,7 +96,8 @@ The governance refresh does not relax:
 ## 6. Known repository limitations
 
 - TPEx and a complete historical Taiwan-market universe are not implemented.
-- Corporate-action and adjusted-price contracts are incomplete.
+- Corporate-action blocking is implemented with secondary-only source coverage; official
+  TWSE cross-checking, adjusted prices, returns, and holding adjustments remain incomplete.
 - The full governance schemas are documents, not implemented registry/decision systems.
 - Yahoo-derived research, if added later, remains exploratory and separate from the
   official TWSE dataset contract.
