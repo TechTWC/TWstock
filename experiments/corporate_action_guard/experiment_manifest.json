@@ -1,0 +1,23 @@
+{
+  "experiment_id": "TW-CORPORATE-ACTION-GUARD-V0-2-0001",
+  "experiment_type": "DATA_GUARD_IMPLEMENTATION_VERIFICATION",
+  "git_sha": "SET_AT_EXECUTION_TIME",
+  "data_reference": "synthetic corporate-action payloads and market bars",
+  "data_hash": "SET_AT_EXECUTION_TIME",
+  "config": "docs/specs/corporate_action_guard_v0_2.md",
+  "test_period": "synthetic bounded intervals within 2026",
+  "universe": [
+    "2330.TW"
+  ],
+  "metrics": [
+    "four-dataset-query-coverage",
+    "event-provenance-integrity",
+    "point-in-time-prefix-stability",
+    "no-event-engine-compatibility",
+    "post-event-clean-history-gate",
+    "false-reverse-split-breakout-suppression"
+  ],
+  "output_path": "outputs/real_market/",
+  "status": "TEMPLATE",
+  "notes": "Fixture/synthetic guard verification only. Corporate-action source coverage is secondary-only; official TWSE cross-check, adjusted prices, backtest performance, live source reachability, and investment use are not validated."
+}
