@@ -15,7 +15,8 @@ early-strength companion, `Continuous High Monitor v0.1`:
 
 1. freeze a point-in-time-safe breakout definition;
 2. implement Pivot, first-breakout event, and cross-day state tracking with synthetic data;
-3. connect an exploratory Yahoo price adapter;
+3. connect the existing TWSE primary adapter and optional FinMind cross-check through a
+   fail-closed canonical research-dataset contract;
 4. replay historical dates using only information available at each date;
 5. test parameters, robustness, and walk-forward behavior;
 6. add official-market verification and historical-universe controls;
@@ -27,6 +28,12 @@ discovery timeline even when a stock rises without forming a Pivot. Its first bo
 package contains only a parameterized synthetic-data event engine, deterministic timeline,
 and standalone HTML/SVG chart. Real data, cross-sectional relative strength, performance
 validation, notification delivery, and machine learning remain later work packages.
+
+`Real Market Data Ingestion v0.1` now provides a bounded TWSE-listed-stock path into both
+engines. It preserves raw responses, official traded value, reconciliation state, and
+content hashes; rejects source mismatch; and labels all prices as raw/unadjusted with no
+corporate-action handling. A fixture-backed implementation is not a live-network or
+strategy-validation claim.
 
 ## 2. Effective document rules
 
@@ -55,6 +62,7 @@ Chat history is not a repository source of truth.
 | `docs/research/VALIDATION_PROTOCOL.md` | Deferred formal reference | Formal validation checklist, not an early prototype gate |
 | Phase A1 plans/spec/config/engine | Legacy isolated experiment | Do not reuse as general Breakout v5 requirements |
 | `docs/specs/continuous_high_monitor_v0_1.md` | Active exploratory specification | Continuous-high event, timeline, parameter, and chart contract |
+| `docs/specs/real_market_data_ingestion_v0_1.md` | Active bounded specification | Canonical TWSE/FinMind research dataset and runner contract |
 
 ## 4. Lightweight exploratory governance
 
@@ -86,6 +94,7 @@ The governance refresh does not relax:
 - TPEx and a complete historical Taiwan-market universe are not implemented.
 - Corporate-action and adjusted-price contracts are incomplete.
 - The full governance schemas are documents, not implemented registry/decision systems.
-- Yahoo-derived research, when added, is exploratory until official-source checks exist.
+- Yahoo-derived research, if added later, remains exploratory and separate from the
+  official TWSE dataset contract.
 - The existing Phase A1 settings and actions are not generic strategy infrastructure.
 - A clean development dependency manifest is not yet present; do not assume `pytest` is installed.

@@ -1,0 +1,24 @@
+{
+  "experiment_id": "TW-REAL-MARKET-DATA-V0-1-0001",
+  "experiment_type": "DATA_CONTRACT_IMPLEMENTATION_VERIFICATION",
+  "git_sha": "SET_AT_EXECUTION_TIME",
+  "data_reference": "tests/fixtures TWSE and FinMind daily payloads",
+  "data_hash": "SET_AT_EXECUTION_TIME",
+  "config": "docs/specs/real_market_data_ingestion_v0_1.md",
+  "test_period": "2026-07-01/2026-07-31 fixture interval",
+  "universe": [
+    "2330.TW"
+  ],
+  "metrics": [
+    "primary-secondary-reconciliation",
+    "fail-closed-source-policy",
+    "official-traded-value-preservation",
+    "dataset-hash-determinism",
+    "canonical-csv-round-trip",
+    "raw-response-provenance",
+    "dual-engine-runner-output"
+  ],
+  "output_path": "outputs/real_market/",
+  "status": "TEMPLATE",
+  "notes": "Fixture-backed data-contract verification only. Live source reachability, corporate actions, adjusted prices, backtest performance, and investment use are not validated."
+}

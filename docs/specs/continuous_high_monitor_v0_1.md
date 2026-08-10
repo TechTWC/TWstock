@@ -1,7 +1,7 @@
 # Continuous High Monitor v0.1 — Event, Timeline, and Chart Specification
 
 - Document ID: `TWSTOCK-CONTINUOUS-HIGH-001`
-- Version: `0.1.0`
+- Version: `0.1.1`
 - Status: Active exploratory specification
 - Effective date: `2026-08-10`
 - Evidence level: Implementation definition only; no performance claim
@@ -51,7 +51,8 @@ The engine calculates, when sufficient prior observations exist:
 - current volume divided by the preceding volume average;
 - close divided by the current moving average minus one;
 - drawdown from the rolling weakening-window closing high;
-- daily trading value approximation (`close * volume`).
+- official daily traded value when supplied by the canonical market dataset; synthetic
+  inputs without that field use the explicit `close * volume` fallback.
 
 ## 5. Stages
 
@@ -142,7 +143,9 @@ if added later, it must preserve every event date.
 
 ## 10. Explicit exclusions
 
-v0.1 does not add Yahoo/TWSE/TPEx ingestion, adjusted-price or corporate-action handling,
+This monitor module does not itself add Yahoo/TWSE/TPEx ingestion. A separate active
+research-dataset contract may supply TWSE bars while preserving this engine interface.
+v0.1 does not add adjusted-price or corporate-action handling,
 market/industry relative-strength ranks, full-market scans, a database, notification
 delivery, parameter optimization, performance backtesting, portfolio simulation,
 machine learning, deployment, or an investment recommendation.

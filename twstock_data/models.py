@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date
 from enum import Enum
 
 class SourceTier(str, Enum):
@@ -12,6 +12,25 @@ class SourceState(str, Enum):
     SECONDARY_ONLY = "SECONDARY_ONLY"
     SOURCE_MISMATCH = "SOURCE_MISMATCH"
     SOURCE_UNAVAILABLE = "SOURCE_UNAVAILABLE"
+
+
+@dataclass(frozen=True)
+class MarketBar:
+    """Canonical daily bar shared by market-data and research engines.
+
+    ``official_traded_value_twd`` is optional for synthetic or exploratory inputs.
+    Official-source datasets must populate it instead of synthesizing turnover from
+    close multiplied by volume.
+    """
+
+    symbol: str
+    trade_date: date
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+    official_traded_value_twd: float | None = None
 
 @dataclass(frozen=True)
 class MarketDataRecord:
