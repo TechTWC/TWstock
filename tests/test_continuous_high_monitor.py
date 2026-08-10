@@ -178,16 +178,24 @@ class ContinuousHighMonitorTests(unittest.TestCase):
 
     def test_event_ids_and_timeline_are_scoped_to_parameter_identity(self) -> None:
         source = bars()
-        first_config = config(parameter_version="TEST-001", strengthening_high_count=2)
-        second_config = config(parameter_version="TEST-002", strengthening_high_count=3)
-        first = ContinuousHighMonitor(first_config).run(source)
-        second = ContinuousHighMonitor(second_config).run(source)
+        first = ContinuousHighMonitor(
+            config(parameter_version="TEST-001", strengthening_high_count=2)
+        ).run(source)
+        version_only_change = ContinuousHighMonitor(
+            config(parameter_version="TEST-002", strengthening_high_count=2)
+        ).run(source)
+        hash_only_change = ContinuousHighMonitor(
+            config(parameter_version="TEST-001", strengthening_high_count=3)
+        ).run(source)
 
         first_ids = {item.event_id for item in first.events}
-        second_ids = {item.event_id for item in second.events}
         self.assertTrue(first_ids)
-        self.assertTrue(second_ids)
-        self.assertTrue(first_ids.isdisjoint(second_ids))
+        self.assertTrue(
+            first_ids.isdisjoint(item.event_id for item in version_only_change.events)
+        )
+        self.assertTrue(
+            first_ids.isdisjoint(item.event_id for item in hash_only_change.events)
+        )
 
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "timeline.csv"
@@ -238,6 +246,10 @@ class ContinuousHighMonitorTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "invalid OHLC"):
             ContinuousHighMonitor(config()).run([boolean_bar])
+
+        boolean_volume = replace(source[0], volume=True)
+        with self.assertRaisesRegex(ValueError, "invalid volume"):
+            ContinuousHighMonitor(config()).run([boolean_volume])
 
         string_price = replace(source[0], close="10.0")  # type: ignore[arg-type]
         with self.assertRaisesRegex(ValueError, "invalid OHLC"):
