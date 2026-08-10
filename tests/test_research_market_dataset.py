@@ -59,6 +59,18 @@ class RoutingTransport:
         return HttpResponse(url, 200, json.dumps(payload).encode())
 
 
+class HeaderAwareRoutingTransport(RoutingTransport):
+    def __init__(self) -> None:
+        super().__init__()
+        self.header_calls: list[tuple[str, dict[str, str]]] = []
+
+    def get_with_headers(
+        self, url: str, timeout: float, headers: dict[str, str]
+    ) -> HttpResponse:
+        self.header_calls.append((url, dict(headers)))
+        return self.get(url, timeout)
+
+
 def record(
     *,
     source: str = "TWSE",
@@ -237,6 +249,59 @@ class ResearchMarketDatasetTests(unittest.TestCase):
                 "market_bars.csv",
                 "run_manifest.json",
             },
+        )
+
+    def test_real_market_runner_never_sends_finmind_bearer_to_twse(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            transport = HeaderAwareRoutingTransport()
+            with patch.dict(os.environ, {"FINMIND_TOKEN": "SECRET"}, clear=False):
+                code = run_real_market_monitor(
+                    [
+                        "--symbol",
+                        "2330",
+                        "--start",
+                        "2026-07-01",
+                        "--end",
+                        "2026-07-31",
+                        "--output-dir",
+                        str(root / "output"),
+                        "--raw-cache-dir",
+                        str(root / "raw"),
+                        "--retries",
+                        "0",
+                    ],
+                    transport=transport,
+                )
+
+        self.assertEqual(code, 0)
+        self.assertTrue(any("twse.com.tw" in url for url in transport.urls))
+        self.assertTrue(transport.header_calls)
+        self.assertTrue(
+            all(
+                urlsplit(url).scheme == "https"
+                and urlsplit(url).hostname == "api.finmindtrade.com"
+                for url, _ in transport.header_calls
+            )
+        )
+        self.assertEqual(
+            {
+                parse_qs(urlsplit(url).query)["dataset"][0]
+                for url, _ in transport.header_calls
+            },
+            {
+                "TaiwanStockPrice",
+                "TaiwanStockDividendResult",
+                "TaiwanStockCapitalReductionReferencePrice",
+                "TaiwanStockSplitPrice",
+                "TaiwanStockParValueChange",
+            },
+        )
+        self.assertTrue(
+            all(
+                headers["Authorization"] == "Bearer SECRET"
+                for _, headers in transport.header_calls
+            )
         )
 
     def test_real_market_runner_fails_closed_without_action_coverage(self) -> None:

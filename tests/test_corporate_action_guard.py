@@ -16,6 +16,7 @@ from twstock_data.corporate_actions import (
     AnalysisGuardState,
     CorporateActionEvidence,
     CorporateActionType,
+    FinMindBearerTransport,
     REQUIRED_FINMIND_DATASETS,
     build_analysis_guard_decisions,
     build_corporate_action_dataset,
@@ -121,6 +122,50 @@ def small_monitor_config() -> MonitorConfig:
 
 
 class CorporateActionGuardTests(unittest.TestCase):
+    def test_bearer_transport_authenticates_only_exact_finmind_endpoint(self) -> None:
+        class Transport:
+            def __init__(self) -> None:
+                self.plain_urls: list[str] = []
+                self.authenticated_calls: list[tuple[str, dict[str, str]]] = []
+
+            def get(self, url: str, timeout: float) -> HttpResponse:
+                self.plain_urls.append(url)
+                return HttpResponse(url, 200, b"{}")
+
+            def get_with_headers(
+                self, url: str, timeout: float, headers: dict[str, str]
+            ) -> HttpResponse:
+                self.authenticated_calls.append((url, dict(headers)))
+                return HttpResponse(url, 200, b"{}")
+
+        transport = Transport()
+        authenticated = FinMindBearerTransport(transport, "SECRET")
+        urls = (
+            "https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY?token=SECRET",
+            "http://api.finmindtrade.com/api/v4/data?token=SECRET",
+            "https://api.finmindtrade.com.evil.invalid/api/v4/data?token=SECRET",
+            "https://api.finmindtrade.com:444/api/v4/data?token=SECRET",
+            "https://api.finmindtrade.com/not-data?token=SECRET",
+            "https://api.finmindtrade.com/api/v4/data?token=SECRET",
+        )
+        for url in urls:
+            authenticated.get(url, 1.0)
+
+        self.assertEqual(len(transport.authenticated_calls), 1)
+        authenticated_url, headers = transport.authenticated_calls[0]
+        self.assertEqual(
+            authenticated_url,
+            "https://api.finmindtrade.com/api/v4/data",
+        )
+        self.assertEqual(headers["Authorization"], "Bearer SECRET")
+        self.assertEqual(len(transport.plain_urls), 5)
+        self.assertTrue(
+            all(
+                "SECRET" not in url and "token=" not in url
+                for url in transport.plain_urls
+            )
+        )
+
     def test_all_four_finmind_schemas_normalize_to_explicit_events(self) -> None:
         cases = {
             "TaiwanStockDividendResult": (

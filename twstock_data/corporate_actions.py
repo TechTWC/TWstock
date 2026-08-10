@@ -42,6 +42,11 @@ REQUIRED_FINMIND_DATASETS = (
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
+class _RejectAuthenticatedRedirects(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 class CorporateActionType(str, Enum):
     EX_DIVIDEND = "EX_DIVIDEND"
     EX_RIGHT = "EX_RIGHT"
@@ -176,7 +181,7 @@ def build_finmind_corporate_action_url(
 
 
 class FinMindBearerTransport:
-    """Add FinMind bearer auth without placing credentials in request URLs."""
+    """Add bearer auth only to the exact HTTPS FinMind data endpoint."""
 
     def __init__(self, delegate: HttpTransport | None, token: str) -> None:
         if not token:
@@ -186,6 +191,18 @@ class FinMindBearerTransport:
 
     def get(self, url: str, timeout: float):
         safe_url = _without_query_token(url)
+        if not _is_finmind_data_endpoint(safe_url):
+            if self._delegate is not None:
+                return self._delegate.get(safe_url, timeout)
+            request = urllib.request.Request(
+                safe_url,
+                headers={"User-Agent": "TWstock-data-adapter/0.2"},
+            )
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                from .http import HttpResponse
+
+                return HttpResponse(response.geturl(), response.status, response.read())
+
         headers = {
             "Authorization": f"Bearer {self._token}",
             "User-Agent": "TWstock-data-adapter/0.2",
@@ -198,10 +215,24 @@ class FinMindBearerTransport:
             # external request. They receive only the credential-free URL.
             return self._delegate.get(safe_url, timeout)
         request = urllib.request.Request(safe_url, headers=headers)
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        opener = urllib.request.build_opener(_RejectAuthenticatedRedirects())
+        with opener.open(request, timeout=timeout) as response:
             from .http import HttpResponse
 
             return HttpResponse(response.geturl(), response.status, response.read())
+
+
+def _is_finmind_data_endpoint(url: str) -> bool:
+    try:
+        parts = urlsplit(url)
+        return (
+            parts.scheme.lower() == "https"
+            and (parts.hostname or "").lower() == "api.finmindtrade.com"
+            and parts.port in (None, 443)
+            and parts.path == "/api/v4/data"
+        )
+    except ValueError:
+        return False
 
 
 def _without_query_token(url: str) -> str:
