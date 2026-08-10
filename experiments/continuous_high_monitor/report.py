@@ -31,11 +31,23 @@ def write_timeline_csv(result: MonitorResult, path: Path) -> None:
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(
-            ("event_id", "symbol", "trade_date", "event_type", "detail", "stage", "close")
+            (
+                "parameter_version",
+                "parameter_hash",
+                "event_id",
+                "symbol",
+                "trade_date",
+                "event_type",
+                "detail",
+                "stage",
+                "close",
+            )
         )
         for event in result.events:
             writer.writerow(
                 (
+                    result.parameter_version,
+                    result.parameter_hash,
                     event.event_id,
                     event.symbol,
                     event.trade_date.isoformat(),
@@ -151,12 +163,21 @@ def render_html_report(
 ) -> str:
     if bars and result.symbol != bars[0].symbol:
         raise ValueError("result symbol does not match chart bars")
-    expected_rows = tuple((item.symbol, item.trade_date, item.close) for item in bars)
+    expected_rows = tuple(
+        (item.symbol, item.trade_date, item.close, item.close * item.volume)
+        for item in bars
+    )
     actual_rows = tuple(
-        (item.symbol, item.trade_date, item.close) for item in result.feature_rows
+        (
+            item.symbol,
+            item.trade_date,
+            item.close,
+            item.features.trading_value,
+        )
+        for item in result.feature_rows
     )
     if actual_rows != expected_rows:
-        raise ValueError("result feature rows do not match chart bars")
+        raise ValueError("result feature rows or volume do not match chart bars")
     if result.parameter_version != config.parameter_version:
         raise ValueError("result parameter version does not match chart config")
     if result.parameter_hash != config.parameter_hash:

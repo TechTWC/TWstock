@@ -176,6 +176,29 @@ class ContinuousHighMonitorTests(unittest.TestCase):
         event_ids = [item.event_id for item in first.events]
         self.assertEqual(len(event_ids), len(set(event_ids)))
 
+    def test_event_ids_and_timeline_are_scoped_to_parameter_identity(self) -> None:
+        source = bars()
+        first_config = config(parameter_version="TEST-001", strengthening_high_count=2)
+        second_config = config(parameter_version="TEST-002", strengthening_high_count=3)
+        first = ContinuousHighMonitor(first_config).run(source)
+        second = ContinuousHighMonitor(second_config).run(source)
+
+        first_ids = {item.event_id for item in first.events}
+        second_ids = {item.event_id for item in second.events}
+        self.assertTrue(first_ids)
+        self.assertTrue(second_ids)
+        self.assertTrue(first_ids.isdisjoint(second_ids))
+
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "timeline.csv"
+            write_timeline_csv(first, target)
+            rows = target.read_text(encoding="utf-8").splitlines()
+        header = rows[0].split(",")
+        first_row = rows[1].split(",")
+        self.assertEqual(header[:3], ["parameter_version", "parameter_hash", "event_id"])
+        self.assertEqual(first_row[header.index("parameter_version")], first.parameter_version)
+        self.assertEqual(first_row[header.index("parameter_hash")], first.parameter_hash)
+
     def test_invalid_config_and_unknown_json_keys_fail_loudly(self) -> None:
         with self.assertRaisesRegex(ValueError, "strictly ascending"):
             config(high_windows=(5, 3, 8, 12))
@@ -207,6 +230,22 @@ class ContinuousHighMonitorTests(unittest.TestCase):
         mixed = source[:2] + [replace(source[2], symbol="OTHER.TW")]
         with self.assertRaisesRegex(ValueError, "exactly one"):
             ContinuousHighMonitor(config()).run(mixed)
+
+    def test_boolean_and_string_ohlcv_values_fail_with_value_error(self) -> None:
+        source = bars()
+        boolean_bar = replace(
+            source[0], open=True, high=True, low=True, close=True, volume=True
+        )
+        with self.assertRaisesRegex(ValueError, "invalid OHLC"):
+            ContinuousHighMonitor(config()).run([boolean_bar])
+
+        string_price = replace(source[0], close="10.0")  # type: ignore[arg-type]
+        with self.assertRaisesRegex(ValueError, "invalid OHLC"):
+            ContinuousHighMonitor(config()).run([string_price])
+
+        string_volume = replace(source[0], volume="100")  # type: ignore[arg-type]
+        with self.assertRaisesRegex(ValueError, "invalid volume"):
+            ContinuousHighMonitor(config()).run([string_volume])
 
     def test_html_svg_and_timeline_csv_are_standalone_and_escaped(self) -> None:
         source = bars(symbol="<SYNTHETIC&>")
@@ -253,6 +292,16 @@ class ContinuousHighMonitorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "feature rows"):
             render_html_report(
                 bars=source[:-1],
+                result=result,
+                config=selected,
+            )
+        inconsistent_volume = list(source)
+        inconsistent_volume[8] = replace(
+            inconsistent_volume[8], volume=inconsistent_volume[8].volume + 1.0
+        )
+        with self.assertRaisesRegex(ValueError, "volume"):
+            render_html_report(
+                bars=inconsistent_volume,
                 result=result,
                 config=selected,
             )

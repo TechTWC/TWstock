@@ -100,10 +100,13 @@ The result stores:
 - one snapshot per date after discovery;
 - deterministic `DISCOVERED`, `STAGE_CHANGED`, `NEW_HIGH`, `RISK_ADDED`, and
   `RISK_CLEARED` events;
-- a stable event ID derived from symbol, date, event type, and detail.
+- a stable event ID derived from parameter version/hash, symbol, date, event type, and
+  detail;
+- parameter version and hash on every timeline CSV row.
 
 Rerunning the same data and parameters must reproduce the same events and IDs. A consumer
-can therefore persist event IDs and suppress duplicate notifications.
+can therefore persist event IDs and suppress duplicate notifications without conflating
+events produced by different parameter identities.
 
 ## 8. Chart and outputs
 
@@ -132,6 +135,8 @@ if added later, it must preserve every event date.
 - Simultaneous 20/60/120/250-day highs are all retained.
 - Stage changes and risk additions/removals are explicit.
 - Invalid bars, ordering, mixed symbols, and invalid parameters fail loudly.
+- Boolean or nonnumeric OHLCV values fail with a controlled validation error.
+- A report rejects bars whose volume is inconsistent with the engine feature rows.
 - The HTML report escapes symbols/text and contains the chart, first discovery, timeline,
   parameter version, and parameter hash.
 

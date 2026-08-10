@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 import hashlib
 import math
+from numbers import Real
 from typing import Sequence
 
 from experiments.breakout_tracker_v5 import PriceBar
@@ -262,12 +263,16 @@ class ContinuousHighMonitor:
             return None
         return getattr(bars[index], attribute) / average
 
-    @staticmethod
     def _event(
-        snapshot: HighSnapshot, event_type: MonitorEventType, detail: str
+        self,
+        snapshot: HighSnapshot,
+        event_type: MonitorEventType,
+        detail: str,
     ) -> MonitorEvent:
         identity = "|".join(
             (
+                self.config.parameter_version,
+                self.config.parameter_hash,
                 snapshot.symbol,
                 snapshot.trade_date.isoformat(),
                 event_type.value,
@@ -299,12 +304,23 @@ class ContinuousHighMonitor:
             if previous_date is not None and bar.trade_date <= previous_date:
                 raise ValueError("bars must be strictly ascending by trade_date")
             prices = (bar.open, bar.high, bar.low, bar.close)
-            if not all(math.isfinite(value) and value > 0 for value in prices):
+            if not all(
+                not isinstance(value, bool)
+                and isinstance(value, Real)
+                and math.isfinite(value)
+                and value > 0
+                for value in prices
+            ):
                 raise ValueError(f"bar {index} contains invalid OHLC values")
             if bar.low > bar.high:
                 raise ValueError(f"bar {index} has low above high")
             if bar.low > min(bar.open, bar.close) or bar.high < max(bar.open, bar.close):
                 raise ValueError(f"bar {index} violates OHLC bounds")
-            if not math.isfinite(bar.volume) or bar.volume < 0:
+            if (
+                isinstance(bar.volume, bool)
+                or not isinstance(bar.volume, Real)
+                or not math.isfinite(bar.volume)
+                or bar.volume < 0
+            ):
                 raise ValueError(f"bar {index} contains invalid volume")
             previous_date = bar.trade_date
