@@ -1,10 +1,12 @@
 # TWStock Decision Snapshot Schema
 
 - Document ID: `TWSTOCK-RESEARCH-DECISION-001`
-- Version: `1.0.0`
-- Status: Baseline
-- Effective date: `2026-07-10`
+- Version: `1.0.1`
+- Status: Deferred formal reference (not implemented)
+- Effective date: `2026-08-10`
 - Scope: TWStock research-stage decisions, formal validation decisions, periodic reviews, reopening decisions, lifecycle transitions, Paper Trading and Live Observation operational snapshots, conditions, expiration, supersession, correction, and evidence-impact handling
+
+> **Applicability notice (2026-08-10):** This schema is retained for future formal promotion, retest, retirement, paper-trading, and live-observation decisions. It is not an implemented decision system and is not required for bounded exploratory development. See `docs/CURRENT_STATUS.md`.
 
 ## 1. Purpose
 

@@ -1,5 +1,7 @@
 # Phase A1 Logic Sandbox v0.1
 
+> **Legacy isolated experiment (2026-08-10):** This plan applies only to the Phase A1 fundamental/valuation sandbox. It is retained for reproducibility and does not define shared requirements, settings, actions, or gates for Breakout Tracker v5.
+
 ## Purpose
 
 Provide the smallest runnable, deterministic implementation of the applicable Phase A1 rules from `Fundamental–Valuation–Technical Monitor v1.10`. The sandbox is designed for rapid modification of thresholds and action logic before any production data pipeline is built.

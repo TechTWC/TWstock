@@ -65,33 +65,30 @@ ChatGPT 專案與對話用於：
 
 重要決策完成後，必須整理進本 Repository，不得只保存在聊天紀錄中。
 
-## Fixed Workspaces
+## Operating Model
 
-TWStock 使用四個分離的工作模式：
+TWStock 保留研究、規格、工程與獨立驗證的角色分離，但不再要求使用四個固定 ChatGPT Workspace，也不要求每一個探索性修改都走完整治理生命週期。
 
-1. `01｜台股研究與策略大腦`
-2. `02｜台股研究規格轉譯`
-3. `03｜TWStock 工程轉譯`
-4. `04｜台股策略驗證與審計`
+目前採雙軌流程：
 
-不得在同一項工作中混合策略設計、工程實作及策略審計。
+- 探索性研究：短規格 → bounded implementation → 診斷測試 → 保存結果。
+- 正式策略驗證：預先鎖定規格 → PIT 回測 → 穩健性／OOS → 影子運行 → 獨立驗證。
 
-## Current Build Order
+任何正式績效主張仍不得由策略設計者或單次回測自行核准。
 
-目前建設順序為：
+## Current Development
 
-1. 固定系統願景與研究原則
-2. 固定資料契約與 Point-in-Time Policy
-3. 固定策略生命週期
-4. 固定 Experiment Registry
-5. 固定 Decision Snapshot
-6. 建立薄網站資訊架構
-7. 建立 Foundation Engine
-8. 完成第一個端到端策略垂直切片
-9. 執行策略驗證與審計
-10. 逐步增加其他 Strategy Modes 與子策略
+目前優先開發 `Breakout Tracker v5`，先建立無未來資訊的 Pivot、首次突破事件與跨日狀態引擎，再接 Yahoo 探索資料、歷史逐日重播及正式市場資料驗證。
 
-第一個策略垂直切片原則上優先研究台股月營收／盈餘動能，但目前不得將其視為已驗證有效策略。
+完整現況、文件效力與目前限制以 [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md) 為準。
+
+目前的合成資料事件引擎驗證可執行：
+
+```bash
+python -m unittest -v tests.test_breakout_tracker_v5
+```
+
+事件定義與明確排除項目見 [`docs/specs/breakout_tracker_v5.md`](docs/specs/breakout_tracker_v5.md)。
 
 ## Experimental Phase A1 Logic Sandbox
 
@@ -110,7 +107,7 @@ python -m pytest tests/test_phase_a1_rules.py
 ## Status
 
 ```text
-Project stage: Foundation specification
+Project stage: Research infrastructure + bounded strategy experiments
 Production readiness: Not ready
 Validated strategies: None
 Live trading approval: None

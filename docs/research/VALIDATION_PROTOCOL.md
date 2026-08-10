@@ -1,10 +1,12 @@
 # TWStock Validation Protocol
 
 - Document ID: `TWSTOCK-RESEARCH-VALIDATION-001`
-- Version: `1.0.0`
-- Status: Baseline
-- Effective date: `2026-07-10`
+- Version: `1.0.1`
+- Status: Deferred formal-validation reference
+- Effective date: `2026-08-10`
 - Scope: TWStock formal strategy validation, experiment audit, robustness review, Out-of-Sample review, Walk-forward review, Paper Trading review, Live Observation periodic review, evidence integrity, decision preparation, invalidation, Retest, Revise, Promote, and Retire
+
+> **Applicability notice (2026-08-10):** This protocol remains the formal validation checklist, but it is not a gate for bounded data, feature, event-definition, or engine prototypes. Apply it before confirmatory claims, OOS promotion, paper trading, or live observation decisions. See `docs/CURRENT_STATUS.md`.
 
 ## 1. Purpose
 
