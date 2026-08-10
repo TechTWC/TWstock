@@ -1,0 +1,19 @@
+{
+  "experiment_id": "TW-BREAKOUT-V5-ENGINE-0001",
+  "experiment_type": "IMPLEMENTATION_VERIFICATION",
+  "git_sha": "WORKTREE_UNCOMMITTED",
+  "data_reference": "tests/test_breakout_tracker_v5.py synthetic bars",
+  "config": "per-test TrackerConfig; no parameter performance claim",
+  "test_period": null,
+  "universe": ["SYNTHETIC.TW"],
+  "metrics": [
+    "pivot_confirmation_timing",
+    "first_breakout_uniqueness",
+    "state_transition_precedence",
+    "prefix_replay_consistency",
+    "input_validation"
+  ],
+  "output_path": null,
+  "status": "DRAFT",
+  "notes": "Synthetic implementation verification only. Yahoo, official market data, backtest, and investment conclusions are excluded."
+}

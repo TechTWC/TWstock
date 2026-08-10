@@ -1,5 +1,7 @@
 # Phase A1 real-data trial preparation
 
+> **Legacy isolated experiment (2026-08-10):** This trial applies only to the Phase A1 fundamental/valuation sandbox. It is retained for reproducibility and is not the market-data contract or development path for Breakout Tracker v5.
+
 ## Purpose
 
 This trial prepares a manually supplied input workflow for the merged Phase A1 Logic Sandbox. It lets a reviewer copy real Taiwan stock data into `data/trial/phase_a1_real_snapshot.csv`, inspect the canonical CSV through the existing runner, and generate deterministic Phase A1 outputs without adding live data fetching, adapters, databases, APIs, scheduling, or trading automation.

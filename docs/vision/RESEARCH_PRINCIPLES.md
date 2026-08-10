@@ -1,9 +1,9 @@
 # TWStock Research Principles
 
 - Document ID: `TWSTOCK-RESEARCH-001`
-- Version: `1.0.0`
-- Status: Baseline
-- Effective date: `2026-07-10`
+- Version: `1.1.0`
+- Status: Active baseline
+- Effective date: `2026-08-10`
 - Scope: All TWStock investment research, data processing, strategy specifications, backtests, validation, paper trading, and research reporting
 
 ## 1. Purpose
@@ -18,18 +18,20 @@ TWStock 的目標不是找到一條看起來漂亮的歷史績效曲線，而是
 
 GitHub Repository 是 TWStock 正式且永久的真相來源。
 
-當不同文件、設定或程式行為互相衝突時，原則上依以下優先層級處理：
+當不同文件、設定或程式行為互相衝突時，先依文件的有效狀態、適用範圍與版本處理：
 
 ```text
-1. SYSTEM_VISION.md
-2. Approved policy documents
-3. Approved strategy research specification
-4. Approved strategy YAML config
-5. Approved engineering contracts and interfaces
-6. Implementation code
+1. Active documents over Legacy / Superseded / Deferred documents
+2. Narrow scoped documents over general documents at the same status
+3. Latest effective version within the same scope and status
+4. Effective policy and Point-in-Time controls
+5. Effective scoped specification and config
+6. Engineering contracts, implementation code, and tests
 7. Backtest or experiment output
-8. ChatGPT conversations, temporary notes, and Handoff Batons
+8. ChatGPT conversations and temporary notes
 ```
+
+`docs/CURRENT_STATUS.md` records current applicability. A legacy general vision must not silently override a newer active bounded specification.
 
 其中 policy documents 包含但不限於：
 

@@ -1,9 +1,9 @@
 # TWStock Point-in-Time Policy
 
 - Document ID: `TWSTOCK-DATA-PIT-001`
-- Version: `1.0.0`
-- Status: Baseline
-- Effective date: `2026-07-10`
+- Version: `1.0.1`
+- Status: Active baseline
+- Effective date: `2026-08-10`
 - Scope: All TWStock historical data, Universe construction, feature calculation, signal formation, backtesting, validation, paper trading, and Decision Snapshots
 
 ## 1. Purpose

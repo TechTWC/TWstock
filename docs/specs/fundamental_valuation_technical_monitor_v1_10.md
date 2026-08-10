@@ -1,5 +1,7 @@
 # Fundamental–Valuation–Technical Monitor v1.10
 
+> **Legacy isolated experiment (2026-08-10):** This specification remains authoritative only for the existing Phase A1 sandbox and its tests. It must not be treated as a general TWStock strategy specification or as a requirement for Breakout Tracker v5.
+
 ## Phase A1 executable specification profile
 
 - Document version: `v1.10`
