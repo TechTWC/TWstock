@@ -1,0 +1,21 @@
+{
+  "parameter_version": "CH-PARAM-001",
+  "high_windows": [20, 60, 120, 250],
+  "near_high_window": 60,
+  "near_high_pct": 0.05,
+  "base_high_window": 20,
+  "strengthening_high_window": 60,
+  "leader_high_window": 120,
+  "high_count_window": 20,
+  "strengthening_high_count": 3,
+  "volume_average_window": 20,
+  "volume_surge_ratio": 1.5,
+  "extension_ma_window": 20,
+  "extension_pct": 0.15,
+  "pullback_pct": 0.05,
+  "weakening_high_window": 60,
+  "weakening_drawdown_pct": 0.12,
+  "acceleration_window": 5,
+  "acceleration_high_count": 3,
+  "minimum_trading_value": 20000000.0
+}

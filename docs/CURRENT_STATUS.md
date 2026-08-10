@@ -10,7 +10,8 @@
 
 TWStock is a personal Taiwan-equity research repository. It currently contains reusable market-data adapters, an isolated Phase A1 sandbox, and research governance references. It is not a production trading system and has no validated strategy or live-capital approval.
 
-The current bounded development priority is `Breakout Tracker v5`:
+The current bounded development priorities are `Breakout Tracker v5` and its independent
+early-strength companion, `Continuous High Monitor v0.1`:
 
 1. freeze a point-in-time-safe breakout definition;
 2. implement Pivot, first-breakout event, and cross-day state tracking with synthetic data;
@@ -19,6 +20,13 @@ The current bounded development priority is `Breakout Tracker v5`:
 5. test parameters, robustness, and walk-forward behavior;
 6. add official-market verification and historical-universe controls;
 7. run daily shadow observation before any investment-use claim.
+
+`Breakout Tracker v5` detects a close above a confirmed frozen resistance Pivot.
+`Continuous High Monitor v0.1` detects rolling closing highs and preserves the first
+discovery timeline even when a stock rises without forming a Pivot. Its first bounded
+package contains only a parameterized synthetic-data event engine, deterministic timeline,
+and standalone HTML/SVG chart. Real data, cross-sectional relative strength, performance
+validation, notification delivery, and machine learning remain later work packages.
 
 ## 2. Effective document rules
 
@@ -46,6 +54,7 @@ Chat history is not a repository source of truth.
 | `docs/research/DECISION_SNAPSHOT_SCHEMA.md` | Deferred formal reference | Use when formal promotion/retirement decisions begin |
 | `docs/research/VALIDATION_PROTOCOL.md` | Deferred formal reference | Formal validation checklist, not an early prototype gate |
 | Phase A1 plans/spec/config/engine | Legacy isolated experiment | Do not reuse as general Breakout v5 requirements |
+| `docs/specs/continuous_high_monitor_v0_1.md` | Active exploratory specification | Continuous-high event, timeline, parameter, and chart contract |
 
 ## 4. Lightweight exploratory governance
 
