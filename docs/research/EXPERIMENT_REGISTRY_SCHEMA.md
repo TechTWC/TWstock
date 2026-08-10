@@ -1,9 +1,9 @@
 # TWStock Experiment Registry Schema
 
 - Document ID: `TWSTOCK-RESEARCH-EXPERIMENT-001`
-- Version: `1.0.0`
+- Version: `1.0.1`
 - Status: Deferred formal reference (not implemented)
-- Effective date: `2026-07-10`
+- Effective date: `2026-08-10`
 - Scope: All TWStock exploratory studies, data and feature experiments, implementation verification, historical backtests, robustness tests, Out-of-Sample tests, reproductions, Retests, Paper Trading campaigns, failed runs, invalidated evidence, and related artifacts
 
 > **Applicability notice (2026-08-10):** This schema is retained for future formal research infrastructure but is not an implemented Registry and must not be hand-filled for early exploration. Bounded experiments use the lightweight manifest defined in `docs/CURRENT_STATUS.md`; formal validation may later adopt this schema without rewriting historical results.

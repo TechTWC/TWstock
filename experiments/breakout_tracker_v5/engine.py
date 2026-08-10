@@ -38,10 +38,16 @@ class BreakoutTracker:
             volume_ratio = self._volume_ratio(index, bars)
 
             if cycle.breakout_index is None:
-                setup_age = index - cycle.pivot_index
+                confirmation_index = (
+                    cycle.pivot_index + self.config.pivot_confirmation_bars
+                )
+                setup_age = index - confirmation_index
                 if setup_age > self.config.max_setup_bars:
-                    cycle = None
-                    continue
+                    # The expired cycle must not hide a different Pivot whose
+                    # confirmation becomes knowable on this same bar.
+                    cycle = self._confirmed_cycle_at(index, bars)
+                    if cycle is None:
+                        continue
 
                 if self._is_first_breakout(bar, cycle, volume_ratio):
                     cycle.breakout_index = index

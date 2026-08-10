@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import date, timedelta
+import math
 import unittest
 
 from experiments.breakout_tracker_v5 import (
@@ -128,6 +129,45 @@ class BreakoutTrackerTests(unittest.TestCase):
         self.assertAlmostEqual(snapshots[-1].volume_ratio or 0.0, 2.0)
         self.assertEqual(snapshots[-1].breakout_date, bars[6].trade_date)
 
+    def test_setup_age_starts_on_confirmation_date(self) -> None:
+        config = replace(self.config, max_setup_bars=2)
+        bars = lifecycle_bars()
+        bars[5] = bar(5, high=11.9, low=11.2, close=11.7)
+        bars[6] = bar(6, high=12.4, low=12.2, close=12.3)
+
+        snapshots = BreakoutTracker(config).run(bars[:7])
+
+        self.assertEqual(
+            [snapshot.state for snapshot in snapshots],
+            [
+                BreakoutState.SETUP,
+                BreakoutState.SETUP,
+                BreakoutState.NEW_TRIGGER,
+            ],
+        )
+
+    def test_new_pivot_confirmed_on_expiry_date_is_not_skipped(self) -> None:
+        config = replace(
+            self.config,
+            pivot_confirmation_bars=1,
+            max_setup_bars=1,
+        )
+        bars = [
+            bar(0, high=9.0, low=8.5, close=8.8),
+            bar(1, high=10.0, low=9.0, close=9.7),
+            bar(2, high=12.0, low=10.0, close=11.5),
+            bar(3, high=11.8, low=11.0, close=11.4),  # first Pivot known
+            bar(4, high=13.0, low=11.2, close=11.8),  # replacement candidate
+            bar(5, high=12.8, low=11.3, close=11.9),  # known as first expires
+        ]
+
+        snapshots = BreakoutTracker(config).run(bars)
+
+        self.assertEqual(snapshots[-1].trade_date, bars[5].trade_date)
+        self.assertEqual(snapshots[-1].state, BreakoutState.SETUP)
+        self.assertEqual(snapshots[-1].pivot_date, bars[4].trade_date)
+        self.assertEqual(snapshots[-1].pivot_price, 13.0)
+
     def test_invalid_order_and_mixed_symbol_fail_loudly(self) -> None:
         bars = lifecycle_bars()
         bad_order = [bars[1], bars[0]]
@@ -148,8 +188,12 @@ class BreakoutTrackerTests(unittest.TestCase):
             TrackerConfig(pivot_lookback=1)
         with self.assertRaisesRegex(ValueError, "failure_pct"):
             TrackerConfig(failure_pct=1.0)
-        with self.assertRaisesRegex(ValueError, "max_setup_bars"):
-            TrackerConfig(pivot_confirmation_bars=5, max_setup_bars=4)
+        with self.assertRaisesRegex(ValueError, "integer"):
+            TrackerConfig(pivot_confirmation_bars=2.5)  # type: ignore[arg-type]
+        with self.assertRaisesRegex(ValueError, "finite"):
+            TrackerConfig(extension_pct=math.nan)
+        with self.assertRaisesRegex(ValueError, "finite"):
+            TrackerConfig(min_breakout_volume_ratio=math.inf)
 
 
 if __name__ == "__main__":

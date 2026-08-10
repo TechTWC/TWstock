@@ -1,9 +1,9 @@
 # TWStock Strategy Lifecycle
 
 - Document ID: `TWSTOCK-RESEARCH-LIFECYCLE-001`
-- Version: `1.0.0`
+- Version: `1.0.1`
 - Status: Deferred formal-validation reference
-- Effective date: `2026-07-10`
+- Effective date: `2026-08-10`
 - Scope: All TWStock strategy ideas, hypotheses, specifications, engineering implementations, experiments, validation decisions, paper trading, revision, promotion, and retirement
 
 > **Applicability notice (2026-08-10):** Use this full lifecycle before confirmatory performance claims, OOS promotion, paper trading, or live observation decisions. Early data, feature, event-definition, and implementation experiments instead follow the lightweight bounded flow in `docs/CURRENT_STATUS.md`. The four-fixed-workspace mechanics are legacy; role separation and independent formal review remain required.

@@ -49,7 +49,7 @@ A bar at index `p` becomes a confirmed Pivot only on index `p + C` when:
 
 The engine therefore cannot know or emit the Pivot before the confirmation date. Once adopted, the Pivot is frozen for that setup/breakout cycle; later bars cannot rewrite its price or date.
 
-Only one cycle is active per symbol in v0.1. A setup expires after `max_setup_bars` without a breakout.
+Only one cycle is active per symbol in v0.1. Setup age is zero on the Pivot confirmation date; a setup expires only after `max_setup_bars` later bars have elapsed without a breakout. An expiring cycle must not hide a different Pivot that becomes confirmed on the same date.
 
 ## 4. First-breakout event
 
@@ -108,6 +108,8 @@ FAILED
 - replaying any historical prefix produces the same snapshots as the corresponding prefix of a full replay;
 - malformed or mixed-symbol bars fail loudly;
 - optional volume gating uses only prior volume.
+- setup age starts on the Pivot confirmation date, not the original Pivot date;
+- non-integer bar counts and non-finite thresholds fail loudly.
 
 ## 8. Explicit exclusions
 

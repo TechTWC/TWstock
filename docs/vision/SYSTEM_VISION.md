@@ -1,9 +1,9 @@
 # TWStock System Vision
 
 - Document ID: `TWSTOCK-VISION-001`
-- Version: `1.0.0`
+- Version: `1.0.1`
 - Status: Legacy baseline
-- Effective date: `2026-07-10`
+- Effective date: `2026-08-10`
 - Scope: TWStock personal investment research and strategy validation platform
 
 > **Legacy notice (2026-08-10):** This document preserves the original system vision. Its four-fixed-workspace operating model, Foundation-first build order, monthly-revenue first-slice priority, and current-project-state sections are superseded by `docs/CURRENT_STATUS.md`. Research-integrity principles remain active through `docs/vision/RESEARCH_PRINCIPLES.md` and `docs/data/POINT_IN_TIME_POLICY.md`.
