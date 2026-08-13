@@ -165,6 +165,52 @@ def fetch_research_dataset(
     )
 
 
+def fetch_official_research_dataset(
+    requested_symbol: str,
+    requested_start: str,
+    requested_end: str,
+    *,
+    transport: HttpTransport | None = None,
+    timeout: float = 10,
+    retries: int = 2,
+    raw_cache_dir: Path | str | None = None,
+) -> ResearchMarketDataset:
+    """Fetch a TWSE-only research dataset without contacting secondary sources.
+
+    This path exists for official-source-only workflows. It deliberately does
+    not read a FinMind token and never invokes the FinMind adapter. The result
+    remains explicitly uncross-checked so downstream reports cannot mistake an
+    official primary source for corporate-action verification.
+    """
+
+    validate_date_range(requested_start, requested_end)
+    source_symbol = source_symbol_from_input(requested_symbol)
+    primary = fetch_twse_daily(
+        source_symbol,
+        requested_start,
+        requested_end,
+        transport=transport,
+        timeout=timeout,
+        retries=retries,
+        raw_cache_dir=raw_cache_dir,
+    )
+    if not primary:
+        raise SourceUnavailableError(
+            "TWSE returned no records for requested symbol and date range"
+        )
+    return build_research_dataset(
+        ReconciliationResult(
+            state=SourceState.PRIMARY_VERIFIED,
+            records=primary,
+            issues=(),
+            cross_check_unavailable=True,
+        ),
+        requested_symbol=requested_symbol,
+        requested_start=requested_start,
+        requested_end=requested_end,
+    )
+
+
 def build_research_dataset(
     reconciliation: ReconciliationResult,
     *,
