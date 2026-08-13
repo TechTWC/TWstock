@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+from dataclasses import replace
 from datetime import date, timedelta
 import json
 import os
@@ -115,6 +116,34 @@ class WatchlistScannerTests(unittest.TestCase):
         finmind.assert_not_called()
         self.assertEqual(dataset.selected_source, "TWSE")
         self.assertTrue(dataset.cross_check_unavailable)
+
+    def test_detached_or_wrong_period_dataset_is_isolated_before_analysis(self) -> None:
+        valid = _dataset("2330")
+        detached = replace(valid, requested_start="2023-01-01")
+        wrong_period_source = _dataset("2317")
+        wrong_period = build_research_dataset(
+            ReconciliationResult(
+                SourceState.PRIMARY_VERIFIED,
+                wrong_period_source.records,
+                cross_check_unavailable=True,
+            ),
+            requested_symbol="2317",
+            requested_start="2023-01-01",
+            requested_end=END,
+        )
+        datasets = {"2330": detached, "2317": wrong_period}
+
+        scan = scan_watchlist(
+            ["2330", "2317"],
+            START,
+            END,
+            dataset_loader=lambda symbol, _start, _end: datasets[symbol],
+        )
+        rows = {item.source_symbol: item for item in scan.candidates}
+
+        self.assertEqual(rows["2330"].scan_status, "DATA_UNAVAILABLE")
+        self.assertEqual(rows["2317"].scan_status, "DATA_UNAVAILABLE")
+        self.assertEqual(scan.timeline, ())
 
     def test_ranking_is_deterministic_and_input_order_independent(self) -> None:
         datasets = {

@@ -99,7 +99,12 @@ def scan_watchlist(
             dataset = dataset_loader(
                 source_symbol, requested_start, requested_end
             )
-            _validate_dataset_identity(dataset, source_symbol)
+            _validate_dataset_identity(
+                dataset,
+                source_symbol,
+                requested_start,
+                requested_end,
+            )
         except MarketDataError as error:
             candidates.append(
                 _error_candidate(
@@ -215,10 +220,19 @@ def _validate_symbols(symbols: Sequence[object]) -> tuple[str, ...]:
 
 
 def _validate_dataset_identity(
-    dataset: ResearchMarketDataset, source_symbol: str
+    dataset: ResearchMarketDataset,
+    source_symbol: str,
+    requested_start: str,
+    requested_end: str,
 ) -> None:
+    dataset.manifest()
     if dataset.source_symbol != source_symbol:
         raise DataValidationError("dataset source symbol does not match watchlist")
+    if (
+        dataset.requested_start != requested_start
+        or dataset.requested_end != requested_end
+    ):
+        raise DataValidationError("dataset date range does not match scan request")
     if dataset.selected_source != "TWSE":
         raise DataValidationError("watchlist scanner accepts TWSE datasets only")
     if dataset.price_basis != "RAW_OFFICIAL_DAILY":
