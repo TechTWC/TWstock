@@ -120,6 +120,25 @@ python scripts/run_real_market_monitor.py \
 規則、內容雜湊與明確排除項見
 [`docs/specs/real_market_data_ingestion_v0_1.md`](docs/specs/real_market_data_ingestion_v0_1.md)。
 
+多檔 Shadow Observation 可使用 `Watchlist Scanner v0.1`。這條路徑刻意只呼叫
+TWSE 官方日價，不接觸 FinMind；它會輸出候選觀察順序、原因、合併事件時間線、
+資料證據與獨立 HTML 報告：
+
+```bash
+python -m unittest -v tests.test_watchlist_scanner
+
+python scripts/run_watchlist_scanner.py \
+  --watchlist config/watchlist_v0_1.json \
+  --start 2025-01-01 \
+  --end 2026-08-13 \
+  --output-dir outputs/watchlist_v0_1 \
+  --raw-cache-dir outputs/raw_watchlist_v0_1
+```
+
+公司行動資料未接入，因此每一列固定標示 `UNVERIFIED`，`investment_use` 固定為
+`PROHIBITED`。排序只代表觀察優先序，不是投資評分。完整契約見
+[`docs/specs/watchlist_scanner_v0_1.md`](docs/specs/watchlist_scanner_v0_1.md)。
+
 ## Test Infrastructure
 
 固定的 Python 3.12 開發測試依賴與完整測試可執行：
