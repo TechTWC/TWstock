@@ -8,7 +8,8 @@ import pytest
 
 from twstock_data.errors import DataValidationError, SourceUnavailableError
 from twstock_data.http import HttpResponse
-from twstock_data.sources.twse import fetch_twse_daily
+from twstock_data.sources.twse import build_url, fetch_twse_daily
+from twstock_data.twse_incremental_cache import store_cached_month
 
 
 def _payload(month_identifier: str, roc_trade_date: str, close: int) -> bytes:
@@ -244,6 +245,55 @@ def test_wrong_month_response_is_not_promoted_to_cache(tmp_path):
     manifest = _manifest(tmp_path)
     assert manifest["completed"] is False
     assert manifest["month_results"][0]["status"] == "FAILED_VALIDATION"
+
+
+def test_semantically_invalid_stable_cache_is_refetched(tmp_path):
+    store_cached_month(
+        tmp_path,
+        source_symbol="2330",
+        canonical_symbol="2330.TW",
+        month_identifier="20260601",
+        source_url=build_url("2330", "20260601"),
+        retrieved_at="2026-07-01T00:00:00+00:00",
+        http_status=200,
+        body=_payload("20260501", "115/05/29", 90),
+    )
+
+    transport = ScriptedTransport({"20260601": MONTHS["20260601"]})
+    _fetch(
+        tmp_path,
+        transport,
+        "2026-06-01",
+        "2026-06-30",
+        refresh_date=date(2026, 9, 1),
+    )
+
+    assert transport.months == ["20260601"]
+    assert _manifest(tmp_path)["month_results"][0]["status"] == "REFETCHED_INVALID"
+
+
+def test_invalid_legacy_snapshot_is_not_promoted_before_validation(tmp_path):
+    wrong_month = _payload("20260501", "115/05/29", 90)
+    fetch_twse_daily(
+        "2330",
+        "2026-06-01",
+        "2026-06-30",
+        transport=ScriptedTransport({"20260601": wrong_month}),
+        retries=0,
+        raw_cache_dir=tmp_path,
+    )
+
+    with pytest.raises(SourceUnavailableError):
+        _fetch(
+            tmp_path,
+            ScriptedTransport({"20260601": TimeoutError("offline")}),
+            "2026-06-01",
+            "2026-06-30",
+            refresh_date=date(2026, 9, 1),
+        )
+
+    assert not (tmp_path / ".monthly" / "twse_2330_20260601.raw").exists()
+    assert _manifest(tmp_path)["month_results"][0]["status"] == "FAILED_FETCH"
 
 
 def test_current_month_refresh_never_falls_back_to_stale_cache(tmp_path):

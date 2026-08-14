@@ -77,16 +77,6 @@ def load_cached_month(
             invalid_found = True
     if candidates:
         selected = max(candidates, key=lambda item: item.retrieved_at)
-        store_cached_month(
-            root,
-            source_symbol=source_symbol,
-            canonical_symbol=canonical_symbol,
-            month_identifier=month_identifier,
-            source_url=selected.source_url,
-            retrieved_at=selected.retrieved_at,
-            http_status=200,
-            body=selected.body,
-        )
         return CachedMonthResponse(
             body=selected.body,
             source_url=selected.source_url,
