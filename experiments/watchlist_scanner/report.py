@@ -269,10 +269,10 @@ def _symbol_charts(scan: WatchlistScan) -> str:
             visualization.monitor_config,
             visualization.breakout_snapshots,
         )
-        rank = str(candidate.rank) if candidate.rank is not None else "未排名"
+        rank_label = f"#{candidate.rank}" if candidate.rank is not None else "未排名"
         sections.append(
             f'''<section class="symbol-chart" id="symbol-{escape(candidate.source_symbol)}">
-<h3>#{escape(rank)} · {escape(candidate.symbol)} · {escape(candidate.candidate_tier)}</h3>
+<h3>{escape(rank_label)} · {escape(candidate.symbol)} · {escape(candidate.candidate_tier)}</h3>
 <p class="symbol-meta">觀察日 {escape(candidate.observed_date.isoformat() if candidate.observed_date else "—")} · 收盤 {escape(_number(candidate.close))} · Breakout {escape(candidate.breakout_state)} · Continuous High {escape(candidate.high_stage)} · 公司行動 <span class="bad">UNVERIFIED</span></p>
 <div class="chart-wrap">{svg}</div>
 </section>'''

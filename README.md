@@ -132,7 +132,7 @@ python -m unittest -v tests.test_watchlist_scanner
 python scripts/run_watchlist_scanner.py \
   --watchlist config/watchlist_v0_1.json \
   --start 2025-01-01 \
-  --end 2026-08-13 \
+  --end 2026-08-14 \
   --output-dir outputs/watchlist_v0_3 \
   --raw-cache-dir outputs/raw_watchlist_v0_3
 ```

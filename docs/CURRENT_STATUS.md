@@ -3,7 +3,7 @@
 - Document ID: `TWSTOCK-CURRENT-STATUS-001`
 - Version: `1.3.0`
 - Status: Active
-- Effective date: `2026-08-13`
+- Effective date: `2026-08-14`
 - Scope: Repository status, document applicability, and current development flow
 
 ## 1. Current direction

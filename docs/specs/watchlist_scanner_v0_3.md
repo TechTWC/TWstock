@@ -42,8 +42,9 @@ This remains **Shadow Observation only**. Every visual report must show
 
 - Two loaded symbols produce two price-volume SVGs and one shared ranking SVG.
 - The report contains both Breakout and Continuous High event encodings.
-- Unranked or unavailable symbols remain visible in the ordinal overview but do
-  not receive a fabricated price chart.
+- Unavailable symbols remain visible in the ordinal overview and receive no
+  fabricated chart. A loaded but unranked symbol may receive its exact-data
+  chart.
 - HTML contains no executable script and opens without network access.
 - Manifest records ordinal rank encoding, complete-event CSV location, raw
   price basis, `UNVERIFIED`, and `PROHIBITED`.
