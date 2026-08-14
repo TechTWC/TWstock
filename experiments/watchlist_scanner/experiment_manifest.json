@@ -1,5 +1,5 @@
 {
-  "experiment_id": "TW-WATCHLIST-SCANNER-V0-1-0001",
+  "experiment_id": "TW-WATCHLIST-SCANNER-V0-2-0001",
   "experiment_type": "IMPLEMENTATION_VERIFICATION",
   "git_sha": "SET_AT_EXECUTION_TIME",
   "data_reference": "TWSE STOCK_DAY official raw daily prices; synthetic fixture tests",
@@ -16,10 +16,15 @@
     "stale-date-exclusion",
     "combined-event-timeline",
     "stable-event-identities",
+    "integrity-checked-historical-month-cache",
+    "missing-month-fetch",
+    "current-month-refresh-without-stale-fallback",
+    "interrupted-run-resume",
+    "bounded-month-retry",
     "unverified-corporate-action-disclosure",
     "standalone-html-output"
   ],
-  "output_path": "outputs/watchlist_v0_1/",
+  "output_path": "outputs/watchlist_v0_2/",
   "status": "TEMPLATE",
   "notes": "Shadow Observation only. FinMind is not contacted. Corporate actions are UNVERIFIED, prices are raw/unadjusted, candidate ranks are not performance scores, and investment use is PROHIBITED."
 }

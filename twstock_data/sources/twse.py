@@ -1,13 +1,24 @@
 from __future__ import annotations
 import json, re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo
 from ..http import HttpTransport, get_with_retry
 from ..models import MarketDataRecord, SourceTier
 from ..normalization import canonical_symbol, parse_float, parse_int, raw_hash, utc_now_iso, validate_date_range
 from ..raw_cache import preserve_raw_response
-from ..errors import MalformedSourceError, DuplicateTradeDateError, DataValidationError
+from ..errors import (
+    DataValidationError,
+    DuplicateTradeDateError,
+    MalformedSourceError,
+    MarketDataError,
+)
+from ..twse_incremental_cache import (
+    load_cached_month,
+    store_cached_month,
+    write_cache_run_manifest,
+)
 
 TWSE_STOCK_DAY_ENDPOINT = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
 FIELDS = ("日期", "成交股數", "成交金額", "開盤價", "最高價", "最低價", "收盤價", "成交筆數")
@@ -66,41 +77,233 @@ def fetch_twse_daily(
     timeout: float = 10,
     retries: int = 2,
     raw_cache_dir: Path | str | None = None,
+    incremental_cache: bool = False,
+    cache_refresh_date: date | None = None,
 ) -> tuple[MarketDataRecord, ...]:
     start_date, end_date = validate_date_range(start, end)
     canonical = canonical_symbol(source_symbol, "TW")
+    cache_root = (
+        Path(raw_cache_dir)
+        if incremental_cache and raw_cache_dir is not None
+        else None
+    )
+    refresh_date = cache_refresh_date or datetime.now(
+        ZoneInfo("Asia/Taipei")
+    ).date()
+    requested_first_month = start_date.replace(day=1)
+    requested_last_month = end_date.replace(day=1)
+    actual_current_month = refresh_date.replace(day=1)
+    refresh_month = (
+        actual_current_month
+        if requested_first_month <= actual_current_month <= requested_last_month
+        else None
+    )
+    cache_results: list[dict[str, object]] = []
     combined: list[MarketDataRecord] = []
     seen: set[str] = set()
     for month in _month_starts(start_date, end_date):
         month_param = month.strftime("%Y%m%d")
         url = build_url(source_symbol, month_param)
-        response = get_with_retry(url, transport, timeout, retries)
-        retrieved_at = utc_now_iso()
-        preserve_raw_response(
-            raw_cache_dir,
-            source="TWSE",
-            source_tier=SourceTier.PRIMARY.value,
-            source_symbol=source_symbol,
-            canonical_symbol=canonical,
-            requested_start=start,
-            requested_end=end,
-            retrieved_at=retrieved_at,
-            source_url=response.url,
-            http_status=response.status,
-            body=response.body,
-            request_identifier=f"twse_{month_param}",
-        )
-        payload = json.loads(response.body.decode("utf-8-sig"))
+        cached = None
+        invalid_cache = False
+        if cache_root is not None and month != refresh_month:
+            try:
+                cached = load_cached_month(
+                    cache_root,
+                    source_symbol=source_symbol,
+                    canonical_symbol=canonical,
+                    month_identifier=month_param,
+                    expected_source_url=url,
+                )
+            except DataValidationError:
+                invalid_cache = True
+
+        fetched = cached is None
+        if cached is not None:
+            body = cached.body
+            source_url = cached.source_url
+            retrieved_at = cached.retrieved_at
+            cache_status = (
+                "IMPORTED_LEGACY_CACHE"
+                if cached.origin == "LEGACY_V0_1_CACHE"
+                else "CACHE_HIT"
+            )
+        else:
+            try:
+                response = get_with_retry(url, transport, timeout, retries)
+            except MarketDataError as error:
+                cache_results.append(
+                    {
+                        "month": month_param,
+                        "status": "FAILED_FETCH",
+                        "error_code": type(error).__name__,
+                    }
+                )
+                _write_incremental_manifest(
+                    cache_root,
+                    source_symbol,
+                    start,
+                    end,
+                    refresh_month,
+                    cache_results,
+                    completed=False,
+                )
+                raise
+            body = response.body
+            source_url = response.url
+            retrieved_at = utc_now_iso()
+            cache_status = (
+                "REFRESHED_CURRENT"
+                if month == refresh_month
+                else "REFETCHED_INVALID"
+                if invalid_cache
+                else "FETCHED_MISSING"
+            )
+            preserve_raw_response(
+                raw_cache_dir,
+                source="TWSE",
+                source_tier=SourceTier.PRIMARY.value,
+                source_symbol=source_symbol,
+                canonical_symbol=canonical,
+                requested_start=start,
+                requested_end=end,
+                retrieved_at=retrieved_at,
+                source_url=source_url,
+                http_status=response.status,
+                body=body,
+                request_identifier=f"twse_{month_param}",
+            )
+
         next_month = month.replace(year=month.year + 1, month=1) if month.month == 12 else month.replace(month=month.month + 1)
         month_end = next_month - timedelta(days=1)
         window_start = max(start_date, month).isoformat()
         window_end = min(end_date, month_end).isoformat()
-        for record in parse_twse_payload(payload, source_symbol, window_start, window_end, response.body, response.url, retrieved_at):
+        try:
+            payload = json.loads(body.decode("utf-8-sig"))
+            if (
+                incremental_cache
+                and str(payload.get("date", "")).strip() != month_param
+            ):
+                raise DataValidationError(
+                    f"TWSE response month mismatch for requested month {month_param}"
+                )
+            month_records = parse_twse_payload(
+                payload,
+                source_symbol,
+                window_start,
+                window_end,
+                body,
+                source_url,
+                retrieved_at,
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            malformed = MalformedSourceError(
+                f"invalid TWSE JSON for {source_symbol} {month_param}"
+            )
+            cache_results.append(
+                {
+                    "month": month_param,
+                    "status": "FAILED_VALIDATION",
+                    "error_code": type(malformed).__name__,
+                }
+            )
+            _write_incremental_manifest(
+                cache_root,
+                source_symbol,
+                start,
+                end,
+                refresh_month,
+                cache_results,
+                completed=False,
+            )
+            raise malformed from error
+        except MarketDataError as error:
+            cache_results.append(
+                {
+                    "month": month_param,
+                    "status": "FAILED_VALIDATION",
+                    "error_code": type(error).__name__,
+                }
+            )
+            _write_incremental_manifest(
+                cache_root,
+                source_symbol,
+                start,
+                end,
+                refresh_month,
+                cache_results,
+                completed=False,
+            )
+            raise
+
+        if fetched and cache_root is not None:
+            store_cached_month(
+                cache_root,
+                source_symbol=source_symbol,
+                canonical_symbol=canonical,
+                month_identifier=month_param,
+                source_url=source_url,
+                retrieved_at=retrieved_at,
+                http_status=response.status,
+                body=body,
+            )
+        cache_results.append(
+            {
+                "month": month_param,
+                "status": cache_status,
+                "record_count": len(month_records),
+                "sha256": raw_hash(body),
+            }
+        )
+        _write_incremental_manifest(
+            cache_root,
+            source_symbol,
+            start,
+            end,
+            refresh_month,
+            cache_results,
+            completed=False,
+        )
+        for record in month_records:
             if record.trade_date in seen:
                 raise DuplicateTradeDateError(f"duplicate TWSE trade date across monthly responses {record.trade_date}")
             seen.add(record.trade_date)
             combined.append(record)
+    _write_incremental_manifest(
+        cache_root,
+        source_symbol,
+        start,
+        end,
+        refresh_month,
+        cache_results,
+        completed=True,
+    )
     return tuple(sorted(combined, key=lambda r: r.trade_date))
+
+
+def _write_incremental_manifest(
+    cache_root: Path | None,
+    source_symbol: str,
+    requested_start: str,
+    requested_end: str,
+    refresh_month: date | None,
+    cache_results: list[dict[str, object]],
+    *,
+    completed: bool,
+) -> None:
+    if cache_root is None:
+        return
+    write_cache_run_manifest(
+        cache_root,
+        source_symbol=source_symbol,
+        requested_start=requested_start,
+        requested_end=requested_end,
+        refresh_month=(
+            refresh_month.strftime("%Y%m%d") if refresh_month is not None else None
+        ),
+        month_results=cache_results,
+        completed=completed,
+    )
 
 def parse_twse_payload(
     payload: dict,

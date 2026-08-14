@@ -84,7 +84,7 @@ def render_watchlist_html(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TWstock Watchlist Scanner v0.1</title>
+<title>TWstock Watchlist Scanner v0.2</title>
 <style>
 :root {{ color-scheme: dark; --bg:#0b1020; --panel:#131a2c; --line:#2a3550; --text:#e8edf7; --muted:#9ba8bf; --accent:#6ee7b7; --warn:#fbbf24; --danger:#fb7185; }}
 * {{ box-sizing:border-box; }}
@@ -105,7 +105,7 @@ code {{ color:#c4b5fd; }} footer {{ color:var(--muted); margin-top:24px; }}
 </style>
 </head>
 <body><main>
-<h1>Watchlist Scanner v0.1</h1>
+<h1>Watchlist Scanner v0.2</h1>
 <div class="warning">SHADOW OBSERVATION ONLY · 不作投資使用 · Investment use: PROHIBITED<br>
 公司行動狀態：UNVERIFIED。價格為 TWSE 官方原始未還權日價；除權息、分割等跳空尚未驗證。</div>
 <div class="summary">

@@ -1,7 +1,7 @@
 # TWStock Current Status
 
 - Document ID: `TWSTOCK-CURRENT-STATUS-001`
-- Version: `1.1.0`
+- Version: `1.2.0`
 - Status: Active
 - Effective date: `2026-08-13`
 - Scope: Repository status, document applicability, and current development flow
@@ -35,10 +35,13 @@ content hashes; rejects source mismatch; and labels all prices as raw/unadjusted
 corporate-action handling. A fixture-backed implementation is not a live-network or
 strategy-validation claim.
 
-`Watchlist Scanner v0.1` composes those two engines across multiple symbols using an
+`Watchlist Scanner v0.2` composes those two engines across multiple symbols using an
 explicit official-TWSE-only loader. It does not contact FinMind, isolates per-symbol data
 failures, and produces deterministic observation ranks, exact reasons, a combined event
-timeline, evidence files, and standalone HTML. Corporate-action coverage remains absent;
+timeline, evidence files, and standalone HTML. Its daily-run foundation reuses only
+integrity-checked historical month caches, fills missing months, refreshes the actual
+current month, and preserves completed months for bounded resume after a failure.
+Corporate-action coverage remains absent;
 all rows are `UNVERIFIED`, limited to Shadow Observation, and prohibited from investment
 use. FinMind-backed corporate-action work is deferred and is not a dependency of this
 scanner package.
@@ -71,7 +74,8 @@ Chat history is not a repository source of truth.
 | Phase A1 plans/spec/config/engine | Legacy isolated experiment | Do not reuse as general Breakout v5 requirements |
 | `docs/specs/continuous_high_monitor_v0_1.md` | Active exploratory specification | Continuous-high event, timeline, parameter, and chart contract |
 | `docs/specs/real_market_data_ingestion_v0_1.md` | Active bounded specification | Canonical TWSE/FinMind research dataset and runner contract |
-| `docs/specs/watchlist_scanner_v0_1.md` | Active bounded specification | Official-TWSE-only multi-symbol Shadow Observation contract |
+| `docs/specs/watchlist_scanner_v0_2.md` | Active bounded specification | Official-TWSE-only multi-symbol Shadow Observation and incremental daily-run contract |
+| `docs/specs/watchlist_scanner_v0_1.md` | Superseded bounded specification | Historical initial scanner contract |
 
 ## 4. Lightweight exploratory governance
 
