@@ -12,6 +12,18 @@ from ..errors import MalformedSourceError, DuplicateTradeDateError, DataValidati
 TWSE_STOCK_DAY_ENDPOINT = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
 FIELDS = ("日期", "成交股數", "成交金額", "開盤價", "最高價", "最低價", "收盤價", "成交筆數")
 
+def _is_official_non_trading_row(row: list[object], idx: dict[str, int]) -> bool:
+    """Identify TWSE's internally consistent placeholder for a day without trades."""
+    try:
+        zero_fields = ("成交股數", "成交金額", "成交筆數")
+        price_fields = ("開盤價", "最高價", "最低價", "收盤價")
+        return all(
+            str(row[idx[field]]).replace(",", "").strip() == "0"
+            for field in zero_fields
+        ) and all(str(row[idx[field]]).strip() == "--" for field in price_fields)
+    except IndexError:
+        return False
+
 def _roc_to_iso(text: str) -> str:
     y, m, d = [int(p) for p in text.split("/")]
     return date(y + 1911, m, d).isoformat()
@@ -120,6 +132,8 @@ def parse_twse_payload(
         if iso in seen:
             raise DuplicateTradeDateError(f"duplicate TWSE trade date {iso}")
         seen.add(iso)
+        if _is_official_non_trading_row(row, idx):
+            continue
         out.append(MarketDataRecord(
             "TWSE", SourceTier.PRIMARY, source_symbol, canonical, "TW", iso,
             parse_int(row[idx["成交股數"]], "traded_share_volume"),
