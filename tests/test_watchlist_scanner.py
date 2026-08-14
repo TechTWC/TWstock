@@ -15,6 +15,7 @@ from experiments.watchlist_scanner import (
     scan_watchlist,
     write_watchlist_outputs,
 )
+from experiments.watchlist_scanner.report import _timeline_svg
 from scripts.run_watchlist_scanner import run as run_watchlist_scanner
 from twstock_data.dataset import (
     build_research_dataset,
@@ -330,6 +331,26 @@ class WatchlistScannerTests(unittest.TestCase):
                 scan.monitor_parameter_hash,
             )
             self.assertTrue(visualization.breakout_snapshots)
+
+    def test_graphical_timeline_groups_same_day_engine_events(self) -> None:
+        dataset = _dataset("2330")
+        scan = scan_watchlist(
+            ["2330"], START, END, dataset_loader=lambda *_: dataset
+        )
+        svg = _timeline_svg(scan)
+        breakout_groups = {
+            (item.symbol, item.trade_date, item.source_engine)
+            for item in scan.timeline
+            if item.source_engine == "BREAKOUT_TRACKER_V5"
+        }
+        high_groups = {
+            (item.symbol, item.trade_date, item.source_engine)
+            for item in scan.timeline
+            if item.source_engine == "CONTINUOUS_HIGH"
+        }
+
+        self.assertEqual(svg.count('fill="#a78bfa"'), len(breakout_groups))
+        self.assertEqual(svg.count('fill="#38bdf8"'), len(high_groups))
 
     def test_watchlist_schema_rejects_duplicates_and_invalid_symbols(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

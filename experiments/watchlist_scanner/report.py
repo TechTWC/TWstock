@@ -234,21 +234,32 @@ def _timeline_svg(scan: WatchlistScan) -> str:
         parts.append(
             f'<text x="{xx:.1f}" y="20" text-anchor="middle" font-size="11" fill="#9ba8bf">{tick_date.isoformat()}</text>'
         )
+    event_groups: dict[tuple[str, date, str], list[TimelineEvent]] = {}
     for event in events:
-        yy = y_by_symbol.get(event.symbol)
+        event_groups.setdefault(
+            (event.symbol, event.trade_date, event.source_engine), []
+        ).append(event)
+    for (symbol, trade_date, source_engine), grouped_events in event_groups.items():
+        yy = y_by_symbol.get(symbol)
         if yy is None:
             continue
-        xx = x(event.trade_date)
-        title = escape(
-            f"{event.trade_date.isoformat()} · {event.source_engine} · {event.event_type} · {event.state} · {event.detail}"
+        xx = x(trade_date)
+        details = " | ".join(
+            f"{event.event_type} · {event.state} · {event.detail}"
+            for event in grouped_events
         )
-        if event.source_engine == "BREAKOUT_TRACKER_V5":
+        title = escape(
+            f"{trade_date.isoformat()} · {source_engine} · {details}"
+        )
+        if source_engine == "BREAKOUT_TRACKER_V5":
+            marker_y = yy - 4
             parts.append(
-                f'<rect x="{xx-4:.1f}" y="{yy-4:.1f}" width="8" height="8" fill="#a78bfa" transform="rotate(45 {xx:.1f} {yy:.1f})"><title>{title}</title></rect>'
+                f'<rect x="{xx-4:.1f}" y="{marker_y-4:.1f}" width="8" height="8" fill="#a78bfa" transform="rotate(45 {xx:.1f} {marker_y:.1f})"><title>{title}</title></rect>'
             )
         else:
+            marker_y = yy + 4
             parts.append(
-                f'<circle cx="{xx:.1f}" cy="{yy:.1f}" r="4" fill="#38bdf8" stroke="#10182a" stroke-width="1"><title>{title}</title></circle>'
+                f'<circle cx="{xx:.1f}" cy="{marker_y:.1f}" r="4" fill="#38bdf8" stroke="#10182a" stroke-width="1"><title>{title}</title></circle>'
             )
     parts.append("</svg>")
     return "".join(parts)
