@@ -154,6 +154,18 @@ def write_html_report(
     )
 
 
+def render_monitor_svg(
+    bars: Sequence[PriceBar],
+    result: MonitorResult,
+    config: MonitorConfig,
+    breakout_snapshots: Sequence[BreakoutSnapshot] = (),
+) -> str:
+    """Render the shared price, volume, high, and breakout event chart."""
+
+    _validate_chart_inputs(bars, result, config, breakout_snapshots)
+    return _monitor_svg(bars, result, config, breakout_snapshots)
+
+
 def render_html_report(
     *,
     bars: Sequence[PriceBar],
@@ -161,6 +173,21 @@ def render_html_report(
     config: MonitorConfig,
     breakout_snapshots: Sequence[BreakoutSnapshot] = (),
 ) -> str:
+    _validate_chart_inputs(bars, result, config, breakout_snapshots)
+    return _render_html_report_content(
+        bars=bars,
+        result=result,
+        config=config,
+        breakout_snapshots=breakout_snapshots,
+    )
+
+
+def _validate_chart_inputs(
+    bars: Sequence[PriceBar],
+    result: MonitorResult,
+    config: MonitorConfig,
+    breakout_snapshots: Sequence[BreakoutSnapshot],
+) -> None:
     if bars and result.symbol != bars[0].symbol:
         raise ValueError("result symbol does not match chart bars")
     expected_rows = tuple(
@@ -193,6 +220,15 @@ def render_html_report(
         raise ValueError("result parameter hash does not match chart config")
     if any(item.symbol != result.symbol for item in breakout_snapshots):
         raise ValueError("breakout snapshot symbol does not match monitor result")
+
+
+def _render_html_report_content(
+    *,
+    bars: Sequence[PriceBar],
+    result: MonitorResult,
+    config: MonitorConfig,
+    breakout_snapshots: Sequence[BreakoutSnapshot],
+) -> str:
     snapshot_by_date = {item.trade_date: item for item in result.snapshots}
     svg = _monitor_svg(bars, result, config, breakout_snapshots)
     current = result.snapshots[-1] if result.snapshots else None

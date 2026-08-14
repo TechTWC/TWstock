@@ -13,6 +13,7 @@ from .models import (
 )
 from .report import (
     render_html_report,
+    render_monitor_svg,
     write_feature_csv,
     write_html_report,
     write_timeline_csv,
@@ -31,6 +32,7 @@ __all__ = [
     "RiskFlag",
     "load_config",
     "render_html_report",
+    "render_monitor_svg",
     "write_feature_csv",
     "write_html_report",
     "write_timeline_csv",
