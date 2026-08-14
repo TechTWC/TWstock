@@ -1,0 +1,4 @@
+scenario,ntm_eps_twd,exit_pe,assumption_status,description
+BEAR,92,24,ILLUSTRATIVE_MANUAL_ASSUMPTION,EPS growth slows and valuation premium compresses.
+BASE,100,28,ILLUSTRATIVE_MANUAL_ASSUMPTION,Earnings continue to grow and valuation remains elevated but below the pre-release trailing multiple.
+BULL,108,32,ILLUSTRATIVE_MANUAL_ASSUMPTION,Earnings exceed the base case and the market sustains a high growth multiple.
