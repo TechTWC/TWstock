@@ -263,6 +263,74 @@ class WatchlistScannerTests(unittest.TestCase):
             self.assertIn("不作投資使用", html)
             self.assertTrue((output / "symbols" / "2330" / "market_bars.csv").is_file())
 
+    def test_visual_report_embeds_rank_price_volume_and_event_charts(self) -> None:
+        datasets = {
+            "2330": _dataset("2330", last_volume_multiplier=3.0),
+            "2317": _dataset("2317", last_volume_multiplier=1.5),
+        }
+        scan = scan_watchlist(
+            ["2330", "2317"],
+            START,
+            END,
+            dataset_loader=lambda symbol, _start, _end: datasets[symbol],
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            write_watchlist_outputs(scan, output)
+            html = (output / "watchlist.html").read_text(encoding="utf-8")
+            manifest = json.loads(
+                (output / "watchlist_manifest.json").read_text(encoding="utf-8")
+            )
+
+        self.assertIn("Watchlist Scanner v0.3", html)
+        self.assertIn('id="candidate-ranking-chart"', html)
+        self.assertIn('id="event-timeline-chart"', html)
+        self.assertIn('id="symbol-2330"', html)
+        self.assertIn('id="symbol-2317"', html)
+        self.assertEqual(
+            html.count('aria-label="Continuous High Monitor daily timeline"'),
+            2,
+        )
+        self.assertIn("成交量 / 前20日均量", html)
+        self.assertIn("rolling high", html)
+        self.assertIn("Pivot breakout", html)
+        self.assertIn("序位圖，不使用長條長度", html)
+        self.assertNotIn("<script", html)
+        self.assertEqual(
+            manifest["visualization_policy"]["rank_encoding"],
+            "ORDINAL_ONLY_NO_SCORE_MAGNITUDE",
+        )
+        self.assertEqual(
+            manifest["visualization_policy"]["corporate_action_status"],
+            "UNVERIFIED",
+        )
+
+    def test_visualizations_retain_exact_engine_results_for_each_dataset(self) -> None:
+        datasets = {symbol: _dataset(symbol) for symbol in ("2330", "2317")}
+        scan = scan_watchlist(
+            ["2330", "2317"],
+            START,
+            END,
+            dataset_loader=lambda symbol, _start, _end: datasets[symbol],
+        )
+
+        self.assertEqual(
+            [item.source_symbol for item in scan.visualizations],
+            ["2317", "2330"],
+        )
+        for visualization in scan.visualizations:
+            dataset = datasets[visualization.source_symbol]
+            self.assertEqual(
+                visualization.continuous_high_result.symbol,
+                dataset.canonical_symbol,
+            )
+            self.assertEqual(
+                visualization.continuous_high_result.parameter_hash,
+                scan.monitor_parameter_hash,
+            )
+            self.assertTrue(visualization.breakout_snapshots)
+
     def test_watchlist_schema_rejects_duplicates_and_invalid_symbols(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "watchlist.json"
