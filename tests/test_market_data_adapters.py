@@ -60,6 +60,37 @@ def test_twse_blank_and_zero_transaction_value_fails(value):
     bad = json.loads(json.dumps(TWSE)); bad["data"][0][2] = value
     with pytest.raises(DataValidationError): parse_twse_payload(bad, "2330", "2026-07-01", "2026-07-31")
 
+def test_twse_complete_official_non_trading_row_is_omitted():
+    payload = json.loads(json.dumps(TWSE))
+    payload["data"] = [
+        ["114/07/30", "0", "0", "--", "--", "--", "--", " 0.00", "0", ""],
+        ["114/07/31", "90,529,600", "16,087,437,011", "178.00", "179.00", "176.00", "178.00", "X0.00", "65,592", ""],
+    ]
+
+    records = parse_twse_payload(payload, "2330", "2025-07-01", "2025-07-31")
+
+    assert [record.trade_date for record in records] == ["2025-07-31"]
+    assert records[0].traded_share_volume == 90_529_600
+
+@pytest.mark.parametrize(
+    ("field_index", "replacement"),
+    [
+        (1, "1"),
+        (2, "1"),
+        (3, "100.00"),
+        (4, ""),
+        (8, "1"),
+    ],
+)
+def test_twse_inconsistent_non_trading_row_still_fails_closed(field_index, replacement):
+    payload = json.loads(json.dumps(TWSE))
+    row = ["115/07/30", "0", "0", "--", "--", "--", "--", " 0.00", "0", ""]
+    row[field_index] = replacement
+    payload["data"] = [row]
+
+    with pytest.raises(DataValidationError):
+        parse_twse_payload(payload, "2330", "2026-07-01", "2026-07-31")
+
 def test_twse_duplicate_dates_and_bad_range_fail():
     dup = json.loads(json.dumps(TWSE)); dup["data"].append(dup["data"][0])
     with pytest.raises(DuplicateTradeDateError): parse_twse_payload(dup, "2330", "2026-07-01", "2026-07-31")
