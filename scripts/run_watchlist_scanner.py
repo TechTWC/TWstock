@@ -22,7 +22,8 @@ def run(
 ) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Scan multiple TWSE-listed symbols with official raw daily prices. "
+            "Scan multiple TWSE-listed symbols with incremental official raw "
+            "daily prices. "
             "Shadow Observation only; corporate actions remain UNVERIFIED."
         )
     )
@@ -30,9 +31,21 @@ def run(
     parser.add_argument("--start", required=True)
     parser.add_argument("--end", required=True)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--raw-cache-dir", required=True)
+    parser.add_argument(
+        "--raw-cache-dir",
+        required=True,
+        help=(
+            "Persistent TWSE cache. Completed historical months resume from "
+            "validated cache; the actual current month is always refreshed."
+        ),
+    )
     parser.add_argument("--timeout", type=float, default=10.0)
-    parser.add_argument("--retries", type=int, default=2)
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=2,
+        help="Bounded HTTP retries per TWSE month (default: 2).",
+    )
     args = parser.parse_args(argv)
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error("--timeout must be finite and positive")
@@ -51,6 +64,7 @@ def run(
             timeout=args.timeout,
             retries=args.retries,
             raw_cache_dir=raw_root / symbol,
+            incremental_cache=True,
         )
 
     scan = scan_watchlist(

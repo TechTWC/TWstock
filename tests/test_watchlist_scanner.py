@@ -294,6 +294,45 @@ class WatchlistScannerTests(unittest.TestCase):
             run_watchlist_scanner(["--help"])
         self.assertEqual(raised.exception.code, 0)
 
+    def test_cli_enables_incremental_cache_for_each_symbol(self) -> None:
+        dataset = _dataset("2330")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            watchlist = root / "watchlist.json"
+            watchlist.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "TWSTOCK-WATCHLIST-001",
+                        "symbols": ["2330"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with patch(
+                "scripts.run_watchlist_scanner.fetch_official_research_dataset",
+                return_value=dataset,
+            ) as fetch:
+                result = run_watchlist_scanner(
+                    [
+                        "--watchlist",
+                        str(watchlist),
+                        "--start",
+                        START,
+                        "--end",
+                        END,
+                        "--output-dir",
+                        str(root / "output"),
+                        "--raw-cache-dir",
+                        str(root / "cache"),
+                    ]
+                )
+
+        self.assertEqual(result, 0)
+        self.assertTrue(fetch.call_args.kwargs["incremental_cache"])
+        self.assertEqual(
+            fetch.call_args.kwargs["raw_cache_dir"], root / "cache" / "2330"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

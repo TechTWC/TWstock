@@ -174,6 +174,8 @@ def fetch_official_research_dataset(
     timeout: float = 10,
     retries: int = 2,
     raw_cache_dir: Path | str | None = None,
+    incremental_cache: bool = False,
+    cache_refresh_date: date | None = None,
 ) -> ResearchMarketDataset:
     """Fetch a TWSE-only research dataset without contacting secondary sources.
 
@@ -193,6 +195,8 @@ def fetch_official_research_dataset(
         timeout=timeout,
         retries=retries,
         raw_cache_dir=raw_cache_dir,
+        incremental_cache=incremental_cache,
+        cache_refresh_date=cache_refresh_date,
     )
     if not primary:
         raise SourceUnavailableError(
