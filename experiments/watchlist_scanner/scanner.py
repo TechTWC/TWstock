@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
-from typing import Callable, Sequence
+from typing import Callable, Mapping, Sequence
 
 from experiments.breakout_tracker_v5 import (
     BreakoutSnapshot,
@@ -17,35 +17,49 @@ from experiments.breakout_tracker_v5 import (
 from experiments.continuous_high_monitor import (
     ContinuousHighMonitor,
     HighSnapshot,
-    HighStage,
     MonitorConfig,
     MonitorResult,
+)
+from experiments.double_slope_turning import (
+    DoubleSlopeConfig,
+    DoubleSlopeResult,
+    DoubleSlopeTurningEngine,
+    SlopeState,
+)
+from experiments.moving_average_state import (
+    MAStateConfig,
+    MAStateResult,
+    MovingAverageStateEngine,
+)
+from experiments.seven_state_radar import (
+    RadarState,
+    RadarStateConfig,
+    RadarStateResult,
+    SevenStateRadarEngine,
 )
 from twstock_data.dataset import ResearchMarketDataset
 from twstock_data.errors import DataValidationError, MarketDataError
 from twstock_data.normalization import stable_json_bytes, validate_date_range
+from twstock_data.sources.tpex_cb import CbMarketSnapshot
 
-from .models import CandidateObservation, TimelineEvent, WatchlistScan
+from .models import (
+    CandidateObservation,
+    SymbolVisualization,
+    TimelineEvent,
+    WatchlistScan,
+)
 
 
 DatasetLoader = Callable[[str, str, str], ResearchMarketDataset]
 _SYMBOL_RE = re.compile(r"^[0-9]{4,6}$")
-_TIER_PRIORITY = {
-    "DUAL_TRIGGER": 0,
-    "BREAKOUT_TRIGGER": 1,
-    "EARLY_HIGH": 2,
-    "STRENGTHENING": 3,
-    "NEW_HIGH": 4,
-    "RETEST": 5,
-    "LEADER": 6,
-    "SETUP": 7,
-    "CONFIRMED": 8,
-    "WATCH": 9,
-    "EXTENDED": 10,
-    "COOLING": 11,
-    "WEAKENING": 12,
-    "INACTIVE": 13,
-    "UNAVAILABLE": 99,
+_STATE_PRIORITY = {
+    RadarState.TURNING_UP.value: 0,
+    RadarState.TREND_CONFIRMED.value: 1,
+    RadarState.PERSISTING.value: 2,
+    RadarState.BASE.value: 3,
+    RadarState.EXTENDED.value: 4,
+    RadarState.WEAKENING.value: 5,
+    RadarState.NOISE.value: 6,
 }
 
 
@@ -78,14 +92,30 @@ def scan_watchlist(
     dataset_loader: DatasetLoader,
     monitor_config: MonitorConfig | None = None,
     tracker_config: TrackerConfig | None = None,
+    ma_config: MAStateConfig | None = None,
+    double_slope_config: DoubleSlopeConfig | None = None,
+    radar_config: RadarStateConfig | None = None,
+    cb_snapshot: CbMarketSnapshot | None = None,
+    symbol_names: Mapping[str, str] | None = None,
 ) -> WatchlistScan:
-    """Scan independent symbols and produce deterministic, non-advisory ranks."""
+    """Scan symbols with a seven-state MA radar and independent slope method."""
 
     validate_date_range(requested_start, requested_end)
     validated_symbols = _validate_symbols(symbols)
+    names = _validate_symbol_names(symbol_names or {}, validated_symbols)
     monitor_config = monitor_config or MonitorConfig()
     tracker_config = tracker_config or TrackerConfig()
-    minimum_history = max(monitor_config.high_windows) + 1
+    ma_config = ma_config or MAStateConfig()
+    double_slope_config = double_slope_config or DoubleSlopeConfig()
+    radar_config = radar_config or RadarStateConfig()
+    minimum_history = max(
+        max(monitor_config.high_windows) + 1,
+        ma_config.minimum_context_history_bars,
+        double_slope_config.minimum_history_bars,
+    )
+    ma_engine = MovingAverageStateEngine(ma_config)
+    double_slope_engine = DoubleSlopeTurningEngine(double_slope_config)
+    radar_engine = SevenStateRadarEngine(radar_config)
     breakout_hash = hashlib.sha256(
         stable_json_bytes(asdict(tracker_config))
     ).hexdigest()
@@ -93,6 +123,7 @@ def scan_watchlist(
     candidates: list[CandidateObservation] = []
     timeline: list[TimelineEvent] = []
     datasets: list[ResearchMarketDataset] = []
+    visualizations: list[SymbolVisualization] = []
 
     for source_symbol in validated_symbols:
         try:
@@ -107,10 +138,16 @@ def scan_watchlist(
             )
         except MarketDataError as error:
             candidates.append(
-                _error_candidate(
-                    source_symbol,
-                    minimum_history,
-                    type(error).__name__,
+                _with_company_name(
+                    _with_cb_classification(
+                        _error_candidate(
+                            source_symbol,
+                            minimum_history,
+                            type(error).__name__,
+                        ),
+                        cb_snapshot,
+                    ),
+                    names,
                 )
             )
             continue
@@ -118,14 +155,36 @@ def scan_watchlist(
         datasets.append(dataset)
         breakout = BreakoutTracker(tracker_config).run(dataset.bars)
         monitor = ContinuousHighMonitor(monitor_config).run(dataset.bars)
+        ma_result = ma_engine.run(dataset.bars)
+        double_slope_result = double_slope_engine.run(dataset.bars)
+        radar_result = radar_engine.run(ma_result)
+        visualizations.append(
+            SymbolVisualization(
+                source_symbol=source_symbol,
+                breakout_snapshots=tuple(breakout),
+                continuous_high_result=monitor,
+                ma_state_result=ma_result,
+                double_slope_result=double_slope_result,
+                radar_state_result=radar_result,
+                monitor_config=monitor_config,
+            )
+        )
+        timeline.extend(_radar_events(radar_result))
+        timeline.extend(_double_slope_events(double_slope_result))
         timeline.extend(_breakout_events(breakout, breakout_hash))
         timeline.extend(_continuous_high_events(monitor))
+        candidate = _candidate_from_results(
+            dataset,
+            breakout,
+            monitor,
+            ma_result,
+            double_slope_result,
+            radar_result,
+            minimum_history,
+        )
         candidates.append(
-            _candidate_from_results(
-                dataset,
-                breakout,
-                monitor,
-                minimum_history,
+            _with_company_name(
+                _with_cb_classification(candidate, cb_snapshot), names
             )
         )
 
@@ -198,9 +257,20 @@ def scan_watchlist(
         monitor_parameter_version=monitor_config.parameter_version,
         monitor_parameter_hash=monitor_config.parameter_hash,
         breakout_config_hash=breakout_hash,
+        ma_parameter_version=ma_config.parameter_version,
+        ma_parameter_hash=ma_config.parameter_hash,
+        double_slope_parameter_version=double_slope_config.parameter_version,
+        double_slope_parameter_hash=double_slope_config.parameter_hash,
+        radar_parameter_version=radar_config.parameter_version,
+        radar_parameter_hash=radar_config.parameter_hash,
         candidates=ranked,
         timeline=ordered_timeline,
+        cb_data_as_of=cb_snapshot.data_as_of if cb_snapshot else None,
+        cb_source_status=(
+            cb_snapshot.source_status if cb_snapshot else "UNVERIFIED"
+        ),
         datasets=tuple(datasets),
+        visualizations=tuple(visualizations),
     )
 
 
@@ -210,13 +280,56 @@ def _validate_symbols(symbols: Sequence[object]) -> tuple[str, ...]:
     normalized = tuple(symbols)
     if not normalized:
         raise DataValidationError("watchlist must contain at least one symbol")
-    if len(normalized) > 100:
-        raise DataValidationError("watchlist cannot exceed 100 symbols")
+    if len(normalized) > 2000:
+        raise DataValidationError("watchlist cannot exceed 2000 symbols")
     if any(not isinstance(item, str) or not _SYMBOL_RE.fullmatch(item) for item in normalized):
         raise DataValidationError("watchlist symbols must be 4-6 ASCII digits")
     if len(set(normalized)) != len(normalized):
         raise DataValidationError("watchlist contains duplicate symbols")
     return tuple(sorted(normalized))
+
+
+def _validate_symbol_names(
+    symbol_names: Mapping[str, str], symbols: Sequence[str]
+) -> dict[str, str]:
+    if not isinstance(symbol_names, Mapping):
+        raise DataValidationError("symbol_names must be a mapping")
+    allowed = frozenset(symbols)
+    names: dict[str, str] = {}
+    for symbol, name in symbol_names.items():
+        if symbol not in allowed:
+            raise DataValidationError("symbol_names contains an unknown symbol")
+        if not isinstance(name, str) or not name.strip():
+            raise DataValidationError("symbol_names values must be nonempty strings")
+        names[symbol] = name.strip()
+    return names
+
+
+def _with_company_name(
+    candidate: CandidateObservation, symbol_names: Mapping[str, str]
+) -> CandidateObservation:
+    return replace(
+        candidate,
+        company_name=symbol_names.get(candidate.source_symbol, ""),
+    )
+
+
+def _with_cb_classification(
+    candidate: CandidateObservation,
+    snapshot: CbMarketSnapshot | None,
+) -> CandidateObservation:
+    if snapshot is None:
+        return candidate
+    classification = snapshot.classify(candidate.source_symbol)
+    return replace(
+        candidate,
+        cb_issuer_status=classification.status,
+        cb_current_issue_count=classification.current_issue_count,
+        cb_recent_delisted_count=classification.recent_delisted_count,
+        cb_issue_names=classification.issue_names,
+        cb_data_as_of=classification.data_as_of,
+        cb_source_status=classification.source_status,
+    )
 
 
 def _validate_dataset_identity(
@@ -247,6 +360,9 @@ def _candidate_from_results(
     dataset: ResearchMarketDataset,
     breakout: Sequence[BreakoutSnapshot],
     monitor: MonitorResult,
+    ma_result: MAStateResult,
+    double_slope_result: DoubleSlopeResult,
+    radar_result: RadarStateResult,
     minimum_history: int,
 ) -> CandidateObservation:
     latest_date = dataset.bars[-1].trade_date
@@ -257,8 +373,29 @@ def _candidate_from_results(
         if monitor.snapshots and monitor.snapshots[-1].trade_date == latest_date
         else None
     )
-    tier = _candidate_tier(latest_breakout, latest_high, latest_feature.features.new_high_windows)
-    reasons = [f"TIER:{tier}"]
+    latest_ma = ma_result.observations[-1]
+    latest_double_slope = double_slope_result.observations[-1]
+    latest_radar = radar_result.observations[-1]
+    latest_radar_event = radar_result.events[-1]
+    transition = (
+        latest_radar_event.detail
+        if latest_radar_event.trade_date == latest_date
+        else ""
+    )
+    relationship = _method_relationship(
+        latest_radar.state,
+        latest_double_slope.state,
+    )
+    tier = f"RADAR_{latest_radar.state.value}"
+    reasons = [
+        f"RADAR_STATE:{latest_radar.state.value}",
+        f"MA_STATE:{latest_ma.state.value}",
+        f"DOUBLE_SLOPE:{latest_double_slope.state.value}",
+        f"METHOD_RELATIONSHIP:{relationship}",
+    ]
+    if transition:
+        reasons.append(f"TODAY_TRANSITION:{transition}")
+    reasons.extend(f"RADAR_EVIDENCE:{item}" for item in latest_radar.evidence)
     if latest_breakout is not None:
         reasons.append(f"BREAKOUT:{latest_breakout.state.value}")
         reasons.append(f"BREAKOUT_REASON:{latest_breakout.reason}")
@@ -280,6 +417,7 @@ def _candidate_from_results(
         rank=None,
         source_symbol=dataset.source_symbol,
         symbol=dataset.canonical_symbol,
+        company_name="",
         scan_status="OK" if sufficient else "INSUFFICIENT_HISTORY",
         candidate_tier=tier,
         observed_date=latest_date,
@@ -303,44 +441,20 @@ def _candidate_from_results(
         bar_count=len(dataset.bars),
         minimum_history_bars=minimum_history,
         dataset_hash=dataset.dataset_hash,
+        market_state=latest_radar.state.value,
+        market_state_days=latest_radar.days_in_state,
+        market_state_transition=transition,
+        ma_state=latest_ma.state.value,
+        ma_long_term_context=latest_ma.long_term_context.value,
+        ma20_slope_pct=latest_ma.medium_slope_pct,
+        ma60_slope_pct=latest_ma.long_slope_pct,
+        distance_to_ma20_pct=latest_ma.distance_to_medium_ma_pct,
+        double_slope_state=latest_double_slope.state.value,
+        double_slope_prior_pct=latest_double_slope.prior_slope_pct,
+        double_slope_recent_pct=latest_double_slope.recent_slope_pct,
+        double_slope_z_score=latest_double_slope.z_score,
+        method_relationship=relationship,
     )
-
-
-def _candidate_tier(
-    breakout: BreakoutSnapshot | None,
-    high: HighSnapshot | None,
-    new_high_windows: Sequence[int],
-) -> str:
-    breakout_state = breakout.state if breakout is not None else None
-    stage = high.stage if high is not None else None
-    has_new_high = bool(new_high_windows)
-    if breakout_state is BreakoutState.NEW_TRIGGER and has_new_high:
-        return "DUAL_TRIGGER"
-    if breakout_state is BreakoutState.NEW_TRIGGER:
-        return "BREAKOUT_TRIGGER"
-    if stage is HighStage.EMERGING and has_new_high:
-        return "EARLY_HIGH"
-    if stage is HighStage.STRENGTHENING:
-        return "STRENGTHENING"
-    if has_new_high:
-        return "NEW_HIGH"
-    if breakout_state is BreakoutState.RETEST:
-        return "RETEST"
-    if stage is HighStage.LEADER:
-        return "LEADER"
-    if breakout_state is BreakoutState.SETUP:
-        return "SETUP"
-    if breakout_state is BreakoutState.CONFIRMED:
-        return "CONFIRMED"
-    if stage is HighStage.WATCH:
-        return "WATCH"
-    if breakout_state is BreakoutState.EXTENDED:
-        return "EXTENDED"
-    if stage is HighStage.COOLING:
-        return "COOLING"
-    if stage is HighStage.WEAKENING:
-        return "WEAKENING"
-    return "INACTIVE"
 
 
 def _preferred_volume_ratio(
@@ -352,18 +466,56 @@ def _preferred_volume_ratio(
 
 
 def _ranking_key(item: CandidateObservation) -> tuple[float | int | str, ...]:
-    volume = item.volume_ratio if item.volume_ratio is not None else -1.0
-    distance = (
-        abs(item.distance_to_pivot_pct)
-        if item.distance_to_pivot_pct is not None
-        else float("inf")
-    )
     return (
-        _TIER_PRIORITY[item.candidate_tier],
-        -volume,
-        distance,
+        _STATE_PRIORITY[item.market_state],
+        _transition_priority(item.market_state_transition),
+        item.market_state_days,
         item.source_symbol,
     )
+
+
+def _transition_priority(transition: str) -> int:
+    research_priority = {
+        "BASE->TURNING_UP",
+        "TURNING_UP->TREND_CONFIRMED",
+        "TREND_CONFIRMED->EXTENDED",
+        "PERSISTING->EXTENDED",
+        "TURNING_UP->EXTENDED",
+        "TURNING_UP->WEAKENING",
+        "TREND_CONFIRMED->WEAKENING",
+        "PERSISTING->WEAKENING",
+        "EXTENDED->WEAKENING",
+    }
+    if transition in research_priority:
+        return 0
+    if transition:
+        return 1
+    return 2
+
+
+def _method_relationship(
+    radar_state: RadarState,
+    double_slope_state: SlopeState,
+) -> str:
+    radar_up = radar_state in {
+        RadarState.TURNING_UP,
+        RadarState.TREND_CONFIRMED,
+        RadarState.PERSISTING,
+        RadarState.EXTENDED,
+    }
+    slope_up = double_slope_state in {SlopeState.TURNING_UP, SlopeState.RISING}
+    slope_down = double_slope_state in {SlopeState.TURNING_DOWN, SlopeState.FALLING}
+    if radar_up and slope_up:
+        return "ALIGNED_UP"
+    if radar_state is RadarState.WEAKENING and slope_down:
+        return "ALIGNED_WEAKENING"
+    if radar_up and slope_down:
+        return "DISAGREE_SLOPE_WEAKER"
+    if radar_state is RadarState.WEAKENING and slope_up:
+        return "DISAGREE_SLOPE_STRONGER"
+    if double_slope_state is SlopeState.INSUFFICIENT_HISTORY:
+        return "NOT_COMPARABLE"
+    return "MIXED_OR_NEUTRAL"
 
 
 def _error_candidate(
@@ -373,6 +525,7 @@ def _error_candidate(
         rank=None,
         source_symbol=source_symbol,
         symbol=f"{source_symbol}.TW",
+        company_name="",
         scan_status="DATA_UNAVAILABLE",
         candidate_tier="UNAVAILABLE",
         observed_date=None,
@@ -389,6 +542,40 @@ def _error_candidate(
         minimum_history_bars=minimum_history,
         dataset_hash="",
         error_code=error_code,
+    )
+
+
+def _radar_events(result: RadarStateResult) -> tuple[TimelineEvent, ...]:
+    return tuple(
+        TimelineEvent(
+            event_id=event.event_id,
+            symbol=event.symbol,
+            trade_date=event.trade_date,
+            source_engine="SEVEN_STATE_RADAR",
+            event_type="STATE_CHANGED",
+            detail=event.detail,
+            state=event.current_state.value,
+            close=event.close,
+        )
+        for event in result.events
+    )
+
+def _double_slope_events(result: DoubleSlopeResult) -> tuple[TimelineEvent, ...]:
+    return tuple(
+        TimelineEvent(
+            event_id=event.event_id,
+            symbol=event.symbol,
+            trade_date=event.trade_date,
+            source_engine="DOUBLE_SLOPE",
+            event_type=f"TURNING_{event.direction}",
+            detail=(
+                f"prior={event.prior_slope_pct:.8f};"
+                f"recent={event.recent_slope_pct:.8f};z={event.z_score:.4f}"
+            ),
+            state=f"TURNING_{event.direction}",
+            close=event.close,
+        )
+        for event in result.events
     )
 
 
