@@ -15,6 +15,8 @@ from experiments.watchlist_scanner import (
     scan_watchlist,
     write_watchlist_outputs,
 )
+from experiments.watchlist_scanner.report import _event_price_svg, _timeline_svg
+from experiments.watchlist_scanner.scanner import _transition_priority
 from scripts.run_watchlist_scanner import run as run_watchlist_scanner
 from twstock_data.dataset import (
     build_research_dataset,
@@ -27,6 +29,7 @@ from twstock_data.models import (
     SourceState,
     SourceTier,
 )
+from twstock_data.sources.tpex_cb import CbIssue, CbMarketSnapshot
 
 
 START = "2024-01-01"
@@ -100,6 +103,63 @@ def _dataset(
 
 
 class WatchlistScannerTests(unittest.TestCase):
+    def test_target_transition_precedes_other_transition_without_a_score(self) -> None:
+        self.assertLess(
+            _transition_priority("BASE->TURNING_UP"),
+            _transition_priority("NOISE->TURNING_UP"),
+        )
+        self.assertLess(
+            _transition_priority("NOISE->TURNING_UP"),
+            _transition_priority(""),
+        )
+
+    def test_cb_classification_is_exported_without_claiming_never_issued(self) -> None:
+        snapshot = CbMarketSnapshot(
+            current_issues=(
+                CbIssue(
+                    issuer_code="2330",
+                    issuer_name="台積電",
+                    bond_code="23301",
+                    bond_name="台積電一",
+                    event_date=date(2026, 8, 1),
+                    listing_status="CURRENT",
+                    instrument_type="CONVERTIBLE_BOND",
+                ),
+            ),
+            recently_delisted_issues=(),
+            data_as_of=date(2026, 8, 17),
+        )
+        datasets = {symbol: _dataset(symbol) for symbol in ("2330", "2317")}
+        scan = scan_watchlist(
+            ["2330", "2317"],
+            START,
+            END,
+            dataset_loader=lambda symbol, _start, _end: datasets[symbol],
+            cb_snapshot=snapshot,
+            symbol_names={"2330": "台積電", "2317": "鴻海"},
+        )
+        rows = {item.source_symbol: item for item in scan.candidates}
+
+        self.assertEqual(rows["2330"].cb_issuer_status, "CURRENT_CB")
+        self.assertEqual(rows["2330"].company_name, "台積電")
+        self.assertEqual(rows["2330"].cb_current_issue_count, 1)
+        self.assertEqual(rows["2317"].cb_issuer_status, "NOT_FOUND_CURRENT_OR_RECENT")
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            write_watchlist_outputs(scan, output)
+            html = (output / "watchlist.html").read_text(encoding="utf-8")
+            with (output / "watchlist_candidates.csv").open(encoding="utf-8") as handle:
+                exported = {row["source_symbol"]: row for row in csv.DictReader(handle)}
+
+        self.assertIn("CB 狀態", html)
+        self.assertIn("台積電", html)
+        self.assertEqual(exported["2330"]["company_name"], "台積電")
+        self.assertEqual(exported["2330"]["cb_issue_names"], "台積電一")
+        self.assertEqual(
+            exported["2317"]["cb_issuer_status"],
+            "NOT_FOUND_CURRENT_OR_RECENT",
+        )
+
     def test_official_loader_never_invokes_finmind_even_with_token(self) -> None:
         source = _dataset("2330", count=1).records
         with patch.dict(os.environ, {"FINMIND_TOKEN": "MUST_NOT_BE_USED"}), patch(
@@ -161,8 +221,16 @@ class WatchlistScannerTests(unittest.TestCase):
 
         self.assertEqual(first.candidates, second.candidates)
         self.assertEqual(first.timeline, second.timeline)
-        self.assertEqual(first.candidates[0].source_symbol, "2330")
+        self.assertEqual(first.candidates[0].source_symbol, "2317")
         self.assertEqual([item.rank for item in first.candidates], [1, 2])
+        self.assertEqual(
+            [item.market_state for item in first.candidates],
+            [item.market_state for item in second.candidates],
+        )
+        self.assertEqual(
+            first.candidates[0].method_relationship,
+            "ALIGNED_UP",
+        )
 
     def test_failure_short_history_and_stale_data_are_unranked(self) -> None:
         datasets = {
@@ -218,9 +286,9 @@ class WatchlistScannerTests(unittest.TestCase):
         first = scan_watchlist(["2330"], START, END, dataset_loader=loader)
         second = scan_watchlist(["2330"], START, END, dataset_loader=loader)
 
-        self.assertEqual(
-            {item.source_engine for item in first.timeline},
-            {"BREAKOUT_TRACKER_V5", "CONTINUOUS_HIGH"},
+        self.assertTrue(
+            {"SEVEN_STATE_RADAR", "BREAKOUT_TRACKER_V5", "CONTINUOUS_HIGH"}
+            <= {item.source_engine for item in first.timeline}
         )
         self.assertEqual(
             [item.event_id for item in first.timeline],
@@ -262,6 +330,167 @@ class WatchlistScannerTests(unittest.TestCase):
             self.assertIn("UNVERIFIED", html)
             self.assertIn("不作投資使用", html)
             self.assertTrue((output / "symbols" / "2330" / "market_bars.csv").is_file())
+
+    def test_visual_report_embeds_rank_price_volume_and_event_charts(self) -> None:
+        datasets = {
+            "2330": _dataset("2330", last_volume_multiplier=3.0),
+            "2317": _dataset("2317", last_volume_multiplier=1.5),
+        }
+        scan = scan_watchlist(
+            ["2330", "2317"],
+            START,
+            END,
+            dataset_loader=lambda symbol, _start, _end: datasets[symbol],
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            write_watchlist_outputs(scan, output)
+            html = (output / "watchlist.html").read_text(encoding="utf-8")
+            manifest = json.loads(
+                (output / "watchlist_manifest.json").read_text(encoding="utf-8")
+            )
+
+        self.assertIn("Watchlist Radar v0.4", html)
+        self.assertIn("全市場七狀態分布", html)
+        self.assertIn("今天值得先看的狀態轉換", html)
+        self.assertIn("全市場方法並排表", html)
+        self.assertIn("不合成分數", html)
+        self.assertIn('id="candidate-ranking-chart"', html)
+        self.assertIn('id="event-timeline-chart"', html)
+        self.assertIn('id="symbol-2330"', html)
+        self.assertIn('id="symbol-2317"', html)
+        self.assertIn('id="event-price-chart-2330.TW"', html)
+        self.assertIn('id="event-price-chart-2317.TW"', html)
+        self.assertEqual(html.count("七狀態與雙斜率事件疊加股價圖"), 2)
+        self.assertEqual(html.count("核心均線圖：收盤與 MA5／10／20／60"), 2)
+        self.assertEqual(html.count("長期均線圖：收盤與 MA60／120／200／240"), 2)
+        self.assertIn('id="ma-state-chart-2330.TW"', html)
+        self.assertIn('id="ma-long-chart-2330.TW"', html)
+        self.assertIn('data-series="ma_global_long"', html)
+        self.assertIn("MA200（比較）", html)
+        self.assertEqual(
+            html.count('aria-label="Continuous High Monitor daily timeline"'),
+            2,
+        )
+        self.assertIn("成交量 / 前20日均量", html)
+        self.assertIn("rolling high", html)
+        self.assertIn("Pivot breakout", html)
+        self.assertIn("這不是分數圖", html)
+        self.assertNotIn("<script", html)
+        self.assertEqual(
+            manifest["visualization_policy"]["rank_encoding"],
+            "ORDINAL_ONLY_NO_SCORE_MAGNITUDE",
+        )
+        self.assertEqual(
+            manifest["visualization_policy"]["corporate_action_status"],
+            "UNVERIFIED",
+        )
+        self.assertEqual(
+            manifest["visualization_policy"]["event_price_charts"],
+            "RADAR_AND_DOUBLE_SLOPE_PRIMARY_WITH_AUXILIARY_EVENTS_ON_CLOSE_LINE",
+        )
+        self.assertEqual(
+            manifest["visualization_policy"]["symbol_charts"],
+            "PRICE_EVENTS_CORE_MA_LONG_TERM_MA_AND_AUXILIARY_PRICE_VOLUME",
+        )
+        self.assertEqual(manifest["ranking_policy"]["score"], "NONE")
+        self.assertEqual(
+            manifest["ranking_policy"]["breakout_and_continuous_high_influence"],
+            "NONE_AUXILIARY_ONLY",
+        )
+
+    def test_visualizations_retain_exact_engine_results_for_each_dataset(self) -> None:
+        datasets = {symbol: _dataset(symbol) for symbol in ("2330", "2317")}
+        scan = scan_watchlist(
+            ["2330", "2317"],
+            START,
+            END,
+            dataset_loader=lambda symbol, _start, _end: datasets[symbol],
+        )
+
+        self.assertEqual(
+            [item.source_symbol for item in scan.visualizations],
+            ["2317", "2330"],
+        )
+        for visualization in scan.visualizations:
+            dataset = datasets[visualization.source_symbol]
+            self.assertEqual(
+                visualization.continuous_high_result.symbol,
+                dataset.canonical_symbol,
+            )
+            self.assertEqual(
+                visualization.continuous_high_result.parameter_hash,
+                scan.monitor_parameter_hash,
+            )
+            self.assertTrue(visualization.breakout_snapshots)
+            self.assertTrue(visualization.ma_state_result.observations)
+            self.assertTrue(visualization.double_slope_result.observations)
+            self.assertTrue(visualization.radar_state_result.observations)
+
+    def test_graphical_timeline_groups_same_day_engine_events(self) -> None:
+        dataset = _dataset("2330")
+        scan = scan_watchlist(
+            ["2330"], START, END, dataset_loader=lambda *_: dataset
+        )
+        svg = _timeline_svg(scan)
+        breakout_groups = {
+            (item.symbol, item.trade_date, item.source_engine)
+            for item in scan.timeline
+            if item.source_engine == "BREAKOUT_TRACKER_V5"
+        }
+        high_groups = {
+            (item.symbol, item.trade_date, item.source_engine)
+            for item in scan.timeline
+            if item.source_engine == "CONTINUOUS_HIGH"
+        }
+        self.assertEqual(svg.count('fill="#a78bfa"'), len(breakout_groups))
+        self.assertEqual(svg.count('fill="#38bdf8"'), len(high_groups))
+
+    def test_event_price_chart_groups_all_events_at_matching_close(self) -> None:
+        dataset = _dataset("2330")
+        scan = scan_watchlist(
+            ["2330"], START, END, dataset_loader=lambda *_: dataset
+        )
+        svg = _event_price_svg(dataset.bars, scan.timeline)
+        breakout_groups = {
+            (item.trade_date, item.source_engine)
+            for item in scan.timeline
+            if item.source_engine == "BREAKOUT_TRACKER_V5"
+        }
+        high_groups = {
+            (item.trade_date, item.source_engine)
+            for item in scan.timeline
+            if item.source_engine == "CONTINUOUS_HIGH"
+        }
+        radar_groups = {
+            (item.trade_date, item.source_engine)
+            for item in scan.timeline
+            if item.source_engine == "SEVEN_STATE_RADAR"
+        }
+
+        self.assertEqual(
+            svg.count('data-engine="BREAKOUT_TRACKER_V5"'),
+            len(breakout_groups),
+        )
+        self.assertEqual(
+            svg.count('data-engine="CONTINUOUS_HIGH"'), len(high_groups)
+        )
+        self.assertEqual(
+            svg.count('data-engine="SEVEN_STATE_RADAR"'), len(radar_groups)
+        )
+        self.assertIn(f"{len(scan.timeline)} 個事件", svg)
+        self.assertIn("公司行動 UNVERIFIED", svg)
+
+    def test_event_price_chart_rejects_event_close_mismatch(self) -> None:
+        dataset = _dataset("2330")
+        scan = scan_watchlist(
+            ["2330"], START, END, dataset_loader=lambda *_: dataset
+        )
+        mismatched = replace(scan.timeline[0], close=scan.timeline[0].close + 1)
+
+        with self.assertRaisesRegex(ValueError, "does not match price bar"):
+            _event_price_svg(dataset.bars, (mismatched,))
 
     def test_watchlist_schema_rejects_duplicates_and_invalid_symbols(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
