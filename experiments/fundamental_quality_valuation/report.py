@@ -69,7 +69,7 @@ def write_current_csv(results: Iterable[ClassificationResult], path: Path) -> No
     fields = list(dict.fromkeys(key for record in records for key in record))
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(records)
 
