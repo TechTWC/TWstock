@@ -1,0 +1,124 @@
+{
+  "experiment_id": "EXP-0050-FQV-20260903-V01",
+  "experiment_type": "fundamental_quality_valuation_shadow_research",
+  "created_at": "2026-09-03T08:24:18.758607+00:00",
+  "git_sha": "e2c921fc5f101bc03e2cccea84712e740e179366",
+  "data_reference": "FinMind v4 cached raw responses; current 0050 universe snapshot",
+  "config": {
+    "model_id": "0050-FQV-001",
+    "model_version": "0.1.0",
+    "status": "research-shadow",
+    "as_of_date": "2026-09-03",
+    "history_start": "2016-01-01",
+    "universe": "CURRENT_0050_CONSTITUENTS",
+    "universe_bias_flag": "SURVIVORSHIP_BIAS_PRESENT",
+    "availability_rule_version": "FQV-PIT-PROXY-0.1",
+    "financial_availability_lag_days": {
+      "q1": 60,
+      "q2": 60,
+      "q3": 60,
+      "q4": 90
+    },
+    "quality_rules": {
+      "general": {
+        "median_roe_5y_min": 0.1,
+        "median_roic_5y_min": 0.08,
+        "median_cfo_net_income_min": 0.8,
+        "fcf_positive_ratio_min": 0.7,
+        "net_debt_equity_max": 1.0,
+        "interest_coverage_min": 3.0
+      },
+      "financial": {
+        "median_roe_5y_min": 0.1,
+        "median_roa_5y_min": 0.006,
+        "equity_cagr_3y_min": 0.0,
+        "eps_cagr_3y_min": 0.0
+      }
+    },
+    "valuation_rules": {
+      "low_percentile_max": 0.25,
+      "high_percentile_min": 0.75,
+      "minimum_history_observations": 120,
+      "dcf_discount_rate": 0.1,
+      "dcf_terminal_growth": 0.03,
+      "dcf_projection_years": 5,
+      "dcf_growth_floor": -0.03,
+      "dcf_growth_cap": 0.2
+    },
+    "backtest": {
+      "start_date": "2019-01-01",
+      "forward_horizons": [
+        20,
+        60,
+        120,
+        252,
+        756
+      ],
+      "confidence_level": 0.95,
+      "benchmark": "0050"
+    }
+  },
+  "period": {
+    "start": "2016-01-01",
+    "end": "2026-09-03"
+  },
+  "universe": {
+    "name": "CURRENT_0050_CONSTITUENTS",
+    "count": 50,
+    "bias": "SURVIVORSHIP_BIAS_PRESENT"
+  },
+  "status": "PROVISIONAL_SHADOW",
+  "claim_boundary": "analysis quality and investment prediction are separate; prediction is not established",
+  "artifacts": [
+    {
+      "path": "0050_backtest_events_v0.1.csv",
+      "sha256": "8ead75fd4714563258bd257a66383b8f0c3b2383fee9055a93daf31547b017ed",
+      "bytes": 1379759
+    },
+    {
+      "path": "0050_baseline_comparison_v0.1.csv",
+      "sha256": "83f68c57c9f8e7004e62835058c80e4216759b2780852fe319b502fe61e950a3",
+      "bytes": 8092
+    },
+    {
+      "path": "0050_current_state_matrix_v0.1.csv",
+      "sha256": "d1de231f294cadc217571fd171c675d411bcb4420a4145cc8f68152983ab87c2",
+      "bytes": 84191
+    },
+    {
+      "path": "0050_data_quality_report_v0.1.csv",
+      "sha256": "1d1863e556cadeebdd8d0cfeac0780aaecfe1b4d7e1c54c7cd5b3fe33ba77b27",
+      "bytes": 16027
+    },
+    {
+      "path": "0050_fundamental_quality_valuation_backtest_v0.1.json",
+      "sha256": "afc0a4ffcc15107444578755852248df356be7081e0bfa9f1446657252a31bfd",
+      "bytes": 7960431
+    },
+    {
+      "path": "0050_fundamental_quality_valuation_backtest_v0.1.pdf",
+      "sha256": "2c4ded34b2731fbe3c7ba43c72e665717a8dc4926a9df336d1d7832aa17a58e1",
+      "bytes": 3426379
+    },
+    {
+      "path": "0050_normalized_financials_pit_v0.1.csv",
+      "sha256": "0c1c3984961d96cd23e6b7b3cfd3158bcd68d7b26f7daeeac051f63112d38c21",
+      "bytes": 1269661
+    },
+    {
+      "path": "0050_peer_context_v0.1.csv",
+      "sha256": "ce939e4ce6d9ebf42ba531e0dae3bd18ae00a1ec0416f684cf91285ec2845a0b",
+      "bytes": 14687
+    },
+    {
+      "path": "0050_quality_persistence_v0.1.csv",
+      "sha256": "d2829cd3e0811971b96acc4c962173091405542b32d2d076130de8684d226f9c",
+      "bytes": 1550
+    },
+    {
+      "path": "0050_state_validation_v0.1.csv",
+      "sha256": "4e45f231fbf50d2d9d1071244c476c02dbc3d1ce7da7c53033ccfbc868a1cd98",
+      "bytes": 110
+    }
+  ]
+}
