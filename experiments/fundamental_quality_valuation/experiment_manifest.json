@@ -1,0 +1,26 @@
+{
+  "experiment_id": "EXP-0050-FQV-20260903-V01",
+  "experiment_type": "fundamental_quality_valuation_shadow_research",
+  "model_id": "0050-FQV-001",
+  "model_version": "0.1.0",
+  "status": "PROVISIONAL_SHADOW",
+  "universe": "CURRENT_0050_CONSTITUENTS",
+  "period_start": "2016-01-01",
+  "period_end": "2026-09-03",
+  "data_reference": "FinMind v4 cached raw responses and versioned current-universe snapshot",
+  "config_path": "config/fundamental_quality_valuation_v0_1.json",
+  "output_path": "artifacts/0050_fundamental_v0_1",
+  "bias_flags": [
+    "SURVIVORSHIP_BIAS_PRESENT",
+    "AVAILABLE_DATE_PROXY",
+    "ADJUSTED_RETURN_SECONDARY_SOURCE",
+    "UNIVERSE_SOURCE_RECONSTRUCTED"
+  ],
+  "technical_model": {
+    "version": "v0.6-adjusted-0050-fixed-b",
+    "status": "FROZEN_EXTERNAL_BASELINE",
+    "joined": false,
+    "reason": "No authenticated v0.6 artifact was present in the inspected repository"
+  },
+  "notes": "No score, weighted ranking, parameter optimization, merge, or production deployment is authorized."
+}
