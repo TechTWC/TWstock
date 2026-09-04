@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -167,20 +168,47 @@ def _quarterize_ytd(series: pd.Series) -> pd.Series:
     result = pd.Series(index=series.index, dtype=float)
     for _, group in series.sort_index().groupby(series.index.year):
         previous = math.nan
+        previous_ordinal: int | None = None
         for timestamp, value in group.items():
             current = _safe_float(value)
+            ordinal = int(timestamp.year * 4 + ((timestamp.month - 1) // 3))
             if not math.isfinite(current):
                 result.loc[timestamp] = math.nan
-            elif math.isfinite(previous):
+            elif math.isfinite(previous) and previous_ordinal is not None and ordinal == previous_ordinal + 1:
                 result.loc[timestamp] = current - previous
-            else:
+            elif timestamp.month == 3:
                 result.loc[timestamp] = current
+            else:
+                result.loc[timestamp] = math.nan
             previous = current
+            previous_ordinal = ordinal
     return result.sort_index()
 
 
 def _rolling_ttm(series: pd.Series) -> pd.Series:
     return series.rolling(window=4, min_periods=4).sum()
+
+
+def _announcement_date_map(*row_sets: list[dict[str, Any]]) -> dict[date, date]:
+    """Use a source-supplied date only when explicitly present and ordered."""
+
+    result: dict[date, date] = {}
+    for rows in row_sets:
+        for row in rows:
+            period = pd.to_datetime(row.get("date"), errors="coerce")
+            raw = next(
+                (
+                    row.get(key)
+                    for key in ("announcement_date", "filing_date", "available_date")
+                    if row.get(key)
+                ),
+                None,
+            )
+            announced = pd.to_datetime(raw, errors="coerce")
+            if pd.isna(period) or pd.isna(announced) or announced.date() < period.date():
+                continue
+            result[period.date()] = max(result.get(period.date(), announced.date()), announced.date())
+    return result
 
 
 def _growth(series: pd.Series, periods: int = 4) -> pd.Series:
@@ -197,10 +225,14 @@ def normalize_quarterly(
     cashflow_rows: list[dict[str, Any]],
     availability_lags: dict[str, int],
 ) -> pd.DataFrame:
+    announcement_dates = _announcement_date_map(financial_rows, balance_rows, cashflow_rows)
     income = _pivot(financial_rows)
     balance = _pivot(balance_rows)
     cashflow = _pivot(cashflow_rows)
-    index = income.index.union(balance.index).union(cashflow.index).sort_values()
+    observed_index = income.index.union(balance.index).union(cashflow.index).sort_values()
+    if observed_index.empty:
+        return pd.DataFrame()
+    index = pd.date_range(observed_index.min(), observed_index.max(), freq="QE-DEC")
     output = pd.DataFrame(index=index)
 
     income = income.reindex(index)
@@ -214,6 +246,10 @@ def normalize_quarterly(
         ("IncomeAfterTaxes", "TotalConsolidatedProfitForThePeriod"),
     )
     output["pre_tax_income"] = _first_column(income, ("PreTaxIncome",))
+    output["interest_expense"] = _first_column(
+        income,
+        ("InterestExpense", "FinanceCosts", "InterestExpenseAndFinanceCosts"),
+    ).abs()
     output["eps"] = _first_column(income, ("EPS",))
     output["equity"] = _first_column(
         balance,
@@ -237,6 +273,10 @@ def normalize_quarterly(
     )
     output["retained_earnings"] = _first_column(balance, ("RetainedEarnings",))
     output["ordinary_shares"] = _first_column(balance, ("OrdinaryShare",))
+    output["bvps"] = _first_column(
+        balance,
+        ("BookValuePerShare", "NetValuePerShare"),
+    )
 
     cfo_ytd = _first_column(
         cashflow,
@@ -248,7 +288,17 @@ def normalize_quarterly(
     output.loc[output["capex"] < 0, "capex"] = math.nan
     output["fcf"] = output["cfo"] - output["capex"]
 
-    for column in ("revenue", "gross_profit", "operating_income", "net_income", "eps", "cfo", "capex", "fcf"):
+    for column in (
+        "revenue",
+        "gross_profit",
+        "operating_income",
+        "net_income",
+        "eps",
+        "interest_expense",
+        "cfo",
+        "capex",
+        "fcf",
+    ):
         output[f"ttm_{column}"] = _rolling_ttm(output[column])
     output["gross_margin"] = output["ttm_gross_profit"] / output["ttm_revenue"]
     output["operating_margin"] = output["ttm_operating_income"] / output["ttm_revenue"]
@@ -258,8 +308,8 @@ def normalize_quarterly(
     output["roe"] = output["ttm_net_income"] / average_equity
     output["roa"] = output["ttm_net_income"] / average_assets
     tax_rate = 1.0 - output["ttm_net_income"] / _rolling_ttm(output["pre_tax_income"])
-    tax_rate = tax_rate.clip(lower=0.0, upper=0.35).fillna(0.20)
-    invested_capital = output["equity"] + output["debt"].fillna(0) - output["cash"].fillna(0)
+    tax_rate = tax_rate.clip(lower=0.0, upper=0.35)
+    invested_capital = output["equity"] + output["debt"] - output["cash"]
     average_invested = (invested_capital + invested_capital.shift(4)) / 2.0
     output["roic"] = output["ttm_operating_income"] * (1.0 - tax_rate) / average_invested
     output.loc[average_invested <= 0, "roic"] = math.nan
@@ -276,18 +326,25 @@ def normalize_quarterly(
     output.index.name = "period_end"
     output = output.reset_index()
     output["period_end"] = output["period_end"].dt.date
-    output["announcement_date"] = None
-    output["available_date"] = output["period_end"].map(
-        lambda value: derive_financial_available_date(
-            value,
+    output["announcement_date"] = output["period_end"].map(announcement_dates)
+    output["available_date"] = output.apply(
+        lambda row: row["announcement_date"]
+        if pd.notna(row["announcement_date"])
+        else derive_financial_available_date(
+            row["period_end"],
             q1_lag_days=int(availability_lags["q1"]),
             q2_lag_days=int(availability_lags["q2"]),
             q3_lag_days=int(availability_lags["q3"]),
             q4_lag_days=int(availability_lags["q4"]),
-        )
+        ),
+        axis=1,
     )
-    output["availability_method"] = "CONSERVATIVE_FILING_LAG_PROXY"
-    output["timestamp_confidence"] = "conservative"
+    output["availability_method"] = np.where(
+        output["announcement_date"].notna(), "ACTUAL_ANNOUNCEMENT_DATE", "AVAILABLE_DATE_PROXY"
+    )
+    output["timestamp_confidence"] = np.where(
+        output["announcement_date"].notna(), "verified_source_field", "conservative_proxy"
+    )
     output = output.replace([np.inf, -np.inf], np.nan)
     return output.sort_values("period_end").reset_index(drop=True)
 
@@ -323,6 +380,8 @@ def load_security_data(
     company: str,
     industry: str,
     sector_logic: SectorLogic,
+    peer_group: str,
+    financial_subtype: str | None,
     start_date: str,
     end_date: str,
     cache_dir: Path,
@@ -351,6 +410,16 @@ def load_security_data(
         payloads["TaiwanStockPrice"]["data"],
         payloads["TaiwanStockPER"]["data"],
     )
+    metadata_rows = [payload.get("_research_metadata", {}) for payload in payloads.values()]
+    retrieved = sorted(str(item.get("retrieved_at")) for item in metadata_rows if item.get("retrieved_at"))
+    source_hash = hashlib.sha256(
+        json.dumps(
+            {dataset: payloads[dataset].get("data", []) for dataset in sorted(payloads)},
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
     flags = ["AVAILABLE_DATE_PROXY", "ANNOUNCEMENT_DATE_UNAVAILABLE"]
     if not market.empty:
         flags.append("UNADJUSTED_PRICE_RETURN")
@@ -361,6 +430,13 @@ def load_security_data(
         sector_logic=sector_logic,
         quarterly=quarterly,
         market=market,
+        peer_group=peer_group,
+        financial_subtype=financial_subtype,
+        source_metadata={
+            "retrieval_date": retrieved[-1] if retrieved else None,
+            "source_version": "FinMind API v4 normalized-contract-0.1.1",
+            "source_hash": source_hash,
+        },
         data_flags=flags,
     )
 
@@ -480,6 +556,8 @@ def load_yahoo_fallback_security_data(
     company: str,
     industry: str,
     sector_logic: SectorLogic,
+    peer_group: str,
+    financial_subtype: str | None,
     start_date: str,
     end_date: str,
     cache_dir: Path,
@@ -534,7 +612,16 @@ def load_yahoo_fallback_security_data(
         sector_logic=sector_logic,
         quarterly=quarterly,
         market=market,
+        peer_group=peer_group,
+        financial_subtype=financial_subtype,
         source="Yahoo Finance fundamentals fallback + TWSE current valuation",
+        source_metadata={
+            "retrieval_date": datetime.now(timezone.utc).isoformat(),
+            "source_version": "Yahoo fundamentals-timeseries/chart + TWSE BWIBBU_ALL",
+            "source_hash": hashlib.sha256(
+                json.dumps(fundamentals, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest(),
+        },
         data_flags=[
             "SECONDARY_SOURCE_ONLY",
             "YAHOO_FALLBACK_LIMITED_HISTORY",
@@ -549,7 +636,15 @@ def load_yahoo_fallback_security_data(
 
 def load_universe(path: Path) -> list[dict[str, str]]:
     frame = pd.read_csv(path, dtype=str).fillna("")
-    required = {"symbol", "company", "sector_logic", "universe_as_of", "source_note"}
+    required = {
+        "symbol",
+        "company",
+        "sector_logic",
+        "peer_group",
+        "financial_subtype",
+        "universe_as_of",
+        "source_note",
+    }
     missing = required.difference(frame.columns)
     if missing:
         raise ResearchDataError(f"Universe is missing columns: {sorted(missing)}")

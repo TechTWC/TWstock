@@ -2,19 +2,20 @@
   "experiment_id": "EXP-0050-FQV-20260903-V01",
   "experiment_type": "fundamental_quality_valuation_shadow_research",
   "model_id": "0050-FQV-001",
-  "model_version": "0.1.0",
+  "model_version": "0.1.1-correction-pass",
   "status": "PROVISIONAL_SHADOW",
   "universe": "CURRENT_0050_CONSTITUENTS",
   "period_start": "2016-01-01",
   "period_end": "2026-09-03",
-  "data_reference": "FinMind v4 cached raw responses and versioned current-universe snapshot",
+  "data_reference": "Immutable source metadata/hashes and permissible normalized snapshot; vendor raw payloads excluded from public git",
   "config_path": "config/fundamental_quality_valuation_v0_1.json",
   "output_path": "artifacts/0050_fundamental_v0_1",
   "bias_flags": [
-    "SURVIVORSHIP_BIAS_PRESENT",
+    "CURRENT_CONSTITUENTS_ONLY",
     "AVAILABLE_DATE_PROXY",
     "ADJUSTED_RETURN_SECONDARY_SOURCE",
-    "UNIVERSE_SOURCE_RECONSTRUCTED"
+    "UNIVERSE_SOURCE_RECONSTRUCTED",
+    "FINANCIAL_STATE_UNSUPPORTED"
   ],
   "technical_model": {
     "version": "v0.6-adjusted-0050-fixed-b",

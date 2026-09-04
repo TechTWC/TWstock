@@ -1,12 +1,12 @@
 {
   "model_id": "0050-FQV-001",
-  "model_version": "0.1.0",
+  "model_version": "0.1.1-correction-pass",
   "status": "research-shadow",
   "as_of_date": "2026-09-03",
   "history_start": "2016-01-01",
   "universe": "CURRENT_0050_CONSTITUENTS",
-  "universe_bias_flag": "SURVIVORSHIP_BIAS_PRESENT",
-  "availability_rule_version": "FQV-PIT-PROXY-0.1",
+  "universe_bias_flag": "CURRENT_CONSTITUENTS_ONLY",
+  "availability_rule_version": "FQV-PIT-ACTUAL-OR-EXPLICIT-PROXY-0.1.1",
   "financial_availability_lag_days": {
     "q1": 60,
     "q2": 60,
@@ -20,28 +20,50 @@
       "median_cfo_net_income_min": 0.80,
       "fcf_positive_ratio_min": 0.70,
       "net_debt_equity_max": 1.00,
-      "interest_coverage_min": 3.00
+      "interest_coverage_min": 3.00,
+      "minimum_metric_coverage": {
+        "ttm_revenue": 0.80,
+        "ttm_eps": 0.80,
+        "roe": 0.75,
+        "roic": 0.75,
+        "ttm_cfo": 0.75,
+        "ttm_fcf": 0.75,
+        "equity": 0.80
+      }
     },
     "financial": {
       "median_roe_5y_min": 0.10,
       "median_roa_5y_min": 0.006,
       "equity_cagr_3y_min": 0.00,
-      "eps_cagr_3y_min": 0.00
+      "eps_cagr_3y_min": 0.00,
+      "roe_mapping_plausibility_max": 0.50
     }
   },
   "valuation_rules": {
     "low_percentile_max": 0.25,
     "high_percentile_min": 0.75,
     "minimum_history_observations": 120,
+    "normalized_pe_minimum_observations": 12,
+    "maximum_valuation_staleness_days": 10,
     "dcf_discount_rate": 0.10,
     "dcf_terminal_growth": 0.03,
     "dcf_projection_years": 5,
     "dcf_growth_floor": -0.03,
     "dcf_growth_cap": 0.20
   },
+  "realized_state_rules": {
+    "evaluation_quarters": 4,
+    "minimum_families": 4,
+    "directional_family_minimum": 3,
+    "directional_vote_margin": 2,
+    "level_change_threshold": 0.02,
+    "ratio_change_threshold": 0.01,
+    "balance_sheet_change_threshold": 0.05,
+    "purpose": "ex-post evaluation only; never imported into contemporaneous signal generation"
+  },
   "backtest": {
     "start_date": "2019-01-01",
-    "forward_horizons": [20, 60, 120, 252, 756],
+    "forward_horizons": [20, 60, 120, 252, 504, 756],
     "confidence_level": 0.95,
     "benchmark": "0050"
   }

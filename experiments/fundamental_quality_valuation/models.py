@@ -13,6 +13,13 @@ class QualityState(str, Enum):
 
 
 class FundamentalState(str, Enum):
+    IMPROVING = "IMPROVING"
+    STABLE = "STABLE"
+    DETERIORATING = "DETERIORATING"
+    UNKNOWN = "UNKNOWN"
+
+
+class StateDetail(str, Enum):
     DETERIORATING = "DETERIORATING"
     BOTTOMING = "BOTTOMING"
     TURNING_UP = "TURNING_UP"
@@ -48,6 +55,9 @@ class PITMetadata:
     available_date: str
     as_of_date: str
     source: str
+    retrieval_date: str | None
+    source_version: str | None
+    source_hash: str | None
     availability_method: str
     timestamp_confidence: str
 
@@ -60,7 +70,10 @@ class SecurityData:
     sector_logic: SectorLogic
     quarterly: Any
     market: Any
+    peer_group: str = "UNCLASSIFIED"
+    financial_subtype: str | None = None
     source: str = "FinMind v4 (TWSE/MOPS-derived vendor dataset)"
+    source_metadata: dict[str, Any] = field(default_factory=dict)
     data_flags: list[str] = field(default_factory=list)
 
 
@@ -70,10 +83,13 @@ class ClassificationResult:
     company: str
     industry: str
     sector_logic: str
+    peer_group: str
+    financial_subtype: str | None
     as_of_date: str
     period_end: str | None
     quality: str
     fundamental_state: str
+    state_detail: str
     valuation: str
     research_classification: str
     data_quality: str

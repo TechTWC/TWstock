@@ -53,7 +53,7 @@ def validate_temporal_record(record: TemporalRecord) -> None:
             raise ValueError("announcement_date precedes period_end")
         if record.available_date < record.announcement_date:
             raise ValueError("available_date precedes announcement_date")
-    elif record.availability_method != "CONSERVATIVE_FILING_LAG_PROXY":
+    elif record.availability_method != "AVAILABLE_DATE_PROXY":
         raise ValueError("missing announcement_date requires an explicit proxy method")
     if record.available_date < record.period_end:
         raise ValueError("available_date precedes period_end")

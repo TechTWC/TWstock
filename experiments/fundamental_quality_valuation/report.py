@@ -19,7 +19,7 @@ import pandas as pd
 from .models import ClassificationResult, SecurityData
 
 
-DISCLAIMER = "Research / Shadow Model. Not investment advice. Provisional PIT, secondary-source adjusted-return, and survivorship limitations apply."
+DISCLAIMER = "Research / Shadow Model. Not investment advice. Current-constituent descriptive research; PIT proxy and non-IID return limitations apply."
 
 
 def _json_safe(value: Any) -> Any:
@@ -44,10 +44,13 @@ def _flat_result(result: ClassificationResult) -> dict[str, Any]:
         "company": result.company,
         "industry": result.industry,
         "sector_logic": result.sector_logic,
+        "peer_group": result.peer_group,
+        "financial_subtype": result.financial_subtype,
         "as_of_date": result.as_of_date,
         "period_end": result.period_end,
         "quality": result.quality,
         "fundamental_state": result.fundamental_state,
+        "state_detail": result.state_detail,
         "valuation": result.valuation,
         "research_classification": result.research_classification,
         "data_quality": result.data_quality,
@@ -80,7 +83,14 @@ def write_json_bundle(
     events: pd.DataFrame,
     baselines: pd.DataFrame,
     state_validation: pd.DataFrame,
+    state_confusion: pd.DataFrame,
+    state_accuracy: pd.DataFrame,
     quality_persistence: pd.DataFrame,
+    return_diagnostics: pd.DataFrame,
+    robustness: pd.DataFrame,
+    data_quality: pd.DataFrame,
+    financial_audit: pd.DataFrame,
+    too_late_diagnosis: pd.DataFrame,
     config: dict[str, Any],
     path: Path,
 ) -> None:
@@ -96,10 +106,10 @@ def write_json_bundle(
             },
         },
         "limitations": [
-            "SURVIVORSHIP_BIAS_PRESENT: historical runs use the current 0050 universe",
-            "AVAILABLE_DATE_PROXY: FinMind rows do not include verified filing timestamps",
+            "CURRENT_CONSTITUENTS_ONLY: not a historical 0050 strategy backtest; survivorship bias can overstate quality and long-horizon returns",
+            "AVAILABLE_DATE_PROXY: actual announcement-date coverage is zero where the source has no verified filing timestamp",
             "Return calculations prefer Yahoo adjusted close; raw prices are retained and source quality is flagged per security",
-            "Peer valuation and financial-sector NIM/NPL/capital adequacy are not available in v0.1 data",
+            "Financial-sector state and quality fail closed because PIT NIM/NPL/capital/insurance metrics and reliable period mappings are unavailable",
             "Frozen Technical v0.6 output was not present in the repository and was not recreated or changed",
         ],
         "current_results": [result.to_dict() for result in results],
@@ -108,6 +118,9 @@ def write_json_bundle(
                 "symbol": security.symbol,
                 "company": security.company,
                 "sector_logic": security.sector_logic.value,
+                "peer_group": security.peer_group,
+                "financial_subtype": security.financial_subtype,
+                "source_metadata": security.source_metadata,
                 "records": security.quarterly.to_dict(orient="records"),
             }
             for security in securities
@@ -115,7 +128,14 @@ def write_json_bundle(
         "backtest_events": events.to_dict(orient="records"),
         "baseline_summary": baselines.to_dict(orient="records"),
         "state_validation_summary": state_validation.to_dict(orient="records"),
+        "state_confusion_matrix": state_confusion.to_dict(orient="records"),
+        "state_accuracy_metrics": state_accuracy.to_dict(orient="records"),
         "quality_persistence_summary": quality_persistence.to_dict(orient="records"),
+        "return_diagnostics": return_diagnostics.to_dict(orient="records"),
+        "robustness_diagnostics": robustness.to_dict(orient="records"),
+        "data_quality_report": data_quality.to_dict(orient="records"),
+        "financial_mapping_audit": financial_audit.to_dict(orient="records"),
+        "too_late_diagnosis": too_late_diagnosis.to_dict(orient="records"),
         "config": config,
     }
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -129,6 +149,11 @@ def write_quarterly_csv(securities: Iterable[SecurityData], path: Path) -> None:
     frames: list[pd.DataFrame] = []
     for security in securities:
         frame = security.quarterly.copy()
+        frame.insert(0, "source_hash", security.source_metadata.get("source_hash"))
+        frame.insert(0, "source_version", security.source_metadata.get("source_version"))
+        frame.insert(0, "retrieval_date", security.source_metadata.get("retrieval_date"))
+        frame.insert(0, "financial_subtype", security.financial_subtype)
+        frame.insert(0, "peer_group", security.peer_group)
         frame.insert(0, "sector_logic", security.sector_logic.value)
         frame.insert(0, "company", security.company)
         frame.insert(0, "symbol", security.symbol)
@@ -146,6 +171,8 @@ def _configure_font(font_path: Path | None) -> None:
     else:
         plt.rcParams["font.family"] = "DejaVu Sans"
     plt.rcParams["axes.unicode_minus"] = False
+    plt.rcParams["pdf.fonttype"] = 42
+    plt.rcParams["ps.fonttype"] = 42
 
 
 def _fmt(value: object, percent: bool = False) -> str:
@@ -205,7 +232,7 @@ def _matrix_pages(pdf: PdfPages, results: list[ClassificationResult]) -> None:
         fig, axis = plt.subplots(figsize=(16, 10.5))
         axis.axis("off")
         axis.set_title("0050 Current State Matrix (no composite score)", fontsize=17, weight="bold", pad=18)
-        columns = ["Ticker", "Company", "Logic", "Quality", "State", "Valuation", "Research class", "Rev YoY", "EPS YoY", "FCF bn", "P/E", "P/B", "ROE", "ROIC", "Data"]
+        columns = ["Ticker", "Company", "Logic", "Quality", "Canonical", "Detail", "Valuation", "Research class", "Rev YoY", "EPS YoY", "FCF bn", "P/E", "P/B", "ROE", "ROIC", "Data"]
         cells = []
         for result in selected:
             m = result.metrics
@@ -216,6 +243,7 @@ def _matrix_pages(pdf: PdfPages, results: list[ClassificationResult]) -> None:
                     result.sector_logic,
                     result.quality,
                     result.fundamental_state.replace("_", "\n"),
+                    result.state_detail.replace("_", "\n"),
                     result.valuation,
                     result.research_classification.replace("_", "\n"),
                     _fmt(m.get("revenue_yoy"), True),
@@ -233,7 +261,7 @@ def _matrix_pages(pdf: PdfPages, results: list[ClassificationResult]) -> None:
             colLabels=columns,
             loc="center",
             cellLoc="left",
-            colWidths=[0.045, 0.075, 0.058, 0.06, 0.085, 0.06, 0.105, 0.055, 0.055, 0.055, 0.045, 0.045, 0.05, 0.05, 0.06],
+            colWidths=[0.04, 0.065, 0.05, 0.055, 0.065, 0.075, 0.05, 0.09, 0.05, 0.05, 0.05, 0.04, 0.04, 0.045, 0.045, 0.05],
         )
         table.auto_set_font_size(False)
         table.set_fontsize(6.2)
@@ -248,6 +276,8 @@ def _matrix_pages(pdf: PdfPages, results: list[ClassificationResult]) -> None:
 
 
 STATE_COLORS = {
+    "IMPROVING": "#2ca02c",
+    "STABLE": "#1f77b4",
     "DETERIORATING": "#d62728",
     "BOTTOMING": "#ff7f0e",
     "TURNING_UP": "#2ca02c",
@@ -294,7 +324,7 @@ def _plot_security_page(
     market = market[market["date"] >= date(cutoff.year - 10, cutoff.month, min(cutoff.day, 28))]
     fig, axes = plt.subplots(4, 2, figsize=(16, 10.5))
     fig.suptitle(
-        f"{result.symbol} {result.company} | {result.quality} × {result.fundamental_state} × {result.valuation}",
+        f"{result.symbol} {result.company} | {result.quality} × {result.fundamental_state} ({result.state_detail}) × {result.valuation}",
         fontsize=15,
         weight="bold",
     )
@@ -308,13 +338,26 @@ def _plot_security_page(
         axes[0].axvline(pd.Timestamp(event["signal_date"]), color=STATE_COLORS.get(event["fundamental_state"], "gray"), alpha=0.18, lw=0.8)
 
     qdates = pd.to_datetime(q["period_end"])
-    if len(q) < 12:
+    core_columns = [column for column in ("revenue", "net_income", "eps", "equity") if column in q]
+    observed_quarters = int(q[core_columns].notna().any(axis=1).sum()) if core_columns else 0
+    show_insufficient_panel = (
+        security.sector_logic.value != "FINANCIAL"
+        and result.data_quality == "INSUFFICIENT"
+        and result.fundamental_state == "UNKNOWN"
+    )
+    if observed_quarters < 12 or show_insufficient_panel:
         for axis in axes[1:]:
             axis.axis("off")
         axes[3].text(
             0.5,
             0.55,
-            f"INSUFFICIENT FINANCIAL HISTORY\n{len(q)} PIT-available quarterly observations; at least 12 are required for quality classification.",
+            (
+                "SOURCE HISTORY PROVENANCE UNSTABLE\n"
+                f"{observed_quarters} vendor quarters now exist, but the reviewed head had a 5-quarter fallback; cross-vintage continuity is unverified."
+                if result.symbol == "8046"
+                else "INSUFFICIENT METRIC COVERAGE\n"
+                f"{observed_quarters} observed quarters do not meet the per-metric coverage contract."
+            ),
             ha="center",
             va="center",
             fontsize=14,
@@ -331,6 +374,29 @@ def _plot_security_page(
             fontsize=11,
             color="#4b5563",
             transform=axes[5].transAxes,
+        )
+    elif security.sector_logic.value == "FINANCIAL":
+        for axis in axes[1:6]:
+            axis.axis("off")
+        axes[3].text(
+            0.5,
+            0.55,
+            "FINANCIAL STATE UNSUPPORTED — FAIL CLOSED\n"
+            f"Subtype: {security.financial_subtype or 'UNSPECIFIED'}\n"
+            "Generic FCF, operating-margin, net-debt and ROIC gates are not applied.\n"
+            "Reliable PIT EPS/NI/equity/BVPS/ROE period mapping and bank/insurance fields are incomplete.",
+            ha="center",
+            va="center",
+            fontsize=11,
+            color="#8b0000",
+            weight="bold",
+            transform=axes[3].transAxes,
+        )
+        _plot_series_or_message(
+            axes[6], dates, [(market["PBR"], "P/B", "#1f77b4")], "7. Financial-sector P/B (descriptive only)"
+        )
+        _plot_series_or_message(
+            axes[7], dates, [(market["dividend_yield"], "Dividend yield %", "#2ca02c")], "8. Dividend yield (descriptive only)"
         )
     else:
         revenue_available = _plot_series_or_message(
@@ -394,9 +460,9 @@ def _plot_security_page(
 
 def _case_page(pdf: PdfPages, results: list[ClassificationResult], events: pd.DataFrame) -> None:
     targets = [
-        ("GOOD + TURNING_UP + LOW", lambda r: r.quality == "GOOD" and r.fundamental_state == "TURNING_UP" and r.valuation == "LOW"),
-        ("GOOD + TURNING_UP + HIGH", lambda r: r.quality == "GOOD" and r.fundamental_state == "TURNING_UP" and r.valuation == "HIGH"),
-        ("GOOD + CONFIRMED_GROWTH", lambda r: r.quality == "GOOD" and r.fundamental_state == "CONFIRMED_GROWTH"),
+        ("GOOD + IMPROVING/TURNING_UP + LOW", lambda r: r.quality == "GOOD" and r.state_detail == "TURNING_UP" and r.valuation == "LOW"),
+        ("GOOD + IMPROVING/TURNING_UP + HIGH", lambda r: r.quality == "GOOD" and r.state_detail == "TURNING_UP" and r.valuation == "HIGH"),
+        ("GOOD + STABLE/CONFIRMED_GROWTH", lambda r: r.quality == "GOOD" and r.state_detail == "CONFIRMED_GROWTH"),
         ("Possible Value Trap", lambda r: r.research_classification == "POSSIBLE_VALUE_TRAP"),
         ("Cyclical Low-P/E Trap", lambda r: "CYCLICAL_LOW_PE_TRAP_RISK" in r.reason_codes),
         ("Financial-sector special case", lambda r: r.sector_logic == "FINANCIAL"),
@@ -404,7 +470,15 @@ def _case_page(pdf: PdfPages, results: list[ClassificationResult], events: pd.Da
     rows: list[list[str]] = []
     for label, predicate in targets:
         match = next((result for result in results if predicate(result)), None)
-        rows.append([label, f"{match.symbol} {match.company}" if match else "No current case", "; ".join(match.valuation_reasons if match else ("No observation satisfies the pre-registered case",))])
+        if match and label == "Financial-sector special case":
+            explanation = "; ".join(match.quality_reasons + match.fundamental_reasons)
+        else:
+            explanation = "; ".join(
+                match.valuation_reasons
+                if match
+                else ("No observation satisfies the pre-registered case",)
+            )
+        rows.append([label, f"{match.symbol} {match.company}" if match else "No current case", explanation])
     for validation_label, title in (("CORRECT", "TURNING_UP correct historical case"), ("FALSE_RECOVERY", "TURNING_UP incorrect historical case")):
         match = events[events["state_validation"] == validation_label].head(1) if not events.empty else pd.DataFrame()
         if match.empty:
@@ -429,44 +503,123 @@ def _backtest_pages(
     pdf: PdfPages,
     baselines: pd.DataFrame,
     state_validation: pd.DataFrame,
+    state_confusion: pd.DataFrame,
+    state_accuracy: pd.DataFrame,
     quality_persistence: pd.DataFrame,
+    return_diagnostics: pd.DataFrame,
 ) -> None:
-    fig, axes = plt.subplots(2, 1, figsize=(16, 10.5))
-    fig.suptitle("Historical Validation — provisional evidence", fontsize=17, weight="bold")
+    fig, axes = plt.subplots(2, 2, figsize=(16, 10.5))
+    fig.suptitle("Layer 1 — Fundamental State Identification Accuracy", fontsize=17, weight="bold")
+    evaluated = ["IMPROVING", "STABLE", "DETERIORATING"]
+    matrix = state_confusion[
+        state_confusion["predicted_state"].isin(evaluated)
+        & state_confusion["realized_state"].isin(evaluated)
+    ].pivot(index="predicted_state", columns="realized_state", values="count").reindex(
+        index=evaluated, columns=evaluated, fill_value=0
+    ).fillna(0)
+    image = axes[0, 0].imshow(matrix.to_numpy(), cmap="Blues")
+    axes[0, 0].set_xticks(range(3), evaluated, rotation=20)
+    axes[0, 0].set_yticks(range(3), evaluated)
+    axes[0, 0].set_xlabel("Realized ex-post state")
+    axes[0, 0].set_ylabel("PIT signal state")
+    axes[0, 0].set_title("A. Canonical confusion matrix")
+    for row in range(3):
+        for column in range(3):
+            axes[0, 0].text(column, row, int(matrix.iloc[row, column]), ha="center", va="center")
+    fig.colorbar(image, ax=axes[0, 0], shrink=0.7)
+
+    accuracy = state_accuracy.set_index("state").reindex(evaluated)
+    positions = np.arange(len(evaluated))
+    axes[0, 1].bar(positions - 0.18, accuracy["precision"], width=0.36, label="Precision")
+    axes[0, 1].bar(positions + 0.18, accuracy["recall"], width=0.36, label="Recall")
+    axes[0, 1].set_xticks(positions, evaluated)
+    axes[0, 1].set_ylim(0, 1)
+    axes[0, 1].set_title("B. Canonical precision / recall")
+    axes[0, 1].legend()
     if not state_validation.empty:
-        axes[0].bar(state_validation["label"], state_validation["count"], color="#2ca02c")
-        axes[0].set_title("A. Fundamental TURNING_UP recognition labels")
+        axes[1, 0].bar(state_validation["label"], state_validation["count"], color="#2ca02c")
+        axes[1, 0].set_title("C. Legacy TURNING_UP timing labels")
+        axes[1, 0].tick_params(axis="x", rotation=15)
     else:
-        axes[0].text(0.5, 0.5, "No evaluable TURNING_UP validation events", ha="center")
+        axes[1, 0].text(0.5, 0.5, "No evaluable TURNING_UP validation events", ha="center")
     if not quality_persistence.empty:
         pivot = quality_persistence.pivot(index="quality", columns="horizon", values="median_eps_growth")
-        pivot.plot(kind="bar", ax=axes[1])
-        axes[1].set_title("B. Quality persistence: median future EPS growth")
-        axes[1].set_ylabel("Growth")
+        pivot.plot(kind="bar", ax=axes[1, 1])
+        axes[1, 1].set_title("D. Quality persistence: median future EPS growth")
+        axes[1, 1].set_ylabel("Growth")
     else:
-        axes[1].text(0.5, 0.5, "No quality persistence observations", ha="center")
-    fig.text(0.5, 0.045, "These are analysis-quality diagnostics. They do not establish investment prediction.", ha="center", color="#8b0000")
+        axes[1, 1].text(0.5, 0.5, "No quality persistence observations", ha="center")
+    fig.text(0.5, 0.045, "Realized labels use future published fundamentals for evaluation only; they never enter contemporaneous signals.", ha="center", color="#8b0000")
     fig.tight_layout(rect=(0.02, 0.08, 0.98, 0.94))
     _footer(fig, "Recognition and persistence")
     pdf.savefig(fig)
     plt.close(fig)
 
     fig, axes = plt.subplots(2, 1, figsize=(16, 10.5))
-    fig.suptitle("Valuation Outcomes and Required Baselines", fontsize=17, weight="bold")
+    fig.suptitle("Layer 2 — Downstream Investment Relevance (Diagnostic Only)", fontsize=17, weight="bold")
     if not baselines.empty:
         one_year = baselines[baselines["horizon"] == "252d"].copy()
         axes[0].bar(one_year["baseline"], one_year["median_return"], color="#1f77b4")
         axes[0].tick_params(axis="x", rotation=25, labelsize=7)
-        axes[0].set_title("Median 1Y adjusted price return")
+        axes[0].set_title("Required baselines: median 12M adjusted close return")
         axes[1].bar(one_year["baseline"], one_year["mean_excess_return"], color="#ff7f0e")
         axes[1].tick_params(axis="x", rotation=25, labelsize=7)
-        axes[1].set_title("Mean 1Y excess return vs adjusted 0050 close")
+        axes[1].set_title("Required baselines: mean 12M excess return vs 0050")
     else:
         axes[0].text(0.5, 0.5, "No baseline output", ha="center")
         axes[1].text(0.5, 0.5, "No baseline output", ha="center")
-    fig.text(0.5, 0.04, "Secondary-source adjusted returns and current-universe survivorship bias prohibit a predictive claim.", ha="center", color="#8b0000")
+    fig.text(0.5, 0.04, "Events are non-IID; issuer- and time-cluster estimates are in CSV/JSON. Current constituents only: no historical 0050 strategy claim.", ha="center", color="#8b0000")
     fig.tight_layout(rect=(0.02, 0.08, 0.98, 0.94))
     _footer(fig, "Baseline comparison")
+    pdf.savefig(fig)
+    plt.close(fig)
+
+    fig, axes = plt.subplots(2, 1, figsize=(16, 10.5))
+    fig.suptitle("3M / 6M / 12M / 24M Return Diagnostics by Canonical State", fontsize=17, weight="bold")
+    if not return_diagnostics.empty:
+        selected = return_diagnostics[return_diagnostics["baseline"].isin(
+            ["STATE_IMPROVING", "STATE_STABLE", "STATE_DETERIORATING"]
+        )]
+        horizon_order = ["60d", "120d", "252d", "504d"]
+        horizon_labels = {"60d": "3M", "120d": "6M", "252d": "12M", "504d": "24M"}
+        median = selected.pivot(index="horizon", columns="baseline", values="median_return").reindex(horizon_order).rename(index=horizon_labels)
+        excess = selected.pivot(index="horizon", columns="baseline", values="mean_excess_return").reindex(horizon_order).rename(index=horizon_labels)
+        median.plot(kind="bar", ax=axes[0])
+        excess.plot(kind="bar", ax=axes[1])
+        axes[0].set_title("Median adjusted close return")
+        axes[1].set_title("Mean excess return vs 0050")
+        axes[0].set_ylabel("Return")
+        axes[1].set_ylabel("Excess return")
+    else:
+        axes[0].text(0.5, 0.5, "No downstream diagnostics", ha="center")
+        axes[1].axis("off")
+    fig.text(0.5, 0.04, "Downstream diagnostic only. Returns do not define or tune Fundamental State.", ha="center", color="#8b0000")
+    fig.tight_layout(rect=(0.02, 0.08, 0.98, 0.94))
+    _footer(fig, "Return diagnostics")
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
+def _data_quality_page(pdf: PdfPages, data_quality: pd.DataFrame) -> None:
+    fig, axes = plt.subplots(2, 1, figsize=(16, 10.5))
+    fig.suptitle("PIT and Data-Quality Coverage", fontsize=17, weight="bold")
+    if data_quality.empty:
+        axes[0].text(0.5, 0.5, "No data-quality output", ha="center")
+        axes[1].axis("off")
+    else:
+        actual = float(data_quality["pit_actual_date_coverage"].mean())
+        proxy = float(data_quality["pit_proxy_coverage"].mean())
+        axes[0].bar(["Actual announcement date", "Explicit available-date proxy"], [actual, proxy], color=["#2ca02c", "#ff7f0e"])
+        axes[0].set_ylim(0, 1)
+        axes[0].set_title("A. PIT date provenance coverage")
+        selected = data_quality.sort_values(["history_quarters", "current_state_usability"]).head(12)
+        axes[1].bar(selected["symbol"].astype(str), selected["history_quarters"], label="Observed")
+        axes[1].plot(selected["symbol"].astype(str), selected["expected_quarters"], color="#d62728", marker="o", label="Expected")
+        axes[1].set_title("B. Lowest-coverage issuers (8046 reviewed-head source note is in the CSV)")
+        axes[1].legend()
+    fig.text(0.5, 0.04, "UNKNOWN / INSUFFICIENT is intentional when evidence is missing; no imputation is used to force a state.", ha="center", color="#8b0000")
+    fig.tight_layout(rect=(0.02, 0.08, 0.98, 0.94))
+    _footer(fig, "Data quality")
     pdf.savefig(fig)
     plt.close(fig)
 
@@ -499,11 +652,14 @@ def _technical_page(pdf: PdfPages) -> None:
     plt.close(fig)
 
 
-def _questions_page(pdf: PdfPages, state_validation: pd.DataFrame, baselines: pd.DataFrame) -> None:
-    correct_share = None
-    if not state_validation.empty:
-        match = state_validation[state_validation["label"] == "CORRECT"]
-        correct_share = _finite_value(match["share"].iloc[0]) if not match.empty else 0.0
+def _questions_page(pdf: PdfPages, state_accuracy: pd.DataFrame, baselines: pd.DataFrame) -> None:
+    improving_precision = None
+    improving_recall = None
+    if not state_accuracy.empty:
+        match = state_accuracy[state_accuracy["state"] == "IMPROVING"]
+        if not match.empty:
+            improving_precision = _finite_value(match["precision"].iloc[0])
+            improving_recall = _finite_value(match["recall"].iloc[0])
     full_n = 0
     if not baselines.empty:
         selected = baselines[(baselines["baseline"] == "H_FULL_MODEL") & (baselines["horizon"] == "252d")]
@@ -511,15 +667,15 @@ def _questions_page(pdf: PdfPages, state_validation: pd.DataFrame, baselines: pd
             full_n = int(selected["n"].iloc[0])
     lines = [
         "Q1 Quality separation: descriptive output produced; formal discrimination requires cleaner PIT and sector data.",
-        f"Q2 TURNING_UP recognition: provisional correct share = {_fmt(correct_share, True)}; inspect sample counts and label definitions.",
+        f"Q2 IMPROVING recognition: precision {_fmt(improving_precision, True)}, recall {_fmt(improving_recall, True)}; inspect support and confusion matrix.",
         "Q3 GOOD persistence: compare the Quality Persistence table; missing future 3Y/5Y observations remain explicit.",
         "Q4 Valuation outcomes: computed for LOW/NORMAL/HIGH, but secondary-source adjusted returns and survivorship bias prevent inference.",
-        f"Q5 Full model vs baselines: 1Y evaluable full-model observations = {full_n}; confidence intervals are reported.",
+        f"Q5 Full model vs baselines: 12M evaluable full-model observations = {full_n}; IID and clustered estimates are reported.",
         "Q6 Technical + fundamental: not evaluated because the frozen Technical v0.6 artifact was absent.",
         "",
         "Conclusion boundary:",
         "'The model can analyse a company' is assessed by state recognition, persistence, reasons, and data quality.",
-        "'The model predicts investment returns' needs adjusted returns, historical constituents, verified filing timestamps, OOS evidence, and uncertainty tests.",
+        "'The model predicts investment returns' requires historical constituents, verified filing timestamps, OOS evidence, and robust uncertainty tests.",
         "This v0.1 run does not establish the second claim.",
     ]
     fig, axis = plt.subplots(figsize=(16, 10.5))
@@ -545,7 +701,11 @@ def write_pdf_report(
     events: pd.DataFrame,
     baselines: pd.DataFrame,
     state_validation: pd.DataFrame,
+    state_confusion: pd.DataFrame,
+    state_accuracy: pd.DataFrame,
     quality_persistence: pd.DataFrame,
+    return_diagnostics: pd.DataFrame,
+    data_quality: pd.DataFrame,
     config: dict[str, Any],
     path: Path,
     *,
@@ -564,6 +724,15 @@ def write_pdf_report(
         for result in sorted(results, key=lambda item: item.symbol):
             _plot_security_page(pdf, security_by_symbol[result.symbol], result, events)
         _case_page(pdf, results, events)
-        _backtest_pages(pdf, baselines, state_validation, quality_persistence)
+        _backtest_pages(
+            pdf,
+            baselines,
+            state_validation,
+            state_confusion,
+            state_accuracy,
+            quality_persistence,
+            return_diagnostics,
+        )
+        _data_quality_page(pdf, data_quality)
         _technical_page(pdf)
-        _questions_page(pdf, state_validation, baselines)
+        _questions_page(pdf, state_accuracy, baselines)

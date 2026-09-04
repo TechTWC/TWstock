@@ -19,8 +19,11 @@ if str(ROOT) not in sys.path:
 
 from experiments.fundamental_quality_valuation.backtest import (  # noqa: E402
     build_backtest_events,
+    diagnose_too_late,
     summarize_baselines,
     summarize_quality_persistence,
+    summarize_return_diagnostics,
+    summarize_robustness,
     summarize_state_validation,
 )
 from experiments.fundamental_quality_valuation.data import (  # noqa: E402
@@ -35,6 +38,10 @@ from experiments.fundamental_quality_valuation.data import (  # noqa: E402
 )
 from experiments.fundamental_quality_valuation.engine import classify_security  # noqa: E402
 from experiments.fundamental_quality_valuation.models import SectorLogic, SecurityData  # noqa: E402
+from experiments.fundamental_quality_valuation.validation import (  # noqa: E402
+    confusion_matrix,
+    state_accuracy_metrics,
+)
 from experiments.fundamental_quality_valuation.report import (  # noqa: E402
     write_current_csv,
     write_json_bundle,
@@ -43,7 +50,7 @@ from experiments.fundamental_quality_valuation.report import (  # noqa: E402
 )
 
 
-FONT_URL = "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf"
+FONT_URL = "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf"
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -68,7 +75,7 @@ def _sha256(path: Path) -> str:
 
 
 def _font(cache_dir: Path, skip_download: bool) -> Path | None:
-    path = cache_dir / "NotoSansCJKtc-Regular.otf"
+    path = cache_dir / "NotoSansTC-wght.ttf"
     if path.exists():
         return path
     if skip_download:
@@ -98,6 +105,8 @@ def _load_one(
         "company": info.get("company") or row["company"],
         "industry": info.get("industry") or "UNKNOWN",
         "sector_logic": SectorLogic(row["sector_logic"]),
+        "peer_group": row["peer_group"],
+        "financial_subtype": row["financial_subtype"] or None,
         "start_date": config["history_start"],
         "end_date": config["as_of_date"],
         "cache_dir": cache_dir,
@@ -125,6 +134,13 @@ def _load_one(
             security.data_flags.extend(["ADJUSTED_RETURN_SECONDARY_SOURCE", "RAW_PRICE_RETAINED"])
     except Exception:
         security.data_flags.append("UNADJUSTED_PRICE_RETURN")
+    if "vendor source history is insufficient" in row.get("source_note", "").lower():
+        security.data_flags.extend(
+            [
+                "REVIEWED_HEAD_SOURCE_HISTORY_INSUFFICIENT",
+                "SOURCE_HISTORY_PROVENANCE_UNSTABLE",
+            ]
+        )
     security.data_flags.append("UNIVERSE_SOURCE_RECONSTRUCTED")
     return security
 
@@ -152,6 +168,7 @@ def _peer_context(results: list[Any]) -> pd.DataFrame:
                 "symbol": result.symbol,
                 "company": result.company,
                 "industry": result.industry,
+                "peer_group": result.peer_group,
                 "sector_logic": result.sector_logic,
                 "quality": result.quality,
                 "fundamental_state": result.fundamental_state,
@@ -166,44 +183,166 @@ def _peer_context(results: list[Any]) -> pd.DataFrame:
     frame = pd.DataFrame(rows)
     for column in ("pe", "pb", "roe", "roic", "revenue_yoy"):
         frame[f"peer_{column}_percentile"] = (
-            pd.to_numeric(frame[column], errors="coerce").groupby(frame["industry"]).rank(pct=True)
+            pd.to_numeric(frame[column], errors="coerce").groupby(frame["peer_group"]).rank(pct=True)
         )
-    frame["peer_context_note"] = "Descriptive peer context only; low P/E is not treated as cheap without quality and growth context"
+    frame["peer_context_note"] = "Business-model peer taxonomy; descriptive only and never a composite score"
     return frame
 
 
-def _data_quality(results: list[Any]) -> pd.DataFrame:
-    return pd.DataFrame(
-        [
+def _data_quality(
+    results: list[Any], securities: list[SecurityData], config: dict[str, Any]
+) -> pd.DataFrame:
+    result_by_symbol = {result.symbol: result for result in results}
+    expected_periods = pd.date_range(
+        pd.Timestamp(config["history_start"]),
+        pd.Timestamp(config["as_of_date"]),
+        freq="QE-DEC",
+    ).date
+    rows: list[dict[str, Any]] = []
+    for security in securities:
+        result = result_by_symbol[security.symbol]
+        q = security.quarterly.copy()
+        core_columns = [column for column in ("revenue", "net_income", "eps", "equity") if column in q]
+        observed = q[core_columns].notna().any(axis=1) if core_columns else pd.Series(False, index=q.index)
+        observed_periods = set(q.loc[observed, "period_end"])
+        missing_periods = [period.isoformat() for period in expected_periods if period not in observed_periods]
+
+        def coverage(column: str) -> float:
+            if column not in q or len(expected_periods) == 0:
+                return 0.0
+            return float(pd.to_numeric(q[column], errors="coerce").notna().sum() / len(expected_periods))
+
+        actual = int(q.get("announcement_date", pd.Series(dtype=object)).notna().sum())
+        proxy = int((q.get("availability_method", pd.Series(dtype=object)) == "AVAILABLE_DATE_PROXY").sum())
+        pit_denominator = actual + proxy
+        market = security.market
+        valuation_available = (
+            market[[column for column in ("PER", "PBR") if column in market]].notna().any(axis=1)
+            if not market.empty
+            else pd.Series(dtype=bool)
+        )
+        financial_core = [result.metrics.get(name) for name in ("ttm_eps", "ttm_net_income", "equity", "bvps", "roe")]
+        reason_codes = list(result.reason_codes)
+        if security.symbol == "8046":
+            reason_codes.append("REVIEWED_HEAD_SOURCE_HISTORY_INSUFFICIENT")
+        if security.symbol == "7769":
+            reason_codes.append("ISSUER_LISTING_HISTORY_SHORT")
+        missing_metrics = [
+            column
+            for column in ("ttm_revenue", "ttm_eps", "roe", "roic", "ttm_fcf", "equity")
+            if coverage(column) == 0
+        ]
+        rows.append(
             {
-                "symbol": result.symbol,
-                "company": result.company,
+                "symbol": security.symbol,
+                "company": security.company,
+                "sector": security.sector_logic.value,
+                "peer_group": security.peer_group,
+                "financial_subtype": security.financial_subtype,
+                "history_quarters": int(observed.sum()),
+                "expected_quarters": len(expected_periods),
+                "missing_quarters": len(missing_periods),
+                "missing_quarter_periods": " | ".join(missing_periods),
+                "missing_metrics": " | ".join(missing_metrics),
+                "eps_coverage": coverage("ttm_eps"),
+                "roe_coverage": coverage("roe"),
+                "fcf_coverage": coverage("ttm_fcf"),
+                "valuation_coverage": float(valuation_available.mean()) if not valuation_available.empty else 0.0,
+                "price_coverage": float(pd.to_numeric(market.get("close"), errors="coerce").notna().mean()) if not market.empty else 0.0,
+                "pit_actual_date_coverage": actual / pit_denominator if pit_denominator else 0.0,
+                "pit_proxy_coverage": proxy / pit_denominator if pit_denominator else 0.0,
+                "financial_completeness": sum(value is not None for value in financial_core) / len(financial_core),
+                "current_state_usability": result.fundamental_state != "UNKNOWN" and result.data_quality != "INSUFFICIENT",
+                "current_state": result.fundamental_state,
+                "state_detail": result.state_detail,
                 "data_quality": result.data_quality,
+                "reason_codes": " | ".join(dict.fromkeys(reason_codes)),
+                "source_history_note": (
+                    "Reviewed-head fallback had insufficient source history; correction refresh recovered 42 quarters; this was not short company history"
+                    if security.symbol == "8046"
+                    else None
+                ),
                 "flags": " | ".join(result.data_quality_flags),
                 "period_end": result.period_end,
                 "as_of_date": result.as_of_date,
                 "announcement_date": result.pit_metadata.announcement_date if result.pit_metadata else None,
                 "available_date": result.pit_metadata.available_date if result.pit_metadata else None,
+                "retrieval_date": result.pit_metadata.retrieval_date if result.pit_metadata else None,
                 "availability_method": result.pit_metadata.availability_method if result.pit_metadata else None,
                 "source": result.pit_metadata.source if result.pit_metadata else None,
-                "sector_specific_logic": result.sector_logic,
+                "source_version": result.pit_metadata.source_version if result.pit_metadata else None,
+                "source_hash": result.pit_metadata.source_hash if result.pit_metadata else None,
             }
-            for result in results
-        ]
-    )
+        )
+    return pd.DataFrame(rows)
+
+
+def _financial_mapping_audit(results: list[Any]) -> pd.DataFrame:
+    rows = []
+    for result in results:
+        if result.sector_logic != "FINANCIAL":
+            continue
+        metrics = result.metrics
+        core = {
+            "EPS": metrics.get("ttm_eps"),
+            "NET_INCOME": metrics.get("ttm_net_income"),
+            "EQUITY": metrics.get("equity"),
+            "BVPS": metrics.get("bvps"),
+            "ROE": metrics.get("roe"),
+        }
+        rows.append(
+            {
+                "symbol": result.symbol,
+                "company": result.company,
+                "financial_subtype": result.financial_subtype,
+                "eps_statement": "income statement / vendor EPS field",
+                "net_income_statement": "income statement / vendor IncomeAfterTaxes fallback",
+                "equity_statement": "balance sheet / owners-of-parent equity fallback",
+                "bvps_statement": "balance sheet / vendor per-share field when supplied",
+                "period_basis": "UNVERIFIED_STANDALONE_VS_CUMULATIVE",
+                "unit_basis": "VENDOR_NATIVE_UNVERIFIED_FOR_CROSS_FIELD_CONSISTENCY",
+                "ttm_eps": core["EPS"],
+                "ttm_net_income": core["NET_INCOME"],
+                "equity": core["EQUITY"],
+                "bvps": core["BVPS"],
+                "roe": core["ROE"],
+                "missing_core_fields": " | ".join(name for name, value in core.items() if value is None),
+                "roe_mapping_anomaly": metrics.get("roe") is not None and abs(float(metrics["roe"])) > 0.50,
+                "usable": False,
+                "result": "UNKNOWN / INSUFFICIENT",
+                "reason_code": "FINANCIAL_STATE_UNSUPPORTED",
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def _write_manifest(output_dir: Path, config: dict[str, Any], securities: list[SecurityData]) -> None:
     files = [path for path in sorted(output_dir.iterdir()) if path.is_file() and path.name != "artifact_manifest.json"]
+    commit_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    config_hash = hashlib.sha256(
+        json.dumps(config, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    source_hashes = sorted(
+        str(security.source_metadata.get("source_hash"))
+        for security in securities
+        if security.source_metadata.get("source_hash")
+    )
+    snapshot_identity = hashlib.sha256("\n".join(source_hashes).encode("utf-8")).hexdigest()
+    generated_at = datetime.now(timezone.utc).isoformat()
     payload = {
         "experiment_id": "EXP-0050-FQV-20260903-V01",
         "experiment_type": "fundamental_quality_valuation_shadow_research",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-        "data_reference": "FinMind v4 cached raw responses; current 0050 universe snapshot",
+        "generation_timestamp": generated_at,
+        "commit_sha": commit_sha,
+        "generation_commit_sha": commit_sha,
+        "code_version": "FQV-v0.1-correction-pass-1",
+        "config_hash": config_hash,
+        "data_snapshot_identity": snapshot_identity,
+        "source_hash_count": len(source_hashes),
+        "data_reference": "Immutable source metadata and hashes; normalized permissible research outputs; vendor raw payloads excluded",
         "config": config,
         "period": {"start": config["history_start"], "end": config["as_of_date"]},
-        "universe": {"name": config["universe"], "count": len(securities), "bias": config["universe_bias_flag"]},
+        "universe": {"name": config["universe"], "count": len(securities), "bias": "CURRENT_CONSTITUENTS_ONLY"},
         "status": "PROVISIONAL_SHADOW",
         "claim_boundary": "analysis quality and investment prediction are separate; prediction is not established",
         "artifacts": [{"path": path.name, "sha256": _sha256(path), "bytes": path.stat().st_size} for path in files],
@@ -255,7 +394,14 @@ def main() -> int:
     events = build_backtest_events(securities, benchmark, config, as_of)
     baselines = summarize_baselines(events, config)
     state_validation = summarize_state_validation(events)
+    state_confusion = confusion_matrix(events)
+    state_accuracy = state_accuracy_metrics(events)
+    too_late_diagnosis = diagnose_too_late(events)
     quality_persistence = summarize_quality_persistence(events)
+    return_diagnostics = summarize_return_diagnostics(events, config)
+    robustness = summarize_robustness(events, config)
+    data_quality = _data_quality(results, securities, config)
+    financial_audit = _financial_mapping_audit(results)
     print(f"[validation] {len(events)} PIT-proxy events", flush=True)
 
     write_current_csv(results, args.output_dir / "0050_current_state_matrix_v0.1.csv")
@@ -263,16 +409,29 @@ def main() -> int:
     events.to_csv(args.output_dir / "0050_backtest_events_v0.1.csv", index=False, encoding="utf-8-sig")
     baselines.to_csv(args.output_dir / "0050_baseline_comparison_v0.1.csv", index=False, encoding="utf-8-sig")
     state_validation.to_csv(args.output_dir / "0050_state_validation_v0.1.csv", index=False, encoding="utf-8-sig")
+    state_confusion.to_csv(args.output_dir / "0050_state_confusion_matrix_v0.1.csv", index=False, encoding="utf-8-sig")
+    state_accuracy.to_csv(args.output_dir / "0050_state_accuracy_metrics_v0.1.csv", index=False, encoding="utf-8-sig")
+    too_late_diagnosis.to_csv(args.output_dir / "0050_too_late_diagnosis_v0.1.csv", index=False, encoding="utf-8-sig")
     quality_persistence.to_csv(args.output_dir / "0050_quality_persistence_v0.1.csv", index=False, encoding="utf-8-sig")
+    return_diagnostics.to_csv(args.output_dir / "0050_return_diagnostics_v0.1.csv", index=False, encoding="utf-8-sig")
+    robustness.to_csv(args.output_dir / "0050_robustness_diagnostics_v0.1.csv", index=False, encoding="utf-8-sig")
+    financial_audit.to_csv(args.output_dir / "0050_financial_mapping_audit_v0.1.csv", index=False, encoding="utf-8-sig")
     _peer_context(results).to_csv(args.output_dir / "0050_peer_context_v0.1.csv", index=False, encoding="utf-8-sig")
-    _data_quality(results).to_csv(args.output_dir / "0050_data_quality_report_v0.1.csv", index=False, encoding="utf-8-sig")
+    data_quality.to_csv(args.output_dir / "0050_data_quality_report_v0.1.csv", index=False, encoding="utf-8-sig")
     write_json_bundle(
         results,
         securities,
         events,
         baselines,
         state_validation,
+        state_confusion,
+        state_accuracy,
         quality_persistence,
+        return_diagnostics,
+        robustness,
+        data_quality,
+        financial_audit,
+        too_late_diagnosis,
         config,
         args.output_dir / "0050_fundamental_quality_valuation_backtest_v0.1.json",
     )
@@ -284,7 +443,11 @@ def main() -> int:
             events,
             baselines,
             state_validation,
+            state_confusion,
+            state_accuracy,
             quality_persistence,
+            return_diagnostics,
+            data_quality,
             config,
             args.output_dir / "0050_fundamental_quality_valuation_backtest_v0.1.pdf",
             font_path=font_path,

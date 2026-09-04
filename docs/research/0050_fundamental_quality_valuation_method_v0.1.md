@@ -1,6 +1,6 @@
 ---
 document_id: TWSTOCK-0050-FQV-001
-version: 0.1.0
+version: 0.1.1-correction-pass
 status: provisional-shadow
 as_of_date: 2026-09-03
 adopted: false
@@ -71,7 +71,7 @@ fallback 不會補出不存在的 10 年財務或歷史估值，相關股票會�
 `SECONDARY_SOURCE_ONLY`、`YAHOO_FALLBACK_LIMITED_HISTORY` 與
 `HISTORICAL_VALUATION_UNAVAILABLE`，並依資料充分性輸出 `UNKNOWN / N/M / INSUFFICIENT`。
 
-原始 API 回應保存在執行期 cache；正式輸出保存正規化後資料、來源與 retrieval metadata。
+原始 API 回應只保存在執行期 cache，不提交到 public repository；正式輸出保存可允許重散布的正規化資料、retrieval timestamp、source version、source hash 與 data snapshot identity。
 
 ### 3.2 目前限制
 
@@ -80,9 +80,11 @@ fallback 不會補出不存在的 10 年財務或歷史估值，相關股票會�
   `ADJUSTED_RETURN_SECONDARY_SOURCE`。這改善分割／配息報酬，但仍不是正式交易所
   公司行動合約。
 - 目前 0050 名單由 2025-09 清單依 2025-12、2026-03、2026-06 定審變動重建，須保留 `UNIVERSE_SOURCE_RECONSTRUCTED`。
-- 歷史回測使用目前 50 檔，保留 `SURVIVORSHIP_BIAS_PRESENT`。
+- 未取得授權清楚且可審計的歷史 0050 成分快照；全部事件正式標記 `CURRENT_CONSTITUENTS_ONLY`。
 - 銀行／保險所需 NIM、NPL、credit cost、capital adequacy 尚未納入。
 - Forward P/E 沒有可靠歷史 PIT 資料，因此 v0.1 不使用。
+
+`CURRENT_CONSTITUENTS_ONLY` 可能排除退場、衰退或品質較弱公司，因此可能高估 Quality persistence 與長期報酬。狀態定義、單一公司的 PIT 時序檢查與缺值 fail-closed 行為仍可研究；任何「歷史 0050 策略績效」、母體代表性或因果／預測結論均不可使用。由於缺少被排除公司的事件資料，本 correction pass 不捏造偏誤幅度。
 
 受上述限制影響，本輪回測狀態為 `PROVISIONAL_SHADOW`，不得 Promote。
 
@@ -96,6 +98,9 @@ announcement_date
 available_date
 as_of_date
 source
+retrieval_date
+source_version
+source_hash
 availability_method
 timestamp_confidence
 ```
@@ -118,8 +123,8 @@ period_end <= announcement_date <= available_date <= as_of_date
 所有使用代理日的資料保留：
 
 ```text
-availability_method = CONSERVATIVE_FILING_LAG_PROXY
-timestamp_confidence = conservative
+availability_method = AVAILABLE_DATE_PROXY
+timestamp_confidence = conservative_proxy
 data_quality_flag = AVAILABLE_DATE_PROXY
 ```
 
@@ -165,7 +170,7 @@ Debt / Equity = Interest-bearing Debt / Equity
 Current Ratio = Current Assets / Current Liabilities
 ```
 
-`ROIC` 分母小於或等於零時輸出缺值，不產生虛假的正常數字。
+`ROIC` 只有在 Equity、Interest-bearing Debt、Cash 與 tax inputs 全部存在時才計算；Debt/Cash 不得補零。分母小於或等於零時輸出缺值，不產生虛假的正常數字。
 
 ### 5.4 成長
 
@@ -174,7 +179,7 @@ YoY(t) = TTM(t) / TTM(t-4 quarters) - 1
 CAGR(N years) = (latest / N-year-prior)^(1/N) - 1
 ```
 
-若起點或終點不為正，CAGR 輸出缺值，避免跨負值產生沒有經濟意義的數字。
+若起點或終點不為正，或目標期間中缺少任一 calendar quarter，CAGR 輸出缺值。CAGR 依實際 fiscal quarter 間隔，不依 DataFrame row offset 假定季度連續。
 
 ## 6. Business Quality Model v0.1
 
@@ -217,8 +222,8 @@ AND 5Y positive-TTM-FCF ratio >= 70%
 #### BALANCE_SHEET_RESILIENT
 
 ```text
-Net Debt / Equity <= 1.0
-OR (Current Ratio >= 1.0 AND TTM FCF > 0)
+(Net Debt / Equity <= 1.0 OR (Current Ratio >= 1.0 AND TTM FCF > 0))
+AND (Net cash / no debt OR Interest Coverage >= 3.0)
 ```
 
 #### 分類
@@ -260,18 +265,18 @@ AND latest CFO / Net Income < 0.80
 
 ### 6.3 金融業
 
-金融業不套用 Net Debt/EBITDA 或一般製造業 FCF 閘門。
+金融業分成 `BANK_HOLDING` 與 `INSURANCE_HEAVY`（另保留 diversified peer group），且不套用一般公司的 FCF、Operating Margin、Net Debt、ROIC。
 
-`GOOD` 必須同時成立：
+本 v0.1 source contract 無法一致驗證 EPS／NI 的 standalone-quarter 或 cumulative basis，也缺少可靠 PIT 的 NIM、credit cost、NPL、capital adequacy、CSM、保險營運與資本欄位。因此 12 檔金融股一律輸出：
 
 ```text
-5Y median ROE >= 10%
-5Y median ROA >= 0.6%
-3Y Equity CAGR >= 0
-3Y EPS CAGR >= 0
+Quality = UNKNOWN
+Fundamental State = UNKNOWN
+Data Quality = INSUFFICIENT
+reason = FINANCIAL_STATE_UNSUPPORTED
 ```
 
-若核心獲利為正，且淨值或 EPS 至少一項成長，可為 `ACCEPTABLE`。缺 NIM、NPL 與資本適足率時，Data Quality 固定為 `PARTIAL`，不得把結果當成完整銀行品質結論。
+即使部分 ROE／Equity／NI 欄位存在，也不得用三取四規則輸出 `ACCEPTABLE`。ROE 絕對值超過 50% 只觸發 mapping anomaly 與 fail-closed，不 cap、winsorize 或當成模型訊號。
 
 ### 6.4 景氣循環業
 
@@ -279,7 +284,25 @@ AND latest CFO / Net Income < 0.80
 
 ## 7. Fundamental State Model v0.1
 
-狀態必須由 Revenue、EPS 與 Margin/FCF 至少兩個獨立基本面家族共同支持。
+Primary output 是 canonical taxonomy：
+
+```text
+IMPROVING / STABLE / DETERIORATING / UNKNOWN
+```
+
+七階段狀態保留為 `state_detail`，只增加解釋細節，不取代 primary state。此 mapping 在 correction pass 前固定，沒有依股票報酬或 TOO_LATE 結果調門檻：
+
+| state_detail | canonical Fundamental State |
+|---|---|
+| BOTTOMING | IMPROVING |
+| TURNING_UP | IMPROVING |
+| CONFIRMED_GROWTH | STABLE |
+| MATURE_GROWTH | STABLE |
+| DECELERATING | STABLE |
+| DETERIORATING | DETERIORATING |
+| UNKNOWN | UNKNOWN |
+
+Signal 仍必須由 Revenue、EPS 與 Margin/FCF 至少兩個獨立基本面家族共同支持；canonical mapping 不改動七階段 signal rule。
 
 ### DETERIORATING
 
@@ -341,6 +364,8 @@ N/M
 = non-positive/missing PE or insufficient history
 ```
 
+P/B 缺失本身絕不視為 LOW gate 通過；只有獨立的正 FCF yield 可在 P/B 缺失時提供 corroboration。每個 current PE／P/B／yield 均保存 observation date 與 staleness days；超過 10 calendar days 即不使用。
+
 金融業以 P/B 為主要估值尺度；P/B 位於最低四分位但 Fundamental State 為 `DETERIORATING` 時，不判為 LOW。
 
 景氣循環業：
@@ -350,11 +375,11 @@ Normalized EPS = median of the latest 20 quarterly TTM EPS observations
 Normalized PE = Current Price / Normalized EPS
 ```
 
-Normalized PE 再與歷史有效 PE 的四分位比較。Current PE 若比 Normalized PE 低逾約三分之一，標記 `CYCLICAL_LOW_PE_TRAP_RISK`。
+每個歷史 PIT date 都以同一套 rolling 20-quarter median TTM EPS 建立 historical normalized PE distribution；current normalized PE 只與這個相同定義的分布比較，不再和 raw historical PE 混用。Current PE 若比 Normalized PE 低逾約三分之一，標記 `CYCLICAL_LOW_PE_TRAP_RISK`。
 
 ### 8.2 Peer Relative Context
 
-以 FinMind industry category 分組，輸出 PE、P/B、ROE、ROIC、Revenue YoY 的同業百分位。這是描述性 context，不直接改寫 LOW/NORMAL/HIGH，也不使用「PE 最低 = 最便宜」。
+使用研究 universe 中明示的 business-model peer group（例如 Foundry、Memory、IC Design、Telecom、PCB、Bank Holding、Insurance-heavy Financial Holding），不再以粗略「電子工業」混組。輸出 PE、P/B、ROE、ROIC、Revenue YoY 的同業百分位；這是描述性 context，不直接改寫 LOW/NORMAL/HIGH，也不使用「PE 最低 = 最便宜」。
 
 ### 8.3 Simplified DCF
 
@@ -382,10 +407,10 @@ DCF 是情境工具，不是單一目標價；金融業不使用一般 FCF DCF�
 
 ```text
 VALUE_RECOVERY
-= GOOD + TURNING_UP + LOW/NORMAL
+= GOOD + canonical IMPROVING / detail TURNING_UP + LOW/NORMAL
 
 QUALITY_AT_FAIR_PRICE
-= GOOD + CONFIRMED_GROWTH + NORMAL
+= GOOD + canonical STABLE / detail CONFIRMED_GROWTH + NORMAL
 
 POSSIBLE_VALUE_TRAP
 = (WEAK OR DETERIORATING) + LOW
@@ -398,7 +423,13 @@ HIGH_EXPECTATION_RISK
 
 ## 10. 歷史驗證
 
-### 10.1 Fundamental State Recognition
+### 10.1 Layer 1：Fundamental State Identification Accuracy
+
+Signal 在時間 `t` 只使用 `available_date <= t` 的資料。獨立 `realized_fundamental_state` 函式只在 evaluation 階段讀取後四季，從下列六個家族形成 ex-post label：Revenue、EPS/NI、Operating Margin、ROE/ROIC、CFO/FCF、Balance Sheet。至少四個家族可用，且至少三個家族同向並有二票淨優勢，才標 `IMPROVING` 或 `DETERIORATING`；其餘充分資料為 `STABLE`，不足為 `UNKNOWN`。這些 evaluation thresholds 不回流 signal。
+
+輸出完整 4×4 confusion matrix，以及 IMPROVING／STABLE／DETERIORATING 各自的 precision、recall、false-positive rate、false-negative rate、support、lead/lag quarters、transition confirmation 與 realized persistence。金融股因 sector-specific PIT 欄位不足，realized label 也為 `UNKNOWN`。
+
+### 10.1.1 Legacy TURNING_UP timing labels
 
 每次 `TURNING_UP` 觀察後檢查未來四季 Revenue YoY 與 EPS YoY：
 
@@ -406,6 +437,8 @@ HIGH_EXPECTATION_RISK
 - `TOO_EARLY`：第一期未確認，但較後期才改善。
 - `FALSE_RECOVERY`：未改善，或短期改善後到第四期重新低於觸發時。
 - `TOO_LATE`：觸發前兩期已同時維持正 Revenue/EPS growth。
+
+Reviewed head `97819a9...` 的 TOO_LATE 為 153/320 = 47.8125%。Correction pass 不為降低此值調參；另列 quarterly reporting cadence、TTM rolling window、multi-period corroboration 與 available-date proxy timing uncertainty 作診斷 contributor，不把 observational decomposition 誤稱因果歸因。
 
 ### 10.2 Quality Persistence
 
@@ -417,15 +450,17 @@ HIGH_EXPECTATION_RISK
 - FCF positive share
 - Operating margin change
 
-### 10.3 Valuation Forward Return
+### 10.3 Layer 2：Investment Relevance（downstream diagnostic only）
 
 以代理資料可用日後下一交易日收盤為 entry，計算：
 
 ```text
-20D / 60D / 120D / 252D / 756D
+20D / 60D (3M) / 120D (6M) / 252D (12M) / 504D (24M) / 756D
 ```
 
-輸出：Mean、Median、Hit Rate、MFE、MAE、Worst Max Drawdown、Excess Return vs 0050、95% normal-approximation confidence interval。
+輸出：Mean、Median、Positive Rate、Excess Return vs 0050、sample size、unique issuer count、max close-to-close favorable/adverse return 與 Worst Max Drawdown。因只用 adjusted close，不使用 MFE／MAE 名稱。
+
+事件包含同公司重複訊號、重疊 return windows 與橫斷面相關，不視為 IID；同時報 ordinary estimate、issuer-cluster 與 signal-quarter time-cluster standard error／interval。回報普通與 robust estimate 的差異，不以顯著性挑參。
 
 報酬優先使用 Yahoo adjusted close；估值與圖表仍保存原始 close。因調整資料屬次級來源、
 目前 universe 有存活者偏誤且公告日仍為代理，本輪仍僅可作診斷，不可作正式績效主張。
@@ -434,14 +469,14 @@ HIGH_EXPECTATION_RISK
 
 | ID | Baseline |
 |---|---|
-| A | 全部目前 0050 |
-| B | Low historical PE percentile |
-| C | Low historical P/B percentile |
-| D | Cross-sectional high ROE |
-| E | Cross-sectional high Revenue Growth |
-| F | Quality only |
-| G | Valuation only |
-| H | GOOD + TURNING_UP + LOW/NORMAL |
+| A | 0050 buy-and-hold／無主動選股（每個 unique signal date 一筆 benchmark return） |
+| B | Current constituent unconditional average |
+| C | Fundamental State only：IMPROVING |
+| D | Quality only：GOOD |
+| E | Valuation only：LOW |
+| F | Quality + Valuation：GOOD + LOW/NORMAL |
+| G | State + Valuation：IMPROVING + LOW/NORMAL |
+| H | Full model：GOOD + IMPROVING + LOW/NORMAL |
 
 沒有找最佳 threshold，也沒有依結果回頭調參。
 
@@ -455,7 +490,9 @@ PARTIAL
 INSUFFICIENT
 ```
 
-本輪因公告日代理、未調整價格及 universe 重建，正常情況也只能是 `PARTIAL`。核心資料不足則為 `INSUFFICIENT`。缺值不補零、不以前值假裝正常。
+本輪因公告日代理與 current-universe 限制，正常情況也只能是 `PARTIAL`。核心資料不足則為 `INSUFFICIENT`。每檔 coverage matrix 保存 history/expected/missing quarters、missing metrics、EPS/ROE/FCF/valuation/price/PIT actual/PIT proxy coverage、financial completeness、current usability 與 reason codes。缺值不補零、不以前值假裝正常。
+
+`7769` 的短歷史屬於實際掛牌／可觀察歷史限制。`8046` 在 reviewed head 使用的 fallback 只有 5 季，本次 refresh 雖從另一 vendor path 取得 42 季，但無法驗證跨 source vintage 的連續性，因此標記 `REVIEWED_HEAD_SOURCE_HISTORY_INSUFFICIENT` 與 `SOURCE_HISTORY_PROVENANCE_UNSTABLE`，並 fail closed 為 `UNKNOWN / INSUFFICIENT`；不得描述為公司歷史不足。
 
 ## 12. Machine-readable Outputs
 
@@ -466,7 +503,13 @@ INSUFFICIENT
 - `0050_backtest_events_v0.1.csv`
 - `0050_baseline_comparison_v0.1.csv`
 - `0050_state_validation_v0.1.csv`
+- `0050_state_confusion_matrix_v0.1.csv`
+- `0050_state_accuracy_metrics_v0.1.csv`
+- `0050_too_late_diagnosis_v0.1.csv`
 - `0050_quality_persistence_v0.1.csv`
+- `0050_return_diagnostics_v0.1.csv`
+- `0050_robustness_diagnostics_v0.1.csv`
+- `0050_financial_mapping_audit_v0.1.csv`
 - `0050_peer_context_v0.1.csv`
 - `0050_data_quality_report_v0.1.csv`
 - `0050_fundamental_quality_valuation_backtest_v0.1.json`

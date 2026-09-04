@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 
 from .engine import classify_security
-from .models import FundamentalState, SecurityData
+from .models import SecurityData, StateDetail
+from .validation import attach_realized_persistence, realized_fundamental_state
 
 
 def _finite(value: object) -> float | None:
@@ -136,11 +137,26 @@ def build_backtest_events(
                 "company": security.company,
                 "industry": security.industry,
                 "sector_logic": security.sector_logic.value,
+                "peer_group": security.peer_group,
+                "financial_subtype": security.financial_subtype,
                 "period_end": observation["period_end"].isoformat(),
+                "announcement_date": (
+                    observation["announcement_date"].isoformat()
+                    if pd.notna(observation.get("announcement_date"))
+                    else None
+                ),
+                "available_date": signal_date.isoformat(),
                 "signal_date": signal_date.isoformat(),
                 "execution_date": entry["date"].isoformat(),
+                "trade_date": entry["date"].isoformat(),
+                "price_date": entry["date"].isoformat(),
+                "source": security.source,
+                "retrieval_date": security.source_metadata.get("retrieval_date"),
+                "source_version": security.source_metadata.get("source_version"),
+                "source_hash": security.source_metadata.get("source_hash"),
                 "quality": result.quality,
                 "fundamental_state": result.fundamental_state,
+                "state_detail": result.state_detail,
                 "valuation": result.valuation,
                 "research_classification": result.research_classification,
                 "data_quality": result.data_quality,
@@ -152,11 +168,23 @@ def build_backtest_events(
                 "roic": result.metrics.get("roic"),
                 "revenue_yoy": result.metrics.get("revenue_yoy"),
                 "eps_yoy": result.metrics.get("eps_yoy"),
-                "state_validation": _state_validation(q, row_index) if result.fundamental_state == FundamentalState.TURNING_UP.value else None,
-                "survivorship_bias": "SURVIVORSHIP_BIAS_PRESENT",
-                "availability_quality": "AVAILABLE_DATE_PROXY",
+                "state_validation": _state_validation(q, row_index) if result.state_detail == StateDetail.TURNING_UP.value else None,
+                "survivorship_bias": "CURRENT_CONSTITUENTS_ONLY",
+                "availability_quality": str(observation.get("availability_method", "AVAILABLE_DATE_PROXY")),
                 "price_return_quality": "ADJUSTED_RETURN_SECONDARY_SOURCE" if price_column == "adj_close" else "UNADJUSTED_PRICE_RETURN",
             }
+            realized = realized_fundamental_state(
+                q,
+                row_index,
+                security.sector_logic,
+                config.get("realized_state_rules", {}),
+            )
+            record.update(
+                {
+                    "realized_fundamental_state": realized.pop("realized_state"),
+                    **realized,
+                }
+            )
             for years, quarters in ((1, 4), (3, 12), (5, 20)):
                 future_quality = _future_quality(q, row_index, quarters)
                 for metric, value in future_quality.items():
@@ -165,7 +193,14 @@ def build_backtest_events(
                 exit_position = entry_position + horizon
                 prefix = f"{horizon}d"
                 if exit_position >= len(market):
-                    for name in ("return", "excess_return", "mfe", "mae", "max_drawdown"):
+                    for name in (
+                        "return",
+                        "benchmark_return",
+                        "excess_return",
+                        "max_close_to_close_favorable_return",
+                        "max_close_to_close_adverse_return",
+                        "max_drawdown",
+                    ):
                         record[f"{name}_{prefix}"] = None
                     continue
                 exit_row = market.loc[exit_position]
@@ -178,9 +213,10 @@ def build_backtest_events(
                 highest = _finite(pd.to_numeric(window[high_column], errors="coerce").max())
                 lowest = _finite(pd.to_numeric(window[low_column], errors="coerce").min())
                 record[f"return_{prefix}"] = stock_return
+                record[f"benchmark_return_{prefix}"] = benchmark_return
                 record[f"excess_return_{prefix}"] = stock_return - benchmark_return if stock_return is not None and benchmark_return is not None else None
-                record[f"mfe_{prefix}"] = highest / entry_price - 1.0 if highest is not None else None
-                record[f"mae_{prefix}"] = lowest / entry_price - 1.0 if lowest is not None else None
+                record[f"max_close_to_close_favorable_return_{prefix}"] = highest / entry_price - 1.0 if highest is not None else None
+                record[f"max_close_to_close_adverse_return_{prefix}"] = lowest / entry_price - 1.0 if lowest is not None else None
                 record[f"max_drawdown_{prefix}"] = _max_drawdown(window[price_column])
             records.append(record)
     events = pd.DataFrame(records)
@@ -189,32 +225,88 @@ def build_backtest_events(
     for column in ("roe", "revenue_yoy"):
         values = pd.to_numeric(events[column], errors="coerce")
         events[f"{column}_cross_sectional_percentile"] = values.groupby(events["period_end"]).rank(pct=True)
-    return events
+    return attach_realized_persistence(events)
 
 
-def _summary_row(frame: pd.DataFrame, label: str, horizon: int) -> dict[str, Any]:
+def _cluster_standard_error(frame: pd.DataFrame, values: pd.Series, cluster: pd.Series) -> float | None:
+    selected = pd.DataFrame({"value": values, "cluster": cluster}).dropna()
+    if len(selected) < 2 or selected["cluster"].nunique() < 2:
+        return None
+    mean = float(selected["value"].mean())
+    contributions = selected.assign(centered=selected["value"] - mean).groupby("cluster")["centered"].sum()
+    groups = len(contributions)
+    variance = groups / (groups - 1) * float((contributions**2).sum()) / len(selected) ** 2
+    return math.sqrt(max(variance, 0.0))
+
+
+def _summary_row(
+    frame: pd.DataFrame,
+    label: str,
+    horizon: int,
+    *,
+    return_column: str | None = None,
+    excess_column: str | None = None,
+) -> dict[str, Any]:
     prefix = f"{horizon}d"
-    returns = pd.to_numeric(frame[f"return_{prefix}"], errors="coerce").dropna()
-    excess = pd.to_numeric(frame[f"excess_return_{prefix}"], errors="coerce").dropna()
-    mfe = pd.to_numeric(frame[f"mfe_{prefix}"], errors="coerce").dropna()
-    mae = pd.to_numeric(frame[f"mae_{prefix}"], errors="coerce").dropna()
-    drawdowns = pd.to_numeric(frame[f"max_drawdown_{prefix}"], errors="coerce").dropna()
+    return_name = return_column or f"return_{prefix}"
+    excess_name = excess_column or f"excess_return_{prefix}"
+    valid = pd.to_numeric(frame[return_name], errors="coerce").notna()
+    selected = frame.loc[valid].copy()
+    returns = pd.to_numeric(selected[return_name], errors="coerce")
+    excess_source = selected[excess_name] if excess_name in selected else pd.Series(np.nan, index=selected.index)
+    excess = pd.to_numeric(excess_source, errors="coerce").dropna()
+    favorable_source = (
+        selected[f"max_close_to_close_favorable_return_{prefix}"]
+        if f"max_close_to_close_favorable_return_{prefix}" in selected
+        else pd.Series(np.nan, index=selected.index)
+    )
+    favorable = pd.to_numeric(
+        favorable_source, errors="coerce"
+    ).dropna()
+    adverse_source = (
+        selected[f"max_close_to_close_adverse_return_{prefix}"]
+        if f"max_close_to_close_adverse_return_{prefix}" in selected
+        else pd.Series(np.nan, index=selected.index)
+    )
+    adverse = pd.to_numeric(
+        adverse_source, errors="coerce"
+    ).dropna()
+    drawdown_source = (
+        selected[f"max_drawdown_{prefix}"]
+        if f"max_drawdown_{prefix}" in selected
+        else pd.Series(np.nan, index=selected.index)
+    )
+    drawdowns = pd.to_numeric(drawdown_source, errors="coerce").dropna()
     if returns.empty:
         return {"baseline": label, "horizon": prefix, "n": 0}
     standard_error = returns.std(ddof=1) / math.sqrt(len(returns)) if len(returns) > 1 else math.nan
+    issuer_se = _cluster_standard_error(selected, returns, selected.get("symbol", pd.Series(index=selected.index)))
+    signal_dates = selected["signal_date"] if "signal_date" in selected else pd.Series(pd.NaT, index=selected.index)
+    time_cluster = pd.to_datetime(signal_dates, errors="coerce").dt.to_period("Q").astype(str)
+    time_se = _cluster_standard_error(selected, returns, time_cluster)
     return {
         "baseline": label,
         "horizon": prefix,
         "n": int(len(returns)),
+        "unique_issuer_count": int(selected["symbol"].nunique()) if "symbol" in selected else 1,
         "mean_return": float(returns.mean()),
         "median_return": float(returns.median()),
-        "hit_rate": float((returns > 0).mean()),
+        "positive_rate": float((returns > 0).mean()),
         "mean_excess_return": float(excess.mean()) if not excess.empty else None,
-        "mean_mfe": float(mfe.mean()) if not mfe.empty else None,
-        "mean_mae": float(mae.mean()) if not mae.empty else None,
+        "median_excess_return": float(excess.median()) if not excess.empty else None,
+        "mean_max_close_to_close_favorable_return": float(favorable.mean()) if not favorable.empty else None,
+        "mean_max_close_to_close_adverse_return": float(adverse.mean()) if not adverse.empty else None,
         "worst_max_drawdown": float(drawdowns.min()) if not drawdowns.empty else None,
-        "ci95_low": float(returns.mean() - 1.96 * standard_error) if math.isfinite(standard_error) else None,
-        "ci95_high": float(returns.mean() + 1.96 * standard_error) if math.isfinite(standard_error) else None,
+        "iid_standard_error": float(standard_error) if math.isfinite(standard_error) else None,
+        "iid_ci95_low": float(returns.mean() - 1.96 * standard_error) if math.isfinite(standard_error) else None,
+        "iid_ci95_high": float(returns.mean() + 1.96 * standard_error) if math.isfinite(standard_error) else None,
+        "issuer_cluster_standard_error": issuer_se,
+        "issuer_cluster_ci95_low": float(returns.mean() - 1.96 * issuer_se) if issuer_se is not None else None,
+        "issuer_cluster_ci95_high": float(returns.mean() + 1.96 * issuer_se) if issuer_se is not None else None,
+        "time_cluster_standard_error": time_se,
+        "time_cluster_ci95_low": float(returns.mean() - 1.96 * time_se) if time_se is not None else None,
+        "time_cluster_ci95_high": float(returns.mean() + 1.96 * time_se) if time_se is not None else None,
+        "independence_assumption": "NON_IID_REPEATED_ISSUER_OVERLAPPING_WINDOWS",
     }
 
 
@@ -222,20 +314,37 @@ def summarize_baselines(events: pd.DataFrame, config: dict[str, Any]) -> pd.Data
     if events.empty:
         return pd.DataFrame()
     conditions = {
-        "A_ALL_CURRENT_0050": pd.Series(True, index=events.index),
-        "B_LOW_PE": pd.to_numeric(events["pe_percentile"], errors="coerce") <= 0.25,
-        "C_LOW_PB": pd.to_numeric(events["pb_percentile"], errors="coerce") <= 0.25,
-        "D_HIGH_ROE": pd.to_numeric(events["roe_cross_sectional_percentile"], errors="coerce") >= 0.75,
-        "E_HIGH_REVENUE_GROWTH": pd.to_numeric(events["revenue_yoy_cross_sectional_percentile"], errors="coerce") >= 0.75,
-        "F_QUALITY_ONLY": events["quality"] == "GOOD",
-        "G_VALUATION_ONLY": events["valuation"] == "LOW",
+        "B_CURRENT_CONSTITUENT_UNCONDITIONAL": pd.Series(True, index=events.index),
+        "C_STATE_ONLY": events["fundamental_state"] == "IMPROVING",
+        "D_QUALITY_ONLY": events["quality"] == "GOOD",
+        "E_VALUATION_ONLY": events["valuation"] == "LOW",
+        "F_QUALITY_PLUS_VALUATION": (events["quality"] == "GOOD") & events["valuation"].isin(["LOW", "NORMAL"]),
+        "G_STATE_PLUS_VALUATION": (events["fundamental_state"] == "IMPROVING") & events["valuation"].isin(["LOW", "NORMAL"]),
         "H_FULL_MODEL": (
             (events["quality"] == "GOOD")
-            & (events["fundamental_state"] == "TURNING_UP")
+            & (events["fundamental_state"] == "IMPROVING")
             & events["valuation"].isin(["LOW", "NORMAL"])
         ),
     }
     rows = []
+    benchmark_dates = events.sort_values("signal_date").drop_duplicates("signal_date").copy()
+    benchmark_dates["symbol"] = "0050"
+    for horizon in config["backtest"]["forward_horizons"]:
+        prefix = f"{int(horizon)}d"
+        benchmark_dates[f"benchmark_excess_return_{prefix}"] = np.where(
+            pd.to_numeric(benchmark_dates[f"benchmark_return_{prefix}"], errors="coerce").notna(),
+            0.0,
+            np.nan,
+        )
+        rows.append(
+            _summary_row(
+                benchmark_dates,
+                "A_0050_BUY_AND_HOLD",
+                int(horizon),
+                return_column=f"benchmark_return_{prefix}",
+                excess_column=f"benchmark_excess_return_{prefix}",
+            )
+        )
     for label, condition in conditions.items():
         selected = events[condition.fillna(False)]
         for horizon in config["backtest"]["forward_horizons"]:
@@ -243,16 +352,101 @@ def summarize_baselines(events: pd.DataFrame, config: dict[str, Any]) -> pd.Data
     return pd.DataFrame(rows)
 
 
+def summarize_return_diagnostics(events: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
+    rows: list[dict[str, Any]] = []
+    horizons = [horizon for horizon in config["backtest"]["forward_horizons"] if int(horizon) in (60, 120, 252, 504)]
+    for state in ("IMPROVING", "STABLE", "DETERIORATING", "UNKNOWN", "ALL"):
+        selected = events if state == "ALL" else events[events["fundamental_state"] == state]
+        for horizon in horizons:
+            row = _summary_row(selected, f"STATE_{state}", int(horizon))
+            row["diagnostic_only"] = True
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def summarize_robustness(events: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
+    semiconductor = events["peer_group"].str.contains(
+        "SEMICONDUCTOR|IC_DESIGN|MEMORY", case=False, na=False
+    )
+    signal_dates = pd.to_datetime(events["signal_date"], errors="coerce")
+    groups = {
+        "FULL_SAMPLE": pd.Series(True, index=events.index),
+        "EX_TSMC": events["symbol"].astype(str) != "2330",
+        "EX_SEMICONDUCTOR": ~semiconductor,
+        "FINANCIAL_ONLY": events["sector_logic"] == "FINANCIAL",
+        "NON_FINANCIAL_ONLY": events["sector_logic"] != "FINANCIAL",
+        "PRE_2023": signal_dates.dt.year < 2023,
+        "2023_AND_LATER": signal_dates.dt.year >= 2023,
+    }
+    full_model = (
+        (events["quality"] == "GOOD")
+        & (events["fundamental_state"] == "IMPROVING")
+        & events["valuation"].isin(["LOW", "NORMAL"])
+    )
+    rows: list[dict[str, Any]] = []
+    for name, condition in groups.items():
+        selected = events[condition.fillna(False) & full_model]
+        for horizon in (60, 120, 252, 504):
+            if horizon in [int(value) for value in config["backtest"]["forward_horizons"]]:
+                row = _summary_row(selected, f"ROBUSTNESS_{name}", horizon)
+                row["scope"] = name
+                row["model_filter"] = "GOOD + IMPROVING + LOW/NORMAL"
+                rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def summarize_state_validation(events: pd.DataFrame) -> pd.DataFrame:
     if events.empty or "state_validation" not in events:
-        return pd.DataFrame(columns=["label", "count", "share"])
+        return pd.DataFrame(columns=["label", "count", "share", "definition"])
     values = events["state_validation"].dropna()
     counts = values.value_counts()
     total = int(counts.sum())
+    before = {
+        "CORRECT": (74, 0.23125),
+        "TOO_EARLY": (18, 0.05625),
+        "TOO_LATE": (153, 0.478125),
+        "FALSE_RECOVERY": (75, 0.234375),
+    }
+    definitions = {
+        "CORRECT": "next two reported quarters improve/confirm revenue and EPS without a fourth-quarter reversal",
+        "TOO_EARLY": "confirmation appears only after the first future quarter",
+        "TOO_LATE": "revenue and EPS were already positive in both prior observations when TURNING_UP fired",
+        "FALSE_RECOVERY": "future revenue/EPS do not confirm, or reverse by the fourth future quarter",
+    }
     return pd.DataFrame(
         [
-            {"label": label, "count": int(count), "share": float(count / total) if total else None}
-            for label, count in counts.items()
+            {
+                "label": label,
+                "count": int(counts.get(label, 0)),
+                "share": float(counts.get(label, 0) / total) if total else None,
+                "before_reviewed_head_count": before[label][0],
+                "before_reviewed_head_share": before[label][1],
+                "definition": definitions[label],
+            }
+            for label in ("CORRECT", "TOO_EARLY", "TOO_LATE", "FALSE_RECOVERY")
+        ]
+    )
+
+
+def diagnose_too_late(events: pd.DataFrame) -> pd.DataFrame:
+    selected = events[events.get("state_validation") == "TOO_LATE"].copy()
+    factors = {
+        "STATE_RULE_REQUIRES_MULTI_PERIOD_CONFIRMATION": len(selected),
+        "TTM_ROLLING_WINDOW_LAG": len(selected),
+        "QUARTERLY_REPORTING_FREQUENCY": len(selected),
+        "AVAILABLE_DATE_PROXY_TIMING_UNCERTAINTY": int(
+            (selected.get("availability_quality") == "AVAILABLE_DATE_PROXY").sum()
+        ),
+    }
+    return pd.DataFrame(
+        [
+            {
+                "factor": factor,
+                "count": int(count),
+                "share_of_too_late": float(count / len(selected)) if len(selected) else None,
+                "interpretation": "diagnostic contributor; not causal attribution and not used to tune thresholds",
+            }
+            for factor, count in factors.items()
         ]
     )
 
