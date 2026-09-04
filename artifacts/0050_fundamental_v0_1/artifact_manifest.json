@@ -1,0 +1,182 @@
+{
+  "experiment_id": "EXP-0050-FQV-20260903-V01",
+  "experiment_type": "fundamental_quality_valuation_shadow_research",
+  "generation_timestamp": "2026-09-04T03:38:02.318656+00:00",
+  "commit_sha": "a3e27b9e670848629ea4d7f32a609a12b41a3392",
+  "generation_commit_sha": "a3e27b9e670848629ea4d7f32a609a12b41a3392",
+  "code_version": "FQV-v0.1-correction-pass-1",
+  "config_hash": "70efbaf2b3c014fba9080260083def248c77c6ab584f667550315acdfee84316",
+  "data_snapshot_identity": "6ef2d250fe783a9f1bb622913056a65cae88e15abf2946a9faec3e890e3f3703",
+  "source_hash_count": 50,
+  "data_reference": "Immutable source metadata and hashes; normalized permissible research outputs; vendor raw payloads excluded",
+  "config": {
+    "model_id": "0050-FQV-001",
+    "model_version": "0.1.1-correction-pass",
+    "status": "research-shadow",
+    "as_of_date": "2026-09-03",
+    "history_start": "2016-01-01",
+    "universe": "CURRENT_0050_CONSTITUENTS",
+    "universe_bias_flag": "CURRENT_CONSTITUENTS_ONLY",
+    "availability_rule_version": "FQV-PIT-ACTUAL-OR-EXPLICIT-PROXY-0.1.1",
+    "financial_availability_lag_days": {
+      "q1": 60,
+      "q2": 60,
+      "q3": 60,
+      "q4": 90
+    },
+    "quality_rules": {
+      "general": {
+        "median_roe_5y_min": 0.1,
+        "median_roic_5y_min": 0.08,
+        "median_cfo_net_income_min": 0.8,
+        "fcf_positive_ratio_min": 0.7,
+        "net_debt_equity_max": 1.0,
+        "interest_coverage_min": 3.0,
+        "minimum_metric_coverage": {
+          "ttm_revenue": 0.8,
+          "ttm_eps": 0.8,
+          "roe": 0.75,
+          "roic": 0.75,
+          "ttm_cfo": 0.75,
+          "ttm_fcf": 0.75,
+          "equity": 0.8
+        }
+      },
+      "financial": {
+        "median_roe_5y_min": 0.1,
+        "median_roa_5y_min": 0.006,
+        "equity_cagr_3y_min": 0.0,
+        "eps_cagr_3y_min": 0.0,
+        "roe_mapping_plausibility_max": 0.5
+      }
+    },
+    "valuation_rules": {
+      "low_percentile_max": 0.25,
+      "high_percentile_min": 0.75,
+      "minimum_history_observations": 120,
+      "normalized_pe_minimum_observations": 12,
+      "maximum_valuation_staleness_days": 10,
+      "dcf_discount_rate": 0.1,
+      "dcf_terminal_growth": 0.03,
+      "dcf_projection_years": 5,
+      "dcf_growth_floor": -0.03,
+      "dcf_growth_cap": 0.2
+    },
+    "realized_state_rules": {
+      "evaluation_quarters": 4,
+      "minimum_families": 4,
+      "directional_family_minimum": 3,
+      "directional_vote_margin": 2,
+      "level_change_threshold": 0.02,
+      "ratio_change_threshold": 0.01,
+      "balance_sheet_change_threshold": 0.05,
+      "purpose": "ex-post evaluation only; never imported into contemporaneous signal generation"
+    },
+    "backtest": {
+      "start_date": "2019-01-01",
+      "forward_horizons": [
+        20,
+        60,
+        120,
+        252,
+        504,
+        756
+      ],
+      "confidence_level": 0.95,
+      "benchmark": "0050"
+    }
+  },
+  "period": {
+    "start": "2016-01-01",
+    "end": "2026-09-03"
+  },
+  "universe": {
+    "name": "CURRENT_0050_CONSTITUENTS",
+    "count": 50,
+    "bias": "CURRENT_CONSTITUENTS_ONLY"
+  },
+  "status": "PROVISIONAL_SHADOW",
+  "claim_boundary": "analysis quality and investment prediction are separate; prediction is not established",
+  "artifacts": [
+    {
+      "path": "0050_backtest_events_v0.1.csv",
+      "sha256": "6354275ca3574682c45e69b53310b30ab1bcd0af239e9f304138b295b10b69f9",
+      "bytes": 2190652
+    },
+    {
+      "path": "0050_baseline_comparison_v0.1.csv",
+      "sha256": "2bf09adbc83dd575842418279a9b00e90e2653f163e385923173e28a34074e19",
+      "bytes": 19533
+    },
+    {
+      "path": "0050_current_state_matrix_v0.1.csv",
+      "sha256": "967eb7983612150402953c9f750612055c4750db3db47f8f0e7ed630a7538177",
+      "bytes": 101313
+    },
+    {
+      "path": "0050_data_quality_report_v0.1.csv",
+      "sha256": "68657172d3568846bffff83b011cb4bdd8248fbe5fb6e9f73e6783fff0188325",
+      "bytes": 41594
+    },
+    {
+      "path": "0050_financial_mapping_audit_v0.1.csv",
+      "sha256": "82596fd060ff5d714f70a9e694b9418f140ad496f774a6d29dccc9e886234c43",
+      "bytes": 5425
+    },
+    {
+      "path": "0050_fundamental_quality_valuation_backtest_v0.1.json",
+      "sha256": "6d6492dd04006b1e678f19aa45e5203451a248ac36bdfa86cb311e61a8b2e35b",
+      "bytes": 11739711
+    },
+    {
+      "path": "0050_fundamental_quality_valuation_backtest_v0.1.pdf",
+      "sha256": "0887ce28c93b0c8022eeda0b869e4ab3e379c1c82d84939a5342934c5d923d87",
+      "bytes": 3077040
+    },
+    {
+      "path": "0050_normalized_financials_pit_v0.1.csv",
+      "sha256": "5fcee7b023b5c134842c4fbf154f26f9782387774b5bd85f8d8e4bd0695d4647",
+      "bytes": 1626517
+    },
+    {
+      "path": "0050_peer_context_v0.1.csv",
+      "sha256": "8aef32c7baa27f67dd4146d904a5b8f078404928cdd9823742d756b53c325cad",
+      "bytes": 12756
+    },
+    {
+      "path": "0050_quality_persistence_v0.1.csv",
+      "sha256": "cde39c052e1291150b4a033f8abe04d91afb2c983a5a6d5a42734d67a9537db9",
+      "bytes": 1567
+    },
+    {
+      "path": "0050_return_diagnostics_v0.1.csv",
+      "sha256": "a50f1008fb255416d1a0eaab9973769d66b439a57670c9e3758dcd3cc76761ea",
+      "bytes": 8675
+    },
+    {
+      "path": "0050_robustness_diagnostics_v0.1.csv",
+      "sha256": "f03a0c84da461ceb5a7a51374fc322b4145abae713e1a469a7a7f7479fc02278",
+      "bytes": 11630
+    },
+    {
+      "path": "0050_state_accuracy_metrics_v0.1.csv",
+      "sha256": "5d795f087d9e7b7c38a4094b2290fc6067c51bc954c6557994df69d3e176c786",
+      "bytes": 681
+    },
+    {
+      "path": "0050_state_confusion_matrix_v0.1.csv",
+      "sha256": "544f9eeb040b34365d1bb25346d6906485d7c5488d6063182f25b5daf2d19397",
+      "bytes": 404
+    },
+    {
+      "path": "0050_state_validation_v0.1.csv",
+      "sha256": "254180e67891a33b0ee4ccaed65a9a2fa9ab6e8b29f06f064c301cd762f34a77",
+      "bytes": 581
+    },
+    {
+      "path": "0050_too_late_diagnosis_v0.1.csv",
+      "sha256": "3c747826431ee459a9e43b8e54d1df98f5b6e8d3905b15273784b7f235e11ba8",
+      "bytes": 536
+    }
+  ]
+}

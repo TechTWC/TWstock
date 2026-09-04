@@ -115,3 +115,7 @@ The governance refresh does not relax:
 - A fixed pytest development dependency manifest and PR CI are present. Live FinMind checks
   remain manual, secret-backed operational evidence and are not a substitute for official
   source verification or strategy validation.
+- `0050 Fundamental Quality & Valuation v0.1` is an independent provisional Shadow Research
+  package. Its financial availability dates are conservative proxies, its historical universe
+  is the current constituent set, and its adjusted returns come from a secondary source. It therefore may test
+  implementation and analysis diagnostics but may not support a promotion or predictive claim.
