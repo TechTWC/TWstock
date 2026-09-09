@@ -361,7 +361,7 @@
     "stage": "Fundamental Model v0.1 — Stage B: Predictive Validation",
     "status": "PASS",
     "starting_head": "9a5f2ed69c960b1993b144caee1308c7f8a8046d",
-    "generation_head": "9a5f2ed69c960b1993b144caee1308c7f8a8046d",
+    "generation_head": "670ae306aa97ed4f8e6beda1d99844a6b63c923d",
     "generated_at": "2026-09-09T09:54:59.163881+00:00",
     "mops_network_requests": 0,
     "frozen_universe_verified": true,
