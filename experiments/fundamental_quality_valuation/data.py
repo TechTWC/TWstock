@@ -648,6 +648,8 @@ def load_universe(path: Path) -> list[dict[str, str]]:
     missing = required.difference(frame.columns)
     if missing:
         raise ResearchDataError(f"Universe is missing columns: {sorted(missing)}")
-    if len(frame) != 50 or frame["symbol"].nunique() != 50:
-        raise ResearchDataError("0050 research universe must contain exactly 50 unique symbols")
+    if frame.empty:
+        raise ResearchDataError("0050 research universe must not be empty")
+    if frame["symbol"].nunique() != len(frame):
+        raise ResearchDataError("0050 research universe contains duplicate symbols")
     return frame.to_dict(orient="records")

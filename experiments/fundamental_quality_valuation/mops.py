@@ -73,6 +73,21 @@ class MopsFetchResult:
     records: tuple[MopsFilingRecord, ...]
 
 
+@dataclass(frozen=True)
+class MopsSelectionDecision:
+    symbol: str
+    fiscal_year: int
+    fiscal_quarter: int
+    period_end: str
+    status: str
+    reason_code: str
+    candidate_count: int
+    duplicate_candidate_count: int
+    conflict_candidate_count: int
+    corrected_filing_case: bool
+    selected: MopsFilingRecord | None
+
+
 class _MopsTableParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
@@ -151,24 +166,18 @@ def _record_hash(fields: dict[str, Any]) -> str:
     return sha256(encoded.encode("utf-8")).hexdigest()
 
 
-def parse_mops_filing_html(
+def parse_mops_filing_candidates(
     html: str,
     *,
     source_url: str,
     retrieval_timestamp: str,
     response_sha256: str,
 ) -> tuple[MopsFilingRecord, ...]:
-    """Parse official financial-report upload rows and select one Chinese report per quarter.
-
-    MOPS exposes the latest report file for each fiscal period.  Consolidated Chinese
-    reports are preferred; an individual Chinese report is used only when no consolidated
-    report exists.  Within the same document kind the latest upload is retained so current
-    vendor-normalized values are not made available before a later MOPS correction.
-    """
+    """Parse every eligible Chinese IFRS filing candidate without selecting a vintage."""
 
     parser = _MopsTableParser()
     parser.feed(html)
-    candidates: dict[tuple[str, int, int, str], MopsFilingRecord] = {}
+    candidates: list[MopsFilingRecord] = []
     for cells in parser.rows:
         if len(cells) < 11 or not cells[0].strip().isdigit():
             continue
@@ -223,22 +232,124 @@ def parse_mops_filing_html(
             file_size_bytes=file_size,
             correction_status=cells[10].strip(),
         )
-        key = (symbol, fiscal_year, fiscal_quarter, document_kind)
-        prior = candidates.get(key)
-        if prior is None or record.announcement_timestamp > prior.announcement_timestamp:
-            candidates[key] = record
+        candidates.append(record)
+    return tuple(
+        sorted(
+            candidates,
+            key=lambda item: (
+                item.symbol,
+                item.period_end,
+                item.document_kind,
+                item.announcement_timestamp,
+                item.source_identifier,
+            ),
+        )
+    )
 
-    selected: dict[tuple[str, int, int], MopsFilingRecord] = {}
-    for record in candidates.values():
-        key = (record.symbol, record.fiscal_year, record.fiscal_quarter)
-        prior = selected.get(key)
-        if prior is None:
-            selected[key] = record
-        elif prior.document_kind != "CONSOLIDATED" and record.document_kind == "CONSOLIDATED":
-            selected[key] = record
-        elif prior.document_kind == record.document_kind and record.announcement_timestamp > prior.announcement_timestamp:
-            selected[key] = record
-    return tuple(sorted(selected.values(), key=lambda item: (item.symbol, item.period_end)))
+
+def select_mops_filings(
+    candidates: Iterable[MopsFilingRecord],
+) -> tuple[tuple[MopsFilingRecord, ...], tuple[MopsSelectionDecision, ...]]:
+    """Apply the auditable consolidated/latest-vintage contract and fail closed on ties."""
+
+    grouped: dict[tuple[str, int, int], list[MopsFilingRecord]] = {}
+    for record in candidates:
+        grouped.setdefault((record.symbol, record.fiscal_year, record.fiscal_quarter), []).append(record)
+
+    selected: list[MopsFilingRecord] = []
+    decisions: list[MopsSelectionDecision] = []
+    for (symbol, fiscal_year, fiscal_quarter), raw_group in sorted(grouped.items()):
+        # An exact duplicate HTML row is retained as an audited duplicate count but
+        # cannot influence which filing is selected.
+        unique: dict[tuple[str, str, str, str, int | None], MopsFilingRecord] = {}
+        for record in raw_group:
+            identity = (
+                record.document_kind,
+                record.announcement_timestamp,
+                record.source_identifier,
+                record.correction_status,
+                record.file_size_bytes,
+            )
+            unique.setdefault(identity, record)
+        group = list(unique.values())
+        preferred_kind = (
+            "CONSOLIDATED"
+            if any(record.document_kind == "CONSOLIDATED" for record in group)
+            else "INDIVIDUAL"
+        )
+        preferred = [record for record in group if record.document_kind == preferred_kind]
+        latest_timestamp = max(record.announcement_timestamp for record in preferred)
+        latest = [record for record in preferred if record.announcement_timestamp == latest_timestamp]
+        corrected = any(record.correction_status not in {"", "無"} for record in group) or len(preferred) > 1
+        duplicate_count = max(0, len(raw_group) - 1)
+
+        if len(latest) != 1:
+            decisions.append(
+                MopsSelectionDecision(
+                    symbol=symbol,
+                    fiscal_year=fiscal_year,
+                    fiscal_quarter=fiscal_quarter,
+                    period_end=preferred[0].period_end,
+                    status="CONFLICT_FAIL_CLOSED",
+                    reason_code="MOPS_AMBIGUOUS_LATEST_VINTAGE",
+                    candidate_count=len(raw_group),
+                    duplicate_candidate_count=duplicate_count,
+                    conflict_candidate_count=len(latest),
+                    corrected_filing_case=corrected,
+                    selected=None,
+                )
+            )
+            continue
+
+        chosen = latest[0]
+        selected.append(chosen)
+        reason = (
+            "MOPS_LATEST_CORRECTION_VERSION"
+            if corrected
+            else (
+                "MOPS_CONSOLIDATED_PREFERRED_OVER_INDIVIDUAL"
+                if any(record.document_kind == "INDIVIDUAL" for record in group)
+                else "MOPS_SINGLE_ELIGIBLE_FILING"
+            )
+        )
+        decisions.append(
+            MopsSelectionDecision(
+                symbol=symbol,
+                fiscal_year=fiscal_year,
+                fiscal_quarter=fiscal_quarter,
+                period_end=chosen.period_end,
+                status="SELECTED",
+                reason_code=reason,
+                candidate_count=len(raw_group),
+                duplicate_candidate_count=duplicate_count,
+                conflict_candidate_count=0,
+                corrected_filing_case=corrected,
+                selected=chosen,
+            )
+        )
+    return (
+        tuple(sorted(selected, key=lambda item: (item.symbol, item.period_end))),
+        tuple(decisions),
+    )
+
+
+def parse_mops_filing_html(
+    html: str,
+    *,
+    source_url: str,
+    retrieval_timestamp: str,
+    response_sha256: str,
+) -> tuple[MopsFilingRecord, ...]:
+    """Compatibility wrapper returning only unambiguous selected filings."""
+
+    candidates = parse_mops_filing_candidates(
+        html,
+        source_url=source_url,
+        retrieval_timestamp=retrieval_timestamp,
+        response_sha256=response_sha256,
+    )
+    selected, _ = select_mops_filings(candidates)
+    return selected
 
 
 def fetch_mops_filing_year(
@@ -411,7 +522,7 @@ def apply_mops_pit(
                     "announcement_date": filing_date,
                     "announcement_timestamp": filing.announcement_timestamp,
                     "available_date": filing_date,
-                    "availability_method": "MOPS_DOCUMENT_UPLOAD_TIMESTAMP",
+                    "availability_method": "MOPS_EXACT",
                     "timestamp_confidence": "official_timestamp_second_precision",
                     "pit_source": filing.source,
                     "source_url": filing.source_url,
@@ -452,7 +563,7 @@ def apply_mops_pit(
                     "announcement_date": None,
                     "announcement_timestamp": None,
                     "available_date": proxy,
-                    "availability_method": "AVAILABLE_DATE_PROXY_FALLBACK",
+                    "availability_method": "AVAILABLE_DATE_PROXY",
                     "timestamp_confidence": "conservative_proxy_fallback",
                     "pit_source": "pre-registered conservative availability-date proxy",
                     "source_url": fetch_result.source_url if fetch_result else None,
@@ -515,8 +626,8 @@ def summarize_mops_coverage(provenance: pd.DataFrame) -> pd.DataFrame:
     if frame.empty:
         return pd.DataFrame()
     frame["period_year"] = pd.to_datetime(frame["period_end"], errors="coerce").dt.year
-    actual = frame["availability_method"] == "MOPS_DOCUMENT_UPLOAD_TIMESTAMP"
-    proxy = frame["availability_method"] == "AVAILABLE_DATE_PROXY_FALLBACK"
+    actual = frame["availability_method"] == "MOPS_EXACT"
+    proxy = frame["availability_method"] == "AVAILABLE_DATE_PROXY"
     timestamp = frame["announcement_timestamp"].notna()
     missing = ~(actual | proxy)
     frame = frame.assign(_actual=actual, _proxy=proxy, _timestamp=timestamp, _missing=missing)

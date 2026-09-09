@@ -549,10 +549,13 @@ def classify_security(
     security: SecurityData,
     as_of: str | date,
     config: dict[str, Any],
+    *,
+    market_as_of: str | date | None = None,
 ) -> ClassificationResult:
     selected_date = parse_date(as_of)
+    selected_market_date = parse_date(market_as_of) if market_as_of is not None else selected_date
     q = security.quarterly[security.quarterly["available_date"] <= selected_date].copy()
-    market = security.market[security.market["date"] <= selected_date].copy()
+    market = security.market[security.market["date"] <= selected_market_date].copy()
     flags = list(dict.fromkeys(security.data_flags))
     if q.empty:
         return ClassificationResult(
