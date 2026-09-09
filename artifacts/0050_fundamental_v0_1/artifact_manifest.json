@@ -135,8 +135,8 @@
     },
     {
       "path": "0050_mops_mapping_diagnostics_v0.1.csv",
-      "sha256": "1bea4e0c379fcd7167869b8c4050c9dc254ce14ee1c547ebb00b77133f12a441",
-      "bytes": 300666
+      "sha256": "02ac469bae6ffc1298c3a9d8ca7ae1c8280e70c762c05ddc7ef12f8560b57058",
+      "bytes": 404152
     },
     {
       "path": "0050_mops_pit_coverage_v0.1.csv",
@@ -185,8 +185,8 @@
     },
     {
       "path": "0050_stage_a_data_quality_summary_v0.1.json",
-      "sha256": "1db935aa0431dd6950d5516c190070a47cd81ecdea2f4d715d57bd8b589e0567",
-      "bytes": 1916
+      "sha256": "f7c537dacd0904aa690f9871965f6883d96d558802e08744f830ae15208224f8",
+      "bytes": 2510
     },
     {
       "path": "0050_state_accuracy_metrics_v0.1.csv",
@@ -243,6 +243,52 @@
       "0050_mops_pit_mapping_v0.1.csv": "ec583670a352d3eaf53b6aebc6b5595108b1adfcdf33569700e45f458383f192",
       "0050_pit_signal_timeline_v0.1.csv": "9c13f87abe8ca25efeb869482724eb49f89c1c234df240d72472641e6bd81241",
       "0050_mops_mapping_diagnostics_v0.1.csv": "1bea4e0c379fcd7167869b8c4050c9dc254ce14ee1c547ebb00b77133f12a441",
+      "0050_mops_pit_coverage_v0.1.csv": "198b7b02b0c03aecf57373f074a193432852d8fd70320e1fe06f4e9f62ef732a"
+    }
+  },
+  "stage_a_hardening": {
+    "stage": "Fundamental Model v0.1 — Stage A Hardening Pass",
+    "status": "PASS",
+    "stage_a_starting_head": "e369d88f6c5ddb116ec3990e99ea876c4d3039b6",
+    "stage_a_head": "f2060e6243ec59bb859e61c2f96e48f84b01dd95",
+    "starting_head": "f2060e6243ec59bb859e61c2f96e48f84b01dd95",
+    "generation_head": "ecb23374b0c9f8e0a63f7776bdbcd39fcd2257bd",
+    "generated_at": "2026-09-09T09:00:03.444880+00:00",
+    "mops_network_requests": 0,
+    "checkpoint_verification": "PASS",
+    "checkpoint_archive_sha256": "c904a167202e2cf7d067f9eae392085e771c209235ded41742b46c428c895fa3",
+    "restored_cache_files": 1186,
+    "financial_observations": 2067,
+    "mops_exact": 2053,
+    "proxy": 14,
+    "unmatched": 14,
+    "conflict_observations": 0,
+    "fixed_cohort": 50,
+    "eligible_non_financial": 38,
+    "excluded_financial": 12,
+    "pit_signal_observations": 1563,
+    "exact_duplicate_rows": 0,
+    "multiple_vintage_cases": 341,
+    "multiple_document_kind_cases": 341,
+    "correction_candidate_cases": 0,
+    "conflict_cases": 0,
+    "duplicate_candidate_count": 341,
+    "duplicate_candidate_count_semantic": "DEPRECATED_LEGACY_CANDIDATES_BEYOND_FIRST_NOT_BAD_DATA",
+    "predictive_returns_computed": false,
+    "frozen_rules_modified": false,
+    "frozen_rules_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+    "config_sha256": "f5a3889c183a9c137b8779310e2c8c0c7822fd1eff9f4f13adbd62a7ae30e366",
+    "normalized_input_sha256": "5fcee7b023b5c134842c4fbf154f26f9782387774b5bd85f8d8e4bd0695d4647",
+    "universe_sha256": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+    "fixed_cohort_hash_verified": true,
+    "selected_filing_hash": "549cac3184edcc6472cd2133454914a211567d2500dcd3800d89d444e9accf3a",
+    "filing_selection_results_unchanged": true,
+    "artifact_change_reason": "Mapping diagnostic fields were split by semantic category; filing selection, financial timeline, signal timeline, coverage, and model rules are unchanged.",
+    "artifact_hashes": {
+      "0050_pit_financial_timeline_v0.1.csv.gz": "13e7a281390032e86760604e5a5a938bbf2b5136b28ebffd99897523291b571a",
+      "0050_mops_pit_mapping_v0.1.csv": "ec583670a352d3eaf53b6aebc6b5595108b1adfcdf33569700e45f458383f192",
+      "0050_pit_signal_timeline_v0.1.csv": "9c13f87abe8ca25efeb869482724eb49f89c1c234df240d72472641e6bd81241",
+      "0050_mops_mapping_diagnostics_v0.1.csv": "02ac469bae6ffc1298c3a9d8ca7ae1c8280e70c762c05ddc7ef12f8560b57058",
       "0050_mops_pit_coverage_v0.1.csv": "198b7b02b0c03aecf57373f074a193432852d8fd70320e1fe06f4e9f62ef732a"
     }
   }
