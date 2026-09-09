@@ -82,6 +82,12 @@ class MopsSelectionDecision:
     status: str
     reason_code: str
     candidate_count: int
+    exact_duplicate_count: int
+    multiple_vintage_count: int
+    multiple_document_kind_count: int
+    correction_candidate_count: int
+    # Deprecated compatibility field.  Its legacy meaning is simply the
+    # number of raw candidates beyond the first; it is not a bad-row count.
     duplicate_candidate_count: int
     conflict_candidate_count: int
     corrected_filing_case: bool
@@ -272,6 +278,18 @@ def select_mops_filings(
             )
             unique.setdefault(identity, record)
         group = list(unique.values())
+        exact_duplicate_count = len(raw_group) - len(group)
+        multiple_vintage_count = max(
+            0,
+            len({record.announcement_timestamp for record in group}) - 1,
+        )
+        multiple_document_kind_count = max(
+            0,
+            len({record.document_kind for record in group}) - 1,
+        )
+        correction_candidate_count = sum(
+            record.correction_status not in {"", "無"} for record in group
+        )
         preferred_kind = (
             "CONSOLIDATED"
             if any(record.document_kind == "CONSOLIDATED" for record in group)
@@ -281,7 +299,7 @@ def select_mops_filings(
         latest_timestamp = max(record.announcement_timestamp for record in preferred)
         latest = [record for record in preferred if record.announcement_timestamp == latest_timestamp]
         corrected = any(record.correction_status not in {"", "無"} for record in group) or len(preferred) > 1
-        duplicate_count = max(0, len(raw_group) - 1)
+        legacy_duplicate_count = max(0, len(raw_group) - 1)
 
         if len(latest) != 1:
             decisions.append(
@@ -293,7 +311,11 @@ def select_mops_filings(
                     status="CONFLICT_FAIL_CLOSED",
                     reason_code="MOPS_AMBIGUOUS_LATEST_VINTAGE",
                     candidate_count=len(raw_group),
-                    duplicate_candidate_count=duplicate_count,
+                    exact_duplicate_count=exact_duplicate_count,
+                    multiple_vintage_count=multiple_vintage_count,
+                    multiple_document_kind_count=multiple_document_kind_count,
+                    correction_candidate_count=correction_candidate_count,
+                    duplicate_candidate_count=legacy_duplicate_count,
                     conflict_candidate_count=len(latest),
                     corrected_filing_case=corrected,
                     selected=None,
@@ -321,7 +343,11 @@ def select_mops_filings(
                 status="SELECTED",
                 reason_code=reason,
                 candidate_count=len(raw_group),
-                duplicate_candidate_count=duplicate_count,
+                exact_duplicate_count=exact_duplicate_count,
+                multiple_vintage_count=multiple_vintage_count,
+                multiple_document_kind_count=multiple_document_kind_count,
+                correction_candidate_count=correction_candidate_count,
+                duplicate_candidate_count=legacy_duplicate_count,
                 conflict_candidate_count=0,
                 corrected_filing_case=corrected,
                 selected=chosen,

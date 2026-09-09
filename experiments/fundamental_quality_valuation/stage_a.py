@@ -225,7 +225,18 @@ def build_financial_timeline(
                 "selection_status": decision.status if decision else "NO_MOPS_CANDIDATE",
                 "selection_reason_code": reason,
                 "candidate_count": decision.candidate_count if decision else 0,
+                "exact_duplicate_count": decision.exact_duplicate_count if decision else 0,
+                "multiple_vintage_count": decision.multiple_vintage_count if decision else 0,
+                "multiple_document_kind_count": (
+                    decision.multiple_document_kind_count if decision else 0
+                ),
+                "correction_candidate_count": (
+                    decision.correction_candidate_count if decision else 0
+                ),
                 "duplicate_candidate_count": decision.duplicate_candidate_count if decision else 0,
+                "duplicate_candidate_count_semantic": (
+                    "DEPRECATED_LEGACY_CANDIDATES_BEYOND_FIRST"
+                ),
                 "conflict_candidate_count": decision.conflict_candidate_count if decision else 0,
                 "corrected_filing_case": decision.corrected_filing_case if decision else False,
                 "selected_document_kind": filing.document_kind if filing else None,

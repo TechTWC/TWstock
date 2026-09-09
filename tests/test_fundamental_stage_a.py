@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -23,7 +24,13 @@ from experiments.fundamental_quality_valuation.stage_a import (
     load_offline_mops_archive,
 )
 from scripts.checkpoint_0050_mops_cache_v0_1 import restore_checkpoint, verify_checkpoint
-from scripts.run_0050_fundamental_stage_a import _load_universe
+from scripts.run_0050_fundamental_stage_a import (
+    EXPECTED_FIXED_COHORT_SHA256,
+    EXPECTED_SELECTED_FILING_HASH,
+    _load_universe,
+    _selected_filing_hash,
+    _validate_normalized_symbol_set,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -191,12 +198,64 @@ def test_financial_stock_is_not_in_predictive_eligible_signal_universe() -> None
     assert signals.empty
 
 
-def test_fixed_cohort_loading_is_deterministic_and_not_count_hardcoded() -> None:
+def test_fixed_cohort_loading_is_exactly_50_and_hash_frozen() -> None:
     path = ROOT / "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv"
     first = _load_universe(path)
     second = _load_universe(path)
     pd.testing.assert_frame_equal(first, second)
-    assert len(first) == first["symbol"].nunique()
+    assert len(first) == first["symbol"].nunique() == 50
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == EXPECTED_FIXED_COHORT_SHA256
+
+
+@pytest.mark.parametrize("delta", [-1, 1])
+def test_fixed_cohort_wrong_count_fails_closed(tmp_path: Path, delta: int) -> None:
+    source = pd.read_csv(
+        ROOT / "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv",
+        dtype=str,
+        encoding="utf-8-sig",
+    )
+    changed = source.iloc[:-1].copy() if delta < 0 else pd.concat(
+        [source, source.iloc[[0]].assign(symbol="9999")], ignore_index=True
+    )
+    path = tmp_path / "universe.csv"
+    changed.to_csv(path, index=False, encoding="utf-8-sig")
+    with pytest.raises(ValueError, match="exactly 50 rows"):
+        _load_universe(path)
+
+
+def test_fixed_cohort_duplicate_symbol_fails_closed(tmp_path: Path) -> None:
+    source = pd.read_csv(
+        ROOT / "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv",
+        dtype=str,
+        encoding="utf-8-sig",
+    )
+    source.loc[source.index[-1], "symbol"] = source.loc[source.index[0], "symbol"]
+    path = tmp_path / "universe.csv"
+    source.to_csv(path, index=False, encoding="utf-8-sig")
+    with pytest.raises(ValueError, match="duplicate symbols"):
+        _load_universe(path)
+
+
+def test_fixed_cohort_hash_mismatch_fails_closed(tmp_path: Path) -> None:
+    source = pd.read_csv(
+        ROOT / "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv",
+        dtype=str,
+        encoding="utf-8-sig",
+    )
+    source.loc[source.index[0], "company"] = "tampered"
+    path = tmp_path / "universe.csv"
+    source.to_csv(path, index=False, encoding="utf-8-sig")
+    with pytest.raises(ValueError, match="Frozen universe hash mismatch"):
+        _load_universe(path)
+
+
+def test_normalized_financial_symbol_set_mismatch_fails_closed() -> None:
+    universe = _load_universe(
+        ROOT / "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv"
+    )
+    normalized = pd.DataFrame({"symbol": universe["symbol"].iloc[:-1]})
+    with pytest.raises(RuntimeError, match="Normalized financial symbol set mismatch"):
+        _validate_normalized_symbol_set(normalized, universe)
 
 
 def test_checkpoint_archive_hash_mismatch_fails_closed(tmp_path: Path) -> None:
@@ -208,18 +267,60 @@ def test_checkpoint_archive_hash_mismatch_fails_closed(tmp_path: Path) -> None:
         verify_checkpoint(copied)
 
 
-def test_duplicate_and_conflicting_filings_are_audited_and_ambiguous_tie_fails_closed() -> None:
+def test_exact_duplicate_row_is_separate_from_other_candidate_semantics() -> None:
+    filing = _filing()
+    selected, audit = select_mops_filings([filing, filing])
+    assert selected == (filing,)
+    assert audit[0].candidate_count == 2
+    assert audit[0].exact_duplicate_count == 1
+    assert audit[0].multiple_vintage_count == 0
+    assert audit[0].multiple_document_kind_count == 0
+    assert audit[0].correction_candidate_count == 0
+
+
+def test_consolidated_and_individual_are_not_exact_duplicates() -> None:
     consolidated = _filing(identifier="consolidated.pdf")
     individual = _filing(kind="INDIVIDUAL", identifier="individual.pdf")
     selected, audit = select_mops_filings([individual, consolidated])
     assert selected == (consolidated,)
+    assert audit[0].exact_duplicate_count == 0
+    assert audit[0].multiple_vintage_count == 0
+    assert audit[0].multiple_document_kind_count == 1
     assert audit[0].duplicate_candidate_count == 1
+
+
+def test_correction_vintage_is_not_an_exact_duplicate_and_selection_is_unchanged() -> None:
+    original = _filing(timestamp="2025-05-08T15:30:00+08:00", identifier="original.pdf")
+    correction = _filing(
+        timestamp="2025-05-20T18:00:00+08:00",
+        identifier="correction.pdf",
+        correction="更正",
+    )
+    selected, audit = select_mops_filings([original, correction])
+    assert selected == (correction,)
+    assert audit[0].exact_duplicate_count == 0
+    assert audit[0].multiple_vintage_count == 1
+    assert audit[0].multiple_document_kind_count == 0
+    assert audit[0].correction_candidate_count == 1
+
+
+def test_conflicting_filings_are_audited_and_ambiguous_tie_fails_closed() -> None:
     conflict_a = _filing(identifier="a.pdf")
     conflict_b = _filing(identifier="b.pdf")
     selected, audit = select_mops_filings([conflict_a, conflict_b])
     assert selected == ()
     assert audit[0].status == "CONFLICT_FAIL_CLOSED"
     assert audit[0].conflict_candidate_count == 2
+
+
+def test_frozen_archive_selection_fingerprint_is_unchanged(tmp_path: Path) -> None:
+    cache = tmp_path / "mops"
+    restore_checkpoint(CHECKPOINT, cache)
+    universe = _load_universe(
+        ROOT / "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv"
+    )
+    filings, _ = load_offline_mops_archive(cache, universe["symbol"])
+    assert _selected_filing_hash(filings) == EXPECTED_SELECTED_FILING_HASH
 
 
 def test_unmatched_observation_keeps_explicit_proxy() -> None:
@@ -244,3 +345,42 @@ def test_generated_compressed_financial_timeline_is_parseable_and_finite() -> No
     assert len(frame) == 2067
     numeric = frame.select_dtypes(include=[np.number])
     assert not np.isinf(numeric.to_numpy(dtype=float, na_value=math.nan)).any()
+
+
+def test_generated_stage_a_hardening_artifacts_preserve_frozen_baseline() -> None:
+    artifact_dir = ROOT / "artifacts/0050_fundamental_v0_1"
+    summary = json.loads(
+        (artifact_dir / "0050_stage_a_data_quality_summary_v0.1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert summary["financial_observations"] == 2067
+    assert summary["mops_exact"] == 2053
+    assert summary["proxy"] == 14
+    assert summary["unmatched"] == 14
+    assert summary["conflict_observations"] == 0
+    assert summary["fixed_cohort"] == 50
+    assert summary["eligible_non_financial"] == 38
+    assert summary["excluded_financial"] == 12
+    assert summary["pit_signal_observations"] == 1563
+    assert summary["predictive_returns_computed"] is False
+    assert summary["mops_network_requests"] == 0
+    assert summary["frozen_rules_hash"] == EXPECTED_FROZEN_RULES_HASH
+    assert summary["selected_filing_hash"] == EXPECTED_SELECTED_FILING_HASH
+    assert summary["filing_selection_results_unchanged"] is True
+    assert summary["exact_duplicate_rows"] == 0
+    assert summary["multiple_vintage_cases"] == 341
+    assert summary["multiple_document_kind_cases"] == 341
+    assert summary["correction_candidate_cases"] == 0
+    diagnostics = pd.read_csv(
+        artifact_dir / "0050_mops_mapping_diagnostics_v0.1.csv",
+        dtype={"symbol": str},
+        encoding="utf-8-sig",
+    )
+    assert int(diagnostics["exact_duplicate_count"].sum()) == 0
+    assert int((diagnostics["multiple_vintage_count"] > 0).sum()) == 341
+    assert int((diagnostics["multiple_document_kind_count"] > 0).sum()) == 341
+    assert int((diagnostics["correction_candidate_count"] > 0).sum()) == 0
+    assert set(diagnostics["duplicate_candidate_count_semantic"]) == {
+        "DEPRECATED_LEGACY_CANDIDATES_BEYOND_FIRST"
+    }
