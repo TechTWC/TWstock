@@ -472,4 +472,117 @@ Reviewed head `97819a9...` 的 TOO_LATE 為 153/320 = 47.8125%。Correction pass
 | A | 0050 buy-and-hold／無主動選股（每個 unique signal date 一筆 benchmark return） |
 | B | Current constituent unconditional average |
 | C | Fundamental State only：IMPROVING |
-| D | Quality only：G
+| D | Quality only：GOOD |
+| E | Valuation only：LOW |
+| F | Quality + Valuation：GOOD + LOW/NORMAL |
+| G | State + Valuation：IMPROVING + LOW/NORMAL |
+| H | Full model：GOOD + IMPROVING + LOW/NORMAL |
+
+沒有找最佳 threshold，也沒有依結果回頭調參。
+
+## 11. Data Quality
+
+每檔輸出：
+
+```text
+OK
+PARTIAL
+INSUFFICIENT
+```
+
+本輪因公告日代理與 current-universe 限制，正常情況也只能是 `PARTIAL`。核心資料不足則為 `INSUFFICIENT`。每檔 coverage matrix 保存 history/expected/missing quarters、missing metrics、EPS/ROE/FCF/valuation/price/PIT actual/PIT proxy coverage、financial completeness、current usability 與 reason codes。缺值不補零、不以前值假裝正常。
+
+`7769` 的短歷史屬於實際掛牌／可觀察歷史限制。`8046` 在 reviewed head 使用的 fallback 只有 5 季，本次 refresh 雖從另一 vendor path 取得 42 季，但無法驗證跨 source vintage 的連續性，因此標記 `REVIEWED_HEAD_SOURCE_HISTORY_INSUFFICIENT` 與 `SOURCE_HISTORY_PROVENANCE_UNSTABLE`，並 fail closed 為 `UNKNOWN / INSUFFICIENT`；不得描述為公司歷史不足。
+
+## 12. Machine-readable Outputs
+
+執行結果包含：
+
+- `0050_current_state_matrix_v0.1.csv`
+- `0050_normalized_financials_pit_v0.1.csv`
+- `0050_backtest_events_v0.1.csv`
+- `0050_baseline_comparison_v0.1.csv`
+- `0050_state_validation_v0.1.csv`
+- `0050_state_confusion_matrix_v0.1.csv`
+- `0050_state_accuracy_metrics_v0.1.csv`
+- `0050_too_late_diagnosis_v0.1.csv`
+- `0050_quality_persistence_v0.1.csv`
+- `0050_return_diagnostics_v0.1.csv`
+- `0050_robustness_diagnostics_v0.1.csv`
+- `0050_financial_mapping_audit_v0.1.csv`
+- `0050_peer_context_v0.1.csv`
+- `0050_data_quality_report_v0.1.csv`
+- `0050_fundamental_quality_valuation_backtest_v0.1.json`
+- `0050_fundamental_quality_valuation_backtest_v0.1.pdf`
+- `artifact_manifest.json`
+
+PDF 包含 Executive Summary、全體矩陣、50 檔各一頁 5–10 年線圖、代表案例、歷史驗證、baseline、技術模型缺件邊界與六項研究問題。
+
+## 13. 重現方式
+
+```bash
+python -m pip install --requirement requirements-dev.txt
+python -m pytest -q tests/test_fundamental_quality_valuation.py
+python scripts/run_0050_fundamental_v0_1.py --workers 4
+```
+
+重新抓取 vendor data：
+
+```bash
+python scripts/run_0050_fundamental_v0_1.py --workers 4 --refresh
+```
+
+## 14. 本輪明確禁止
+
+- 不調整 Technical v0.6。
+- 不建立任何分數或加權排名。
+- 不最佳化 PE、ROE、growth 或 TURNING_UP threshold。
+- 不宣稱目前歷史結果代表正式 0050 策略績效。
+- 不自動進入 v0.2。
+- 不合併 main。
+- 不部署 Production。
+
+## Stage B — Predictive Validation（Frozen v0.1）
+
+Stage B 只讀 Stage A 的 `0050_pit_signal_timeline_v0.1.csv`，不重新分類、不回頭修改
+Quality、canonical state、state_detail 或 Valuation，也不讀取或呼叫 MOPS 網路端點。執行前須同時驗證：
+
+- fixed cohort SHA-256：`aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46`
+- Stage A signal SHA-256：`9c13f87abe8ca25efeb869482724eb49f89c1c234df240d72472641e6bd81241`
+- Frozen Quality / Valuation rules hash：`8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f`
+- Stage A hardening manifest identity：`fbc45f41048d9af30a2e9c04ae53d91715cee42087c89c08f818b23bbed1fcf9`
+
+任一 identity 不符即 fail closed。母體固定為 38 家 non-financial current constituents，12 家金融股完全排除；
+研究標籤固定為 `CURRENT_CONSTITUENTS_ONLY`，不能解讀成歷史 0050 策略或無 survivorship bias 的 alpha。
+
+### 報酬與 entry contract
+
+- Entry 僅可使用 Stage A `first_trade_date`，不得以 period end、signal date 或公告日收盤價取代。
+- 股票與 0050 都使用既有 Yahoo adapter 的 adjusted close。
+- 以 0050 的共同交易日序列固定 60 / 120 / 252 / 504 sessions，股票與 benchmark 必須同一 entry / exit date。
+- entry 或 horizon endpoint 缺價時保留 observation，報酬為 NA 並附 fail-closed reason；不得向前或向後偷移價格日。
+- favorable/adverse excursion 與 drawdown 全為 adjusted-close path，不稱為 intraday MFE / MAE。
+
+### 預先固定的 support 與 inference
+
+在檢視結果前固定 `observations >= 30` 且 `unique issuers >= 5`；未達者一律
+`INSUFFICIENT_SUPPORT`，不得合併類別。每一 bucket/cell 同時報 mean、median、positive rate、
+excess return、outperform rate、standard deviation、P25/P75，以及 issuer-clustered 與
+entry-quarter-clustered mean uncertainty。Median 另以固定 seed、399 次 cluster bootstrap 分別產生
+issuer/time clustered interval。IID confidence interval 不作為 evidence grading 依據。
+
+Concentration gate 同樣在結果前固定：issuer HHI 不得高於 0.15、最大 issuer observation share 不得高於
+10%；peer-group sector HHI 不得高於 0.15、最大 sector share 不得高於 25%。「資訊最多的 horizon」只作
+描述性回答，固定以 IMPROVING 相對 DETERIORATING 的 median-excess spread 加 outperform-rate spread 最大者
+表示，不用於重新選 horizon 或調整模型。
+
+### Predictive Evidence rubric（結果前固定）
+
+- `NONE`：沒有任何軸或 supported intersection 在至少兩個 horizon 同時改善 median excess return 與 outperform rate。
+- `WEAK`：至少一軸或 supported intersection 達上述兩個 horizon，但一致性、clustered uncertainty、regime 或 concentration robustness 不完整。
+- `MODERATE`：至少一個預先指定軸在四個 horizon 中至少三個同時有正的 median-excess lift 與 outperform-rate lift；至少一個 horizon 的 issuer/time clustered mean-excess 95% lower bound 為正；且 ex-TSMC、移除 top-5 與 pre-2023 / 2023+ 皆維持支持。
+- `STRONG`：至少兩軸（必含 Fundamental State）達 MODERATE；`IMPROVING > STABLE > DETERIORATING` 至少三個 horizon 成立；State 至少三個 horizon 有正 clustered lower bound；所有固定 robustness gate 皆通過。
+
+最終結論最多只能稱為 `EXPLORATORY_PREDICTIVE_ASSOCIATION`。Stage B PASS 代表執行、PIT、統計、
+artifacts 與結論契約正確，不代表模型一定有效。禁止 composite/weighted score、grid search、threshold
+optimization、buy/sell recommendation、target price 或 expected-return promise。
