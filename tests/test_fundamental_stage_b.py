@@ -229,6 +229,12 @@ def test_ex_tsmc_and_top_return_removal_are_explicit() -> None:
     result = summarize_outliers(events)
     scopes = set(result.loc[result["analysis_type"] == "RETURN_SENSITIVITY", "scope"])
     assert scopes == {"FULL_SAMPLE", "EX_TSMC", "TOP_1_RETURN_REMOVED", "TOP_5_RETURNS_REMOVED"}
+    all_rows = result[
+        (result["analysis_type"] == "RETURN_SENSITIVITY") & (result["bucket"] == "ALL")
+    ]
+    assert (all_rows["median_return_lift_vs_all"].abs() < 1e-12).all()
+    assert (all_rows["median_excess_return_lift_vs_all"].abs() < 1e-12).all()
+    assert (all_rows["outperform_rate_lift_vs_all"].abs() < 1e-12).all()
     assert {"ISSUER_CONCENTRATION", "SECTOR_CONCENTRATION"}.issubset(set(result["analysis_type"]))
 
 

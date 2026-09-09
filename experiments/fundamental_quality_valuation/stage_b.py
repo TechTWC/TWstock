@@ -572,6 +572,7 @@ def summarize_outliers(events: pd.DataFrame) -> pd.DataFrame:
             else None
         )
         for scope, selected in variants.items():
+            scope_rows: list[dict[str, Any]] = []
             for bucket in ("ALL", *CANONICAL_STATES):
                 group = selected if bucket == "ALL" else selected[selected["fundamental_state"] == bucket]
                 row = summary_row(group, dimension="FUNDAMENTAL_STATE", bucket=bucket, horizon=horizon)
@@ -582,7 +583,8 @@ def summarize_outliers(events: pd.DataFrame) -> pd.DataFrame:
                         "top_five_positive_return_contribution": contribution,
                     }
                 )
-                rows.append(row)
+                scope_rows.append(row)
+            rows.extend(_add_lift(pd.DataFrame(scope_rows), selected).to_dict(orient="records"))
 
     valid_252 = events[pd.to_numeric(events["return_252d"], errors="coerce").notna()].copy()
     for concentration_type, column in (("ISSUER_CONCENTRATION", "symbol"), ("SECTOR_CONCENTRATION", "peer_group")):
@@ -603,10 +605,7 @@ def summarize_outliers(events: pd.DataFrame) -> pd.DataFrame:
                 "support_status": "DIAGNOSTIC",
             }
         )
-    result = pd.DataFrame(rows)
-    sensitivity = result["analysis_type"] == "RETURN_SENSITIVITY"
-    sensitivity_rows = _add_lift(result.loc[sensitivity].copy(), events)
-    return pd.concat([sensitivity_rows, result.loc[~sensitivity]], ignore_index=True, sort=False)
+    return pd.DataFrame(rows)
 
 
 def overlap_diagnostics(events: pd.DataFrame) -> pd.DataFrame:
