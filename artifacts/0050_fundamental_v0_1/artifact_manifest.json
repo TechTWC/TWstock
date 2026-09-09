@@ -135,7 +135,7 @@
     },
     {
       "path": "0050_fundamental_quality_valuation_predictive_validation_v0.1.pdf",
-      "sha256": "a46332d8791528176256897ad79290370520d8a6feb46a55cb8a332c3a819315",
+      "sha256": "553151df4d08adc4035b7f2b43249f5692d45cd179f8f869f2e5593fae1f2bd4",
       "bytes": 80681
     },
     {
@@ -160,8 +160,8 @@
     },
     {
       "path": "0050_outlier_sensitivity_v0.1.csv",
-      "sha256": "1fa254464715fc3f4a072b589021a4aab52a6520e5f63a58e69d535eaa018177",
-      "bytes": 51893
+      "sha256": "600ad95287cafe9c7fb092ce079f53cd32ad1bd20f280d1b5a7d4e5481ffcea3",
+      "bytes": 51239
     },
     {
       "path": "0050_overlap_diagnostics_v0.1.csv",
@@ -361,8 +361,8 @@
     "stage": "Fundamental Model v0.1 — Stage B: Predictive Validation",
     "status": "PASS",
     "starting_head": "9a5f2ed69c960b1993b144caee1308c7f8a8046d",
-    "generation_head": "8a27fda9072b2cb5b676709ae894848c60a16957",
-    "generated_at": "2026-09-09T09:54:59.163881+00:00",
+    "generation_head": "5b6bdc9ce23895a30e09452211d5e2e2b9ddcbce",
+    "generated_at": "2026-09-09T10:14:23.136984+00:00",
     "mops_network_requests": 0,
     "frozen_universe_verified": true,
     "frozen_stage_a_signal_verified": true,
@@ -398,11 +398,11 @@
       "0050_predictive_combinations_v0.1.csv": "ca7108410d1c0a7d73878c5eaec43559ec756cad7db6db676e5ccf6f473cca24",
       "0050_too_late_return_diagnostic_v0.1.csv": "b60da07a9ecbcdd0707d34187d15464800291ec64ff9f10fa5bae994f33f35aa",
       "0050_regime_robustness_v0.1.csv": "2ca0365cf7fd26973b20ce82e884e8b7e17f7dcfec38e6e6b0b3debcf9db200c",
-      "0050_outlier_sensitivity_v0.1.csv": "1fa254464715fc3f4a072b589021a4aab52a6520e5f63a58e69d535eaa018177",
+      "0050_outlier_sensitivity_v0.1.csv": "600ad95287cafe9c7fb092ce079f53cd32ad1bd20f280d1b5a7d4e5481ffcea3",
       "0050_overlap_diagnostics_v0.1.csv": "774b18080d275656a9252c14183f32433508f4b27dc04f1a3b2557b219f607a9",
       "0050_predictive_price_sources_v0.1.csv": "ba833295eb1dc6e185052c4d5c065183a2e387ef92e747657f9676e115c3f7e2",
       "0050_predictive_evidence_v0.1.json": "638c65f0385fd706b6cf1059eb7b9d59b77b907ad1f942097fbac2b924c643cd",
-      "0050_fundamental_quality_valuation_predictive_validation_v0.1.pdf": "a46332d8791528176256897ad79290370520d8a6feb46a55cb8a332c3a819315"
+      "0050_fundamental_quality_valuation_predictive_validation_v0.1.pdf": "553151df4d08adc4035b7f2b43249f5692d45cd179f8f869f2e5593fae1f2bd4"
     }
   }
 }
