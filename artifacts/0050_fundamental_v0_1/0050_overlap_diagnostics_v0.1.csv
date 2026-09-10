@@ -1,0 +1,5 @@
+﻿horizon,eligible_observations,overlapping_observations_count,overlapping_observations_ratio,overlap_pair_count,same_issuer_overlap_pair_count,same_calendar_period_cross_issuer_overlap_pair_count,definition
+60d,1507,1507,1.0,49282,446,48836,Closed entry-to-exit intervals; pair overlaps when the later entry is on/before the earlier exit.
+120d,1462,1462,1.0,101978,2057,99921,Closed entry-to-exit intervals; pair overlaps when the later entry is on/before the earlier exit.
+252d,1395,1395,1.0,212160,5187,206973,Closed entry-to-exit intervals; pair overlaps when the later entry is on/before the earlier exit.
+504d,1224,1224,1.0,333214,8461,324753,Closed entry-to-exit intervals; pair overlaps when the later entry is on/before the earlier exit.

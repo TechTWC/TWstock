@@ -1,0 +1,666 @@
+{
+  "stage": "Fundamental Model v0.1 — Stage B: Predictive Validation",
+  "stage_b_status": "PASS",
+  "starting_head": "9a5f2ed69c960b1993b144caee1308c7f8a8046d",
+  "frozen_identity": {
+    "universe_sha256": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+    "signal_sha256": "394e584bb83adc6b4a001ef605aa4dd58540fb76b48ddf1013d8d39c5bd2eeb2",
+    "frozen_rules_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+    "stage_a_manifest_identity": "776f7b9d02c95db69e0c37cca96bf38333e8b582ac83a191af559f3bea0c7a55",
+    "session_calendar_sha256": "151a7905b6983c422b3c7780d3f0e4ef559cd80ec5d0c91486f4ed457a0d7a34"
+  },
+  "mops_network_requests": 0,
+  "survivorship_bias": "CURRENT_CONSTITUENTS_ONLY",
+  "evidence_label": "EXPLORATORY_PREDICTIVE_ASSOCIATION",
+  "mechanical_rubric_grade": "STRONG",
+  "independent_reviewer_evidence_assessment": "MODERATE",
+  "primary_research_evidence_assessment": "MODERATE",
+  "predictive_evidence_grade": "MODERATE",
+  "predictive_evidence_grade_deprecation": "Legacy field retained as an alias of primary_research_evidence_assessment; mechanical rubric output is reported separately.",
+  "pre_registration_status": "NOT_VERIFIABLE",
+  "pre_registration_explanation": "No immutable pre-result Git checkpoint independently proves the rubric was fixed before predictive outcomes were observed.",
+  "rubric": {
+    "pre_registration_status": "NOT_VERIFIABLE",
+    "pre_registration_explanation": "No immutable pre-result Git checkpoint independently proves the rubric was fixed before predictive outcomes were observed.",
+    "support_gate": {
+      "minimum_observations": 30,
+      "minimum_unique_issuers": 5
+    },
+    "axis_directional_rule": "At least three of four primary horizons must show both positive median-excess lift and positive outperform-rate lift for the pre-specified leading bucket versus all eligible observations.",
+    "axis_cluster_rule": "At least one primary horizon must have a positive issuer- or time-clustered 95% lower confidence bound for mean excess return.",
+    "economic_ordering_rule": "A main axis must exhibit its pre-specified strict ordering in at least three primary horizons to count toward MODERATE or STRONG: IMPROVING > STABLE > DETERIORATING; GOOD > ACCEPTABLE > WEAK; LOW > NORMAL > HIGH.",
+    "concentration_gate": {
+      "issuer_hhi_max": 0.15,
+      "largest_issuer_observation_share_max": 0.1,
+      "sector_hhi_max": 0.15,
+      "largest_sector_observation_share_max": 0.25
+    },
+    "grades": {
+      "NONE": "No axis or supported intersection meets the minimum repeated-horizon association rule.",
+      "WEAK": "At least one axis or supported intersection improves median excess return and outperformance in at least two horizons, but consistency, clustered uncertainty, regime robustness, or concentration robustness is incomplete.",
+      "MODERATE": "At least one pre-specified axis meets the three-of-four directional rule and the cluster rule, remains positive ex-TSMC and after top-five removal, and is not confined to only one fixed regime.",
+      "STRONG": "At least two pre-specified axes including Fundamental State meet MODERATE; the state ordering holds in at least three horizons; issuer and time clustered lower bounds are positive in at least three horizons; and both fixed regimes plus outlier/concentration diagnostics remain supportive."
+    },
+    "claim_boundary": "Association only; no causal, investable-alpha, or historical-0050 claim."
+  },
+  "eligible_observations_by_horizon": {
+    "60d": 1507,
+    "120d": 1462,
+    "252d": 1395,
+    "504d": 1224
+  },
+  "axis_checks": {
+    "fundamental_state_improving": {
+      "supported_horizons": 4,
+      "positive_median_excess_and_outperform_lift_horizons": 4,
+      "positive_clustered_lower_bound_horizons": 4,
+      "meets_axis_directional_rule": true,
+      "meets_axis_cluster_rule": true
+    },
+    "state_detail_turning_up": {
+      "supported_horizons": 4,
+      "positive_median_excess_and_outperform_lift_horizons": 4,
+      "positive_clustered_lower_bound_horizons": 4,
+      "meets_axis_directional_rule": true,
+      "meets_axis_cluster_rule": true
+    },
+    "quality_good": {
+      "supported_horizons": 4,
+      "positive_median_excess_and_outperform_lift_horizons": 4,
+      "positive_clustered_lower_bound_horizons": 4,
+      "meets_axis_directional_rule": true,
+      "meets_axis_cluster_rule": true
+    },
+    "valuation_low": {
+      "supported_horizons": 4,
+      "positive_median_excess_and_outperform_lift_horizons": 4,
+      "positive_clustered_lower_bound_horizons": 4,
+      "meets_axis_directional_rule": true,
+      "meets_axis_cluster_rule": true
+    }
+  },
+  "state_economic_ordering": {
+    "by_horizon": {
+      "60d": true,
+      "120d": true,
+      "252d": true,
+      "504d": true
+    },
+    "horizons_with_ordering": 4
+  },
+  "quality_economic_ordering": {
+    "by_horizon": {
+      "60d": true,
+      "120d": true,
+      "252d": true,
+      "504d": false
+    },
+    "horizons_with_ordering": 3
+  },
+  "valuation_economic_ordering": {
+    "by_horizon": {
+      "60d": true,
+      "120d": true,
+      "252d": true,
+      "504d": true
+    },
+    "horizons_with_ordering": 4
+  },
+  "state_detail_lifecycle_ordering": {
+    "by_horizon": {
+      "60d": false,
+      "120d": false,
+      "252d": false,
+      "504d": false
+    },
+    "horizons_with_ordering": 0
+  },
+  "state_detail_strongest_and_weakest_supported": {
+    "selection_basis": "highest/lowest supported median excess return at fixed 252d",
+    "horizon": "252d",
+    "strongest": {
+      "bucket": "TURNING_UP",
+      "observations": 270,
+      "unique_issuers": 37,
+      "median_return": 0.30934509269860755,
+      "median_excess_return": 0.09537334001040165,
+      "outperform_0050_rate": 0.6296296296296297
+    },
+    "weakest": {
+      "bucket": "DETERIORATING",
+      "observations": 161,
+      "unique_issuers": 36,
+      "median_return": 0.15172571128748902,
+      "median_excess_return": -0.1393516880405301,
+      "outperform_0050_rate": 0.3416149068322981
+    }
+  },
+  "strongest_supported_two_axis_combination": {
+    "dimension": "QUALITY_X_STATE",
+    "selection_basis": "ex-post highest 252d median excess-return lift among supported cells",
+    "bucket": "GOOD × STABLE",
+    "observations": 52,
+    "unique_issuers": 15,
+    "median_return": 0.699050562968878,
+    "median_excess_return": 0.4008384896211132,
+    "outperform_0050_rate": 0.7115384615384616,
+    "median_excess_return_lift_vs_all": 0.3875612009585218
+  },
+  "good_x_stable_disclosure": {
+    "horizon": "252d",
+    "supported_two_axis_cells_at_252d": 23,
+    "cell": "GOOD × STABLE",
+    "selection_status": "EX_POST_STRONGEST_SUPPORTED_CELL",
+    "multiple_comparison_adjustment": "NONE",
+    "winners_curse_risk": true,
+    "evidence_use": "EXPLORATORY_DESCRIPTIVE_ONLY",
+    "validated_investment_rule": false,
+    "pre_registered_winner": false,
+    "raises_evidence_grade": false
+  },
+  "strongest_supported_three_axis_combination": {
+    "dimension": "QUALITY_X_STATE_X_VALUATION",
+    "selection_basis": "ex-post highest 252d median excess-return lift among supported cells",
+    "bucket": "WEAK × IMPROVING × NORMAL",
+    "observations": 50,
+    "unique_issuers": 22,
+    "median_return": 0.1414319931175163,
+    "median_excess_return": -0.020291784406228086,
+    "outperform_0050_rate": 0.46,
+    "median_excess_return_lift_vs_all": -0.033569073068819455
+  },
+  "too_late_remaining_return_12m": {
+    "observations": 125,
+    "median_return": 0.40666428729934023,
+    "median_excess_return": 0.10630717957922453,
+    "outperform_0050_rate": 0.624,
+    "interpretation": "Timing label is not automatically a failure; remaining return is measured after the Frozen entry date."
+  },
+  "regime_improving_positive_horizons": {
+    "PRE_2023": 4,
+    "2023_ONWARD": 4
+  },
+  "robustness": {
+    "ex_tsmc_supportive": true,
+    "top_five_removed_supportive": true,
+    "issuer_concentration_gate_pass": true,
+    "sector_concentration_gate_pass": true,
+    "state_robustness_gate": true
+  },
+  "overlap_diagnostics": [
+    {
+      "horizon": "60d",
+      "eligible_observations": 1507,
+      "overlapping_observations_count": 1507,
+      "overlapping_observations_ratio": 1.0,
+      "overlap_pair_count": 49282,
+      "same_issuer_overlap_pair_count": 446,
+      "same_calendar_period_cross_issuer_overlap_pair_count": 48836,
+      "definition": "Closed entry-to-exit intervals; pair overlaps when the later entry is on/before the earlier exit."
+    },
+    {
+      "horizon": "120d",
+      "eligible_observations": 1462,
+      "overlapping_observations_count": 1462,
+      "overlapping_observations_ratio": 1.0,
+      "overlap_pair_count": 101978,
+      "same_issuer_overlap_pair_count": 2057,
+      "same_calendar_period_cross_issuer_overlap_pair_count": 99921,
+      "definition": "Closed entry-to-exit intervals; pair overlaps when the later entry is on/before the earlier exit."
+    },
+    {
+      "horizon": "252d",
+      "eligible_observations": 1395,
+      "overlapping_observations_count": 1395,
+      "overlapping_observations_ratio": 1.0,
+      "overlap_pair_count": 212160,
+      "same_issuer_overlap_pair_count": 5187,
+      "same_calendar_period_cross_issuer_overlap_pair_count": 206973,
+      "definition": "Closed entry-to-exit intervals; pair overlaps when the later entry is on/before the earlier exit."
+    },
+    {
+      "horizon": "504d",
+      "eligible_observations": 1224,
+      "overlapping_observations_count": 1224,
+      "overlapping_observations_ratio": 1.0,
+      "overlap_pair_count": 333214,
+      "same_issuer_overlap_pair_count": 8461,
+      "same_calendar_period_cross_issuer_overlap_pair_count": 324753,
+      "definition": "Closed entry-to-exit intervals; pair overlaps when the later entry is on/before the earlier exit."
+    }
+  ],
+  "clustered_inference_status": "LIMITED",
+  "overlap_handling_status": "LIMITED",
+  "inference_limitation": "Primary-horizon overlap is 100%; issuer-clustered, entry-quarter-clustered, and cluster-bootstrap estimates are not a complete two-way dependence model and do not fully control long-horizon common market shocks.",
+  "targeted_tests": {
+    "original_stage_a": 22,
+    "original_stage_b": 16,
+    "original_targeted_tests": 38,
+    "correction_regression_tests": 15,
+    "current_total_targeted_tests": 53
+  },
+  "research_questions": {
+    "Q1_state_predictive_information": {
+      "supported_horizons": 4,
+      "positive_median_excess_and_outperform_lift_horizons": 4,
+      "positive_clustered_lower_bound_horizons": 4,
+      "meets_axis_directional_rule": true,
+      "meets_axis_cluster_rule": true
+    },
+    "Q2_improving_vs_stable_deteriorating": {
+      "by_horizon": {
+        "60d": true,
+        "120d": true,
+        "252d": true,
+        "504d": true
+      },
+      "horizons_with_ordering": 4
+    },
+    "Q3_state_detail_vs_canonical": {
+      "canonical_state_ordering": {
+        "by_horizon": {
+          "60d": true,
+          "120d": true,
+          "252d": true,
+          "504d": true
+        },
+        "horizons_with_ordering": 4
+      },
+      "state_detail_lifecycle_ordering": {
+        "by_horizon": {
+          "60d": false,
+          "120d": false,
+          "252d": false,
+          "504d": false
+        },
+        "horizons_with_ordering": 0
+      },
+      "conclusion": "state_detail does not establish a complete ordered lifecycle when any required bucket is unsupported or the strict lifecycle order fails; it can still identify descriptively stronger and weaker supported buckets."
+    },
+    "Q4_turning_up_remaining_return": {
+      "supported_horizons": 4,
+      "positive_median_excess_and_outperform_lift_horizons": 4,
+      "positive_clustered_lower_bound_horizons": 4,
+      "meets_axis_directional_rule": true,
+      "meets_axis_cluster_rule": true
+    },
+    "Q5_quality_independent_information": {
+      "marginal_axis_result": {
+        "supported_horizons": 4,
+        "positive_median_excess_and_outperform_lift_horizons": 4,
+        "positive_clustered_lower_bound_horizons": 4,
+        "meets_axis_directional_rule": true,
+        "meets_axis_cluster_rule": true
+      },
+      "economic_ordering": {
+        "by_horizon": {
+          "60d": true,
+          "120d": true,
+          "252d": true,
+          "504d": false
+        },
+        "horizons_with_ordering": 3
+      },
+      "independence_boundary": "Marginal categorical association is measured; causal or multivariable independence is not established."
+    },
+    "Q6_valuation_independent_information": {
+      "marginal_axis_result": {
+        "supported_horizons": 4,
+        "positive_median_excess_and_outperform_lift_horizons": 4,
+        "positive_clustered_lower_bound_horizons": 4,
+        "meets_axis_directional_rule": true,
+        "meets_axis_cluster_rule": true
+      },
+      "economic_ordering": {
+        "by_horizon": {
+          "60d": true,
+          "120d": true,
+          "252d": true,
+          "504d": true
+        },
+        "horizons_with_ordering": 4
+      },
+      "independence_boundary": "Marginal categorical association is measured; causal or multivariable independence is not established."
+    },
+    "Q7_quality_x_state": {
+      "selection_basis": "ex-post highest 252d median excess-return lift among supported cells",
+      "bucket": "GOOD × STABLE",
+      "observations": 52,
+      "unique_issuers": 15,
+      "median_return": 0.699050562968878,
+      "median_excess_return": 0.4008384896211132,
+      "outperform_0050_rate": 0.7115384615384616,
+      "median_excess_return_lift_vs_all": 0.3875612009585218
+    },
+    "Q8_state_x_valuation": {
+      "selection_basis": "ex-post highest 252d median excess-return lift among supported cells",
+      "bucket": "STABLE × LOW",
+      "observations": 87,
+      "unique_issuers": 24,
+      "median_return": 0.34876498997840355,
+      "median_excess_return": 0.12396570713873878,
+      "outperform_0050_rate": 0.6206896551724138,
+      "median_excess_return_lift_vs_all": 0.11068841847614741
+    },
+    "Q9_three_axis_intersection": {
+      "selection_basis": "ex-post highest 252d median excess-return lift among supported cells",
+      "bucket": "WEAK × IMPROVING × NORMAL",
+      "observations": 50,
+      "unique_issuers": 22,
+      "median_return": 0.1414319931175163,
+      "median_excess_return": -0.020291784406228086,
+      "outperform_0050_rate": 0.46,
+      "median_excess_return_lift_vs_all": -0.033569073068819455
+    },
+    "Q10_best_horizon": {
+      "horizon": "504d",
+      "selection_basis": "largest sum of IMPROVING-minus-DETERIORATING median-excess and outperform-rate spreads",
+      "median_excess_spread": 0.35538787866513677,
+      "outperform_rate_spread": 0.18376068376068372,
+      "fixed_comparison_index": 0.5391485624258205
+    },
+    "Q11_too_late_remaining_return": {
+      "observations": 125,
+      "median_return": 0.40666428729934023,
+      "median_excess_return": 0.10630717957922453,
+      "outperform_0050_rate": 0.624,
+      "interpretation": "Timing label is not automatically a failure; remaining return is measured after the Frozen entry date."
+    },
+    "Q12_regime_and_concentration": {
+      "regime": {
+        "PRE_2023": 4,
+        "2023_ONWARD": 4
+      },
+      "ex_tsmc": true,
+      "top_five_removed": true,
+      "issuer_concentration_gate_pass": true,
+      "sector_concentration_gate_pass": true
+    },
+    "Q13_mechanical_rubric_grade": "STRONG",
+    "Q13_primary_research_evidence_assessment": "MODERATE"
+  },
+  "limitations": [
+    "CURRENT_CONSTITUENTS_ONLY; results are not survivorship-bias-free historical 0050 performance.",
+    "Repeated issuer observations and overlapping windows are not IID.",
+    "Issuer- and entry-quarter-clustered uncertainty does not eliminate all common-regime dependence.",
+    "Adjusted-close paths are close-to-close; excursions are not intraday MFE/MAE.",
+    "Categorical intersections are exploratory and are not scores or tuned trading rules.",
+    "Financial issuers are excluded from all predictive evidence.",
+    "Primary-horizon overlap is 100%; clustered inference and overlap handling remain LIMITED.",
+    "Factor and sector confounding remain; marginal associations are not independent effects.",
+    "Pre-registration cannot be independently verified from an immutable pre-result Git checkpoint.",
+    "Multiple comparisons are unadjusted; the ex-post strongest supported cell has winner's-curse risk."
+  ],
+  "final_review_correction_impact": {
+    "reviewed_head": "dc94919a7bffba7912e3a4768582e162720450c2",
+    "before": {
+      "invalid_first_trade_date": 5,
+      "eligible_observations_by_horizon": {
+        "60d": 1502,
+        "120d": 1457,
+        "252d": 1390,
+        "504d": 1219
+      },
+      "state_results": {
+        "60d": {
+          "IMPROVING": {
+            "observations": 344,
+            "unique_issuers": 37,
+            "median_excess_return": 0.0230986860556701,
+            "outperform_0050_rate": 0.563953488372093
+          },
+          "STABLE": {
+            "observations": 330,
+            "unique_issuers": 37,
+            "median_excess_return": 0.0146897682832544,
+            "outperform_0050_rate": 0.5333333333333333
+          },
+          "DETERIORATING": {
+            "observations": 177,
+            "unique_issuers": 36,
+            "median_excess_return": -0.0159584086095612,
+            "outperform_0050_rate": 0.4463276836158192
+          }
+        },
+        "120d": {
+          "IMPROVING": {
+            "observations": 333,
+            "unique_issuers": 37,
+            "median_excess_return": 0.0301262141248424,
+            "outperform_0050_rate": 0.5585585585585585
+          },
+          "STABLE": {
+            "observations": 312,
+            "unique_issuers": 36,
+            "median_excess_return": 0.0184958608850535,
+            "outperform_0050_rate": 0.5224358974358975
+          },
+          "DETERIORATING": {
+            "observations": 172,
+            "unique_issuers": 36,
+            "median_excess_return": -0.0668345202364747,
+            "outperform_0050_rate": 0.3953488372093023
+          }
+        },
+        "252d": {
+          "IMPROVING": {
+            "observations": 312,
+            "unique_issuers": 37,
+            "median_excess_return": 0.0697884036270869,
+            "outperform_0050_rate": 0.5993589743589743
+          },
+          "STABLE": {
+            "observations": 290,
+            "unique_issuers": 36,
+            "median_excess_return": 0.025869401501687,
+            "outperform_0050_rate": 0.5379310344827586
+          },
+          "DETERIORATING": {
+            "observations": 161,
+            "unique_issuers": 36,
+            "median_excess_return": -0.1393516880405301,
+            "outperform_0050_rate": 0.3416149068322981
+          }
+        },
+        "504d": {
+          "IMPROVING": {
+            "observations": 234,
+            "unique_issuers": 37,
+            "median_excess_return": 0.1985903531442342,
+            "outperform_0050_rate": 0.6324786324786325
+          },
+          "STABLE": {
+            "observations": 249,
+            "unique_issuers": 36,
+            "median_excess_return": 0.1611346568299978,
+            "outperform_0050_rate": 0.5823293172690763
+          },
+          "DETERIORATING": {
+            "observations": 156,
+            "unique_issuers": 36,
+            "median_excess_return": -0.1567975255209025,
+            "outperform_0050_rate": 0.4487179487179487
+          }
+        }
+      },
+      "state_ordering": {
+        "by_horizon": {
+          "60d": true,
+          "120d": true,
+          "252d": true,
+          "504d": true
+        },
+        "horizons_with_ordering": 4
+      },
+      "turning_up_252d": {
+        "observations": 270,
+        "unique_issuers": 37,
+        "median_excess_return": 0.0953733400104016,
+        "outperform_0050_rate": 0.6296296296296297
+      },
+      "too_late_252d": {
+        "observations": 125,
+        "unique_issuers": 31,
+        "median_excess_return": 0.1063071795792245,
+        "outperform_0050_rate": 0.624
+      },
+      "quality_ordering": {
+        "by_horizon": {
+          "60d": true,
+          "120d": true,
+          "252d": true,
+          "504d": false
+        },
+        "horizons_with_ordering": 3
+      },
+      "valuation_ordering": {
+        "by_horizon": {
+          "60d": true,
+          "120d": true,
+          "252d": true,
+          "504d": true
+        },
+        "horizons_with_ordering": 4
+      }
+    },
+    "after": {
+      "invalid_first_trade_date": 0,
+      "eligible_observations_by_horizon": {
+        "60d": 1507,
+        "120d": 1462,
+        "252d": 1395,
+        "504d": 1224
+      },
+      "state_results": {
+        "60d": {
+          "IMPROVING": {
+            "observations": 344,
+            "unique_issuers": 37,
+            "median_excess_return": 0.023098686055670115,
+            "outperform_0050_rate": 0.563953488372093
+          },
+          "STABLE": {
+            "observations": 330,
+            "unique_issuers": 37,
+            "median_excess_return": 0.014689768283254412,
+            "outperform_0050_rate": 0.5333333333333333
+          },
+          "DETERIORATING": {
+            "observations": 177,
+            "unique_issuers": 36,
+            "median_excess_return": -0.015958408609561214,
+            "outperform_0050_rate": 0.4463276836158192
+          }
+        },
+        "120d": {
+          "IMPROVING": {
+            "observations": 333,
+            "unique_issuers": 37,
+            "median_excess_return": 0.0301262141248424,
+            "outperform_0050_rate": 0.5585585585585585
+          },
+          "STABLE": {
+            "observations": 312,
+            "unique_issuers": 36,
+            "median_excess_return": 0.018495860885053506,
+            "outperform_0050_rate": 0.5224358974358975
+          },
+          "DETERIORATING": {
+            "observations": 172,
+            "unique_issuers": 36,
+            "median_excess_return": -0.06683452023647474,
+            "outperform_0050_rate": 0.3953488372093023
+          }
+        },
+        "252d": {
+          "IMPROVING": {
+            "observations": 312,
+            "unique_issuers": 37,
+            "median_excess_return": 0.06978840362708699,
+            "outperform_0050_rate": 0.5993589743589743
+          },
+          "STABLE": {
+            "observations": 290,
+            "unique_issuers": 36,
+            "median_excess_return": 0.02586940150168704,
+            "outperform_0050_rate": 0.5379310344827586
+          },
+          "DETERIORATING": {
+            "observations": 161,
+            "unique_issuers": 36,
+            "median_excess_return": -0.1393516880405301,
+            "outperform_0050_rate": 0.3416149068322981
+          }
+        },
+        "504d": {
+          "IMPROVING": {
+            "observations": 234,
+            "unique_issuers": 37,
+            "median_excess_return": 0.19859035314423423,
+            "outperform_0050_rate": 0.6324786324786325
+          },
+          "STABLE": {
+            "observations": 249,
+            "unique_issuers": 36,
+            "median_excess_return": 0.16113465682999784,
+            "outperform_0050_rate": 0.5823293172690763
+          },
+          "DETERIORATING": {
+            "observations": 156,
+            "unique_issuers": 36,
+            "median_excess_return": -0.15679752552090254,
+            "outperform_0050_rate": 0.44871794871794873
+          }
+        }
+      },
+      "state_ordering": {
+        "by_horizon": {
+          "60d": true,
+          "120d": true,
+          "252d": true,
+          "504d": true
+        },
+        "horizons_with_ordering": 4
+      },
+      "turning_up_252d": {
+        "observations": 270,
+        "unique_issuers": 37,
+        "median_excess_return": 0.09537334001040165,
+        "outperform_0050_rate": 0.6296296296296297
+      },
+      "too_late_252d": {
+        "observations": 125,
+        "unique_issuers": 31,
+        "median_excess_return": 0.10630717957922453,
+        "outperform_0050_rate": 0.624
+      },
+      "quality_ordering": {
+        "by_horizon": {
+          "60d": true,
+          "120d": true,
+          "252d": true,
+          "504d": false
+        },
+        "horizons_with_ordering": 3
+      },
+      "valuation_ordering": {
+        "by_horizon": {
+          "60d": true,
+          "120d": true,
+          "252d": true,
+          "504d": true
+        },
+        "horizons_with_ordering": 4
+      }
+    },
+    "affected_symbols_corrected_first_trade_date": {
+      "2345": "2018-04-02",
+      "2368": "2018-04-02",
+      "2454": "2018-04-02",
+      "3653": "2018-04-02",
+      "3661": "2018-04-02"
+    },
+    "mops_network_requests": 0,
+    "frozen_model_modified": false
+  }
+}
