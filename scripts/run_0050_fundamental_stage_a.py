@@ -34,6 +34,14 @@ from experiments.fundamental_quality_valuation.stage_a import (  # noqa: E402
     validate_stage_a_frames,
     verify_restored_cache,
 )
+from experiments.fundamental_quality_valuation.session_contract import (  # noqa: E402
+    EXPECTED_FROZEN_SESSION_SHA256,
+    first_trade_date_is_valid,
+    load_frozen_sessions,
+)
+from experiments.fundamental_quality_valuation.test_reporting import (  # noqa: E402
+    targeted_test_reporting,
+)
 from scripts.checkpoint_0050_mops_cache_v0_1 import (  # noqa: E402
     restore_checkpoint,
     verify_checkpoint,
@@ -47,6 +55,7 @@ EXPECTED_FIXED_COHORT_SHA256 = "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f07
 EXPECTED_FROZEN_RULES_HASH = "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f"
 EXPECTED_MOPS_CHECKPOINT_HASH = "c904a167202e2cf7d067f9eae392085e771c209235ded41742b46c428c895fa3"
 EXPECTED_SELECTED_FILING_HASH = "549cac3184edcc6472cd2133454914a211567d2500dcd3800d89d444e9accf3a"
+REVIEWED_HEAD = "dc94919a7bffba7912e3a4768582e162720450c2"
 EXPECTED_STAGE_A_BASELINE = {
     "financial_observations": 2067,
     "mops_exact": 2053,
@@ -65,6 +74,9 @@ DEFAULT_OUTPUT = ROOT / "artifacts/0050_fundamental_v0_1"
 DEFAULT_NORMALIZED = DEFAULT_OUTPUT / "0050_normalized_financials_pit_v0.1.csv"
 DEFAULT_UNIVERSE = ROOT / "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv"
 DEFAULT_CONFIG = ROOT / "config/fundamental_quality_valuation_v0_1.json"
+DEFAULT_SESSION_CALENDAR = (
+    ROOT / "data/research/0050_fundamental_v0_1/frozen_twse_sessions_v0.1.csv"
+)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -76,6 +88,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--normalized", type=Path, default=DEFAULT_NORMALIZED)
     parser.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument("--session-calendar", type=Path, default=DEFAULT_SESSION_CALENDAR)
     parser.add_argument("--refresh-market", action="store_true")
     parser.add_argument(
         "--hardening-only",
@@ -178,6 +191,19 @@ def _write_csv(frame: pd.DataFrame, path: Path) -> None:
     )
 
 
+def _invalid_first_trade_count(frame: pd.DataFrame, sessions: tuple[object, ...]) -> int:
+    invalid = 0
+    for row in frame.to_dict(orient="records"):
+        signal = pd.to_datetime(row.get("signal_date"), errors="coerce")
+        entry = pd.to_datetime(row.get("first_trade_date"), errors="coerce")
+        if pd.isna(signal) or pd.isna(entry):
+            invalid += 1
+            continue
+        if not first_trade_date_is_valid(signal.date(), entry.date(), sessions):
+            invalid += 1
+    return invalid
+
+
 def _update_manifest(
     output_dir: Path,
     stage_summary: dict[str, Any],
@@ -186,6 +212,17 @@ def _update_manifest(
 ) -> None:
     manifest_path = output_dir / "artifact_manifest.json"
     payload = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    if section == "stage_a" and "stage_a" in payload:
+        history = payload.setdefault("audit_history", {})
+        history.setdefault(
+            "before_final_review_correction",
+            {
+                "reviewed_head": REVIEWED_HEAD,
+                "stage_a": payload.get("stage_a"),
+                "stage_a_hardening": payload.get("stage_a_hardening"),
+                "stage_b": payload.get("stage_b"),
+            },
+        )
     payload[section] = stage_summary
     payload["artifacts"] = [
         {"path": path.name, "sha256": sha256_path(path), "bytes": path.stat().st_size}
@@ -465,7 +502,13 @@ def main() -> int:
     eligible_symbols = universe.loc[universe["sector_logic"] != "FINANCIAL", "symbol"].tolist()
     market_symbols = sorted(set(eligible_symbols + ["0050"]))
     market = _load_markets(market_symbols, config, args.market_cache, args.refresh_market, args.workers)
-    sessions = tuple(market["0050"]["date"])
+    sessions = load_frozen_sessions(args.session_calendar)
+    previous_signals = pd.read_csv(
+        args.output_dir / "0050_pit_signal_timeline_v0.1.csv",
+        dtype={"symbol": str},
+        encoding="utf-8-sig",
+    )
+    invalid_first_trade_before = _invalid_first_trade_count(previous_signals, sessions)
     financial, diagnostics = build_financial_timeline(
         normalized,
         filings,
@@ -474,7 +517,8 @@ def main() -> int:
         config["financial_availability_lag_days"],
     )
     signals = build_signal_timeline(financial, universe, market, sessions, config)
-    validate_stage_a_frames(financial, signals)
+    validate_stage_a_frames(financial, signals, sessions)
+    invalid_first_trade_after = _invalid_first_trade_count(signals, sessions)
     coverage = coverage_frame(financial)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -527,8 +571,15 @@ def main() -> int:
         "status": "PASS" if conflicts == 0 else "FAIL",
         "starting_head": STARTING_HEAD,
         "generation_head": current_head,
+        "reviewed_head": REVIEWED_HEAD,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "mops_network_requests": 0,
+        "session_contract": "FROZEN_0050_BENCHMARK_TRADING_SESSIONS",
+        "session_calendar_sha256": sha256_path(args.session_calendar),
+        "session_calendar_expected_sha256": EXPECTED_FROZEN_SESSION_SHA256,
+        "session_calendar_rows": len(sessions),
+        "invalid_first_trade_date_before": invalid_first_trade_before,
+        "invalid_first_trade_date_after": invalid_first_trade_after,
         "checkpoint_verification": "PASS",
         "checkpoint_archive_sha256": checkpoint["cache"]["portable_archive_sha256"],
         "restored_cache_files": restored_files,
@@ -557,6 +608,11 @@ def main() -> int:
         "selected_filing_hash": selected_filing_hash,
         "filing_selection_results_unchanged": True,
         "market_snapshot_hash": canonical_hash(market_hashes),
+        "targeted_tests": targeted_test_reporting(ROOT),
+        "artifact_change_reason": (
+            "Final Review Correction Pass: first_trade_date is derived from the frozen "
+            "Stage B benchmark session calendar; model classifications and thresholds are unchanged."
+        ),
         "artifact_hashes": {},
     }
     _assert_frozen_stage_a_baseline(

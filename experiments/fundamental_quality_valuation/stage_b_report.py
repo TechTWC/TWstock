@@ -175,7 +175,13 @@ def write_stage_b_pdf(
                 ("Frozen data contract", f"Stage A signal SHA-256: {evidence['frozen_identity']['signal_sha256']}. Entry is exactly Stage A first_trade_date. Horizons are 60, 120, 252 and 504 common TWSE trading sessions."),
                 ("Cohort boundary", "Only the 38 non-financial issuers in the fixed September 2026 cohort enter the analysis. Twelve financial issuers are excluded. The claim is current fixed cohort predictive association only."),
                 ("Eligible returns", ", ".join(f"{key}: {value}" for key, value in counts.items())),
-                ("Conclusion", f"Evidence grade: {evidence['predictive_evidence_grade']}. Label: {evidence['evidence_label']}. A correct Stage B can PASS even when evidence is weak or none."),
+                (
+                    "Conclusion",
+                    f"Primary research evidence assessment: {evidence['primary_research_evidence_assessment']}. "
+                    f"Mechanical rubric grade: {evidence['mechanical_rubric_grade']}. "
+                    f"Independent reviewer assessment: {evidence['independent_reviewer_evidence_assessment']}. "
+                    f"Label: {evidence['evidence_label']}.",
+                ),
             ],
             "Research question and frozen contract",
         )
@@ -234,6 +240,28 @@ def write_stage_b_pdf(
             ["Dimension", "Cell", "N", "Issuers", "Median", "Median excess", "Outperform", "Excess lift"],
             "No score; fixed support gate",
             percent_columns={"median_return", "median_excess_return", "outperform_0050_rate", "median_excess_return_lift_vs_all"},
+        )
+        disclosure = evidence["good_x_stable_disclosure"]
+        _text_page(
+            pdf,
+            "B5a. GOOD × STABLE Disclosure",
+            [
+                (
+                    "Selection status",
+                    f"GOOD × STABLE is the ex-post strongest supported two-axis cell at 252d "
+                    f"among {disclosure['supported_two_axis_cells_at_252d']} supported cells.",
+                ),
+                (
+                    "Multiplicity",
+                    "No multiple-comparison adjustment was applied. Winner's-curse risk exists.",
+                ),
+                (
+                    "Claim boundary",
+                    "Exploratory descriptive evidence only. It is not a validated investment rule, "
+                    "not a pre-registered winner, and does not increase the evidence grade.",
+                ),
+            ],
+            "Exploratory cell disclosure",
         )
         _axis_chart_page(pdf, "B6. TOO_LATE Investment Relevance", timing, list(("CORRECT", "TOO_EARLY", "TOO_LATE", "FALSE_RECOVERY")), "Existing timing labels")
 
@@ -298,9 +326,33 @@ def write_stage_b_pdf(
             "B10. Evidence Grade and Limitations",
             [
                 ("MOPS PIT coverage", coverage_text),
-                ("Evidence grade", f"{evidence['predictive_evidence_grade']} — {evidence['evidence_label']}. The deterministic rubric was registered in code and documentation before this run."),
-                ("Uncertainty", "Every summary retains issuer-clustered and entry-quarter-clustered mean uncertainty plus deterministic cluster-bootstrap median intervals. Ordinary IID confidence is not used as the evidentiary basis."),
-                ("Overlap", "The overlap artifact counts observations and pairs whose forward windows intersect. The 1,563 signal records are not treated as 1,563 independent trials."),
+                (
+                    "Evidence assessments",
+                    f"Mechanical rubric grade: {evidence['mechanical_rubric_grade']}. "
+                    f"Independent reviewer evidence assessment: {evidence['independent_reviewer_evidence_assessment']}. "
+                    f"Primary research evidence assessment: {evidence['primary_research_evidence_assessment']}.",
+                ),
+                (
+                    "Pre-registration",
+                    f"{evidence['pre_registration_status']}. {evidence['pre_registration_explanation']}",
+                ),
+                (
+                    "Uncertainty",
+                    f"Clustered inference: {evidence['clustered_inference_status']}. Issuer-clustered, "
+                    "entry-quarter-clustered, and cluster-bootstrap estimates are retained, but they "
+                    "are not a complete two-way dependence model.",
+                ),
+                (
+                    "Overlap",
+                    f"Overlap handling: {evidence['overlap_handling_status']}. Primary-horizon "
+                    "overlap is 100%, and long-horizon common market shocks are not fully controlled.",
+                ),
+                (
+                    "Targeted tests",
+                    f"Original: {evidence['targeted_tests']['original_targeted_tests']}; correction: "
+                    f"{evidence['targeted_tests']['correction_regression_tests']}; current total: "
+                    f"{evidence['targeted_tests']['current_total_targeted_tests']}.",
+                ),
                 ("Limitations", " ".join(evidence["limitations"])),
                 ("Prohibited claims", "No buy/sell recommendation, target price, expected-return promise, historical-0050 strategy performance, causal claim, composite score, or parameter optimization."),
             ],

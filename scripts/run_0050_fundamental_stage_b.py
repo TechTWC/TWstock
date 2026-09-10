@@ -21,6 +21,9 @@ if str(ROOT) not in sys.path:
 
 from experiments.fundamental_quality_valuation.data import fetch_yahoo_market  # noqa: E402
 from experiments.fundamental_quality_valuation.stage_a import sha256_path  # noqa: E402
+from experiments.fundamental_quality_valuation.session_contract import (  # noqa: E402
+    load_frozen_sessions,
+)
 from experiments.fundamental_quality_valuation.stage_b import (  # noqa: E402
     CANONICAL_STATES,
     EXPECTED_SIGNAL_SHA256,
@@ -42,6 +45,9 @@ from experiments.fundamental_quality_valuation.stage_b import (  # noqa: E402
     validate_frozen_inputs,
 )
 from experiments.fundamental_quality_valuation.stage_b_report import write_stage_b_pdf  # noqa: E402
+from experiments.fundamental_quality_valuation.test_reporting import (  # noqa: E402
+    targeted_test_reporting,
+)
 
 
 DEFAULT_OUTPUT = ROOT / "artifacts/0050_fundamental_v0_1"
@@ -51,6 +57,10 @@ DEFAULT_SIGNAL = DEFAULT_OUTPUT / "0050_pit_signal_timeline_v0.1.csv"
 DEFAULT_MANIFEST = DEFAULT_OUTPUT / "artifact_manifest.json"
 DEFAULT_LEGACY_EVENTS = DEFAULT_OUTPUT / "0050_backtest_events_v0.1.csv"
 DEFAULT_MARKET_CACHE = ROOT / "outputs/fundamental_stage_b_market"
+DEFAULT_SESSION_CALENDAR = (
+    ROOT / "data/research/0050_fundamental_v0_1/frozen_twse_sessions_v0.1.csv"
+)
+REVIEWED_HEAD = "dc94919a7bffba7912e3a4768582e162720450c2"
 
 STAGE_B_FILES = (
     "0050_predictive_events_v0.1.csv",
@@ -65,6 +75,7 @@ STAGE_B_FILES = (
     "0050_overlap_diagnostics_v0.1.csv",
     "0050_predictive_price_sources_v0.1.csv",
     "0050_predictive_evidence_v0.1.json",
+    "0050_final_review_correction_impact_v0.1.json",
     "0050_fundamental_quality_valuation_predictive_validation_v0.1.pdf",
 )
 
@@ -80,6 +91,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--legacy-events", type=Path, default=DEFAULT_LEGACY_EVENTS)
     parser.add_argument("--market-cache", type=Path, default=DEFAULT_MARKET_CACHE)
+    parser.add_argument("--session-calendar", type=Path, default=DEFAULT_SESSION_CALENDAR)
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--skip-pdf", action="store_true")
@@ -158,6 +170,76 @@ def _validate_csvs(paths: list[Path]) -> None:
             raise RuntimeError(f"CSV contains an infinite numeric value: {path.name}")
 
 
+def _metric_row(frame: pd.DataFrame, bucket: str, horizon: str) -> dict[str, Any] | None:
+    selected = frame[(frame["bucket"] == bucket) & (frame["horizon"] == horizon)]
+    if selected.empty:
+        return None
+    row = selected.iloc[0]
+    return {
+        "observations": int(row["observations"]),
+        "unique_issuers": int(row["unique_issuers"]),
+        "median_excess_return": float(row["median_excess_return"]),
+        "outperform_0050_rate": float(row["outperform_0050_rate"]),
+    }
+
+
+def _result_snapshot(
+    events: pd.DataFrame,
+    state: pd.DataFrame,
+    state_detail: pd.DataFrame,
+    quality: pd.DataFrame,
+    valuation: pd.DataFrame,
+    timing: pd.DataFrame,
+    evidence: dict[str, Any],
+) -> dict[str, Any]:
+    invalid_reasons = {
+        "ENTRY_NOT_BENCHMARK_SESSION",
+        "ENTRY_NOT_FROZEN_SESSION",
+        "ENTRY_NOT_STRICTLY_AFTER_SIGNAL",
+        "ENTRY_NOT_FIRST_FROZEN_SESSION_AFTER_SIGNAL",
+    }
+    return {
+        "invalid_first_trade_date": int(events["exclusion_reason"].isin(invalid_reasons).sum()),
+        "eligible_observations_by_horizon": {
+            f"{horizon}d": int(
+                pd.to_numeric(events[f"return_{horizon}d"], errors="coerce").notna().sum()
+            )
+            for horizon in PRIMARY_HORIZONS
+        },
+        "state_results": {
+            f"{horizon}d": {
+                bucket: _metric_row(state, bucket, f"{horizon}d")
+                for bucket in CANONICAL_STATES
+            }
+            for horizon in PRIMARY_HORIZONS
+        },
+        "state_ordering": evidence["state_economic_ordering"],
+        "turning_up_252d": _metric_row(state_detail, "TURNING_UP", "252d"),
+        "too_late_252d": _metric_row(timing, "TOO_LATE", "252d"),
+        "quality_ordering": evidence["quality_economic_ordering"],
+        "valuation_ordering": evidence["valuation_economic_ordering"],
+    }
+
+
+def _load_before_snapshot(output_dir: Path) -> dict[str, Any]:
+    impact_path = output_dir / "0050_final_review_correction_impact_v0.1.json"
+    if impact_path.exists():
+        previous = json.loads(impact_path.read_text(encoding="utf-8"))
+        if previous.get("reviewed_head") == REVIEWED_HEAD:
+            return previous["before"]
+    events = pd.read_csv(output_dir / "0050_predictive_events_v0.1.csv", low_memory=False)
+    state = pd.read_csv(output_dir / "0050_state_predictive_summary_v0.1.csv")
+    state_detail = pd.read_csv(output_dir / "0050_state_detail_predictive_summary_v0.1.csv")
+    quality = pd.read_csv(output_dir / "0050_quality_predictive_summary_v0.1.csv")
+    valuation = pd.read_csv(output_dir / "0050_valuation_predictive_summary_v0.1.csv")
+    valuation = valuation[valuation["sector_scope"] == "ALL_NON_FINANCIAL"]
+    timing = pd.read_csv(output_dir / "0050_too_late_return_diagnostic_v0.1.csv")
+    evidence = json.loads(
+        (output_dir / "0050_predictive_evidence_v0.1.json").read_text(encoding="utf-8")
+    )
+    return _result_snapshot(events, state, state_detail, quality, valuation, timing, evidence)
+
+
 def _update_manifest(
     manifest: dict[str, Any],
     output_dir: Path,
@@ -182,12 +264,22 @@ def _update_manifest(
         "stage_a_manifest_identity_verified": True,
         "frozen_identity": evidence["frozen_identity"],
         "eligible_observations_by_horizon": evidence["eligible_observations_by_horizon"],
-        "predictive_evidence_grade": evidence["predictive_evidence_grade"],
+        "mechanical_rubric_grade": evidence["mechanical_rubric_grade"],
+        "independent_reviewer_evidence_assessment": evidence[
+            "independent_reviewer_evidence_assessment"
+        ],
+        "primary_research_evidence_assessment": evidence[
+            "primary_research_evidence_assessment"
+        ],
+        "pre_registration_status": evidence["pre_registration_status"],
         "evidence_label": evidence["evidence_label"],
         "support_gate": evidence["rubric"]["support_gate"],
         "survivorship_bias": "CURRENT_CONSTITUENTS_ONLY",
         "financial_issuers_excluded": 12,
         "frozen_rules_modified": False,
+        "clustered_inference_status": evidence["clustered_inference_status"],
+        "overlap_handling_status": evidence["overlap_handling_status"],
+        "targeted_tests": evidence["targeted_tests"],
         "artifact_hashes": stage_b_hashes,
     }
     manifest["artifacts"] = [
@@ -217,9 +309,11 @@ def main() -> int:
     if not 1 <= args.workers <= 8:
         raise SystemExit("--workers must be between 1 and 8")
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    before_snapshot = _load_before_snapshot(args.output_dir)
     universe, signals, config, manifest, identity = validate_frozen_inputs(
-        args.universe, args.signals, args.config, args.manifest
+        args.universe, args.signals, args.config, args.manifest, args.session_calendar
     )
+    frozen_sessions = load_frozen_sessions(args.session_calendar)
     if identity.signal_sha256 != EXPECTED_SIGNAL_SHA256:
         raise RuntimeError("Frozen signal identity changed after validation")
     print("[frozen] universe, Stage A signal, rules, and manifest identity PASS", flush=True)
@@ -246,6 +340,7 @@ def main() -> int:
         all_market,
         benchmark,
         as_of=date.fromisoformat(config["as_of_date"]),
+        frozen_sessions=frozen_sessions,
         legacy_events=legacy_events,
     )
     print(f"[events] {len(events)} Frozen Stage A observations; financial issuers excluded", flush=True)
@@ -278,7 +373,25 @@ def main() -> int:
         outliers,
         overlap,
         identity,
+        targeted_test_reporting(ROOT),
     )
+    after_snapshot = _result_snapshot(
+        events, state, state_detail, quality, valuation_all, timing, evidence
+    )
+    corrected_dates = {
+        str(row.symbol): str(row.first_trade_date)
+        for row in signals[signals["symbol"].astype(str).isin(["2345", "2368", "2454", "3653", "3661"])].itertuples()
+        if str(row.period_end)[:10] == "2017-12-31"
+    }
+    impact = {
+        "reviewed_head": REVIEWED_HEAD,
+        "before": before_snapshot,
+        "after": after_snapshot,
+        "affected_symbols_corrected_first_trade_date": corrected_dates,
+        "mops_network_requests": 0,
+        "frozen_model_modified": False,
+    }
+    evidence["final_review_correction_impact"] = impact
     assert_finite_artifact(evidence)
 
     outputs = {
@@ -299,6 +412,10 @@ def main() -> int:
     evidence_path = args.output_dir / "0050_predictive_evidence_v0.1.json"
     evidence_path.write_text(
         json.dumps(evidence, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    (args.output_dir / "0050_final_review_correction_impact_v0.1.json").write_text(
+        json.dumps(impact, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
         encoding="utf-8",
     )
     if not args.skip_pdf:
@@ -330,7 +447,8 @@ def main() -> int:
         + json.dumps(
             {
                 "eligible": evidence["eligible_observations_by_horizon"],
-                "grade": evidence["predictive_evidence_grade"],
+                "mechanical_grade": evidence["mechanical_rubric_grade"],
+                "primary_assessment": evidence["primary_research_evidence_assessment"],
                 "label": evidence["evidence_label"],
                 "mops_network_requests": 0,
             },

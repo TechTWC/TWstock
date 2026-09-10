@@ -19,6 +19,7 @@ from .mops import (
     select_mops_filings,
 )
 from .pit import derive_financial_available_date, parse_date
+from .session_contract import first_frozen_session_after, first_trade_date_is_valid
 
 
 MOPS_EXACT = "MOPS_EXACT"
@@ -98,10 +99,7 @@ def load_offline_mops_archive(
 
 
 def first_session_after(signal_date: date, sessions: Iterable[date]) -> date:
-    result = next((session for session in sessions if session > signal_date), None)
-    if result is None:
-        raise ValueError(f"No TWSE session after {signal_date.isoformat()}")
-    return result
+    return first_frozen_session_after(signal_date, sessions)
 
 
 def market_information_date(
@@ -371,7 +369,11 @@ def coverage_frame(timeline: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values(["scope", "sector_logic", "availability_method"])
 
 
-def validate_stage_a_frames(financial: pd.DataFrame, signals: pd.DataFrame) -> None:
+def validate_stage_a_frames(
+    financial: pd.DataFrame,
+    signals: pd.DataFrame,
+    sessions: Iterable[date],
+) -> None:
     numeric = pd.concat(
         [financial.select_dtypes(include=[np.number]), signals.select_dtypes(include=[np.number])],
         axis=0,
@@ -383,11 +385,17 @@ def validate_stage_a_frames(financial: pd.DataFrame, signals: pd.DataFrame) -> N
     if exact["announcement_timestamp"].isna().any():
         raise ValueError("MOPS_EXACT row is missing announcement_timestamp")
     valid = financial[financial["availability_method"].isin({MOPS_EXACT, AVAILABLE_DATE_PROXY})]
-    if not (
-        pd.to_datetime(valid["first_trade_date"]).dt.date
-        > pd.to_datetime(valid["signal_date"]).dt.date
-    ).all():
-        raise ValueError("first_trade_date does not obey the strict next-session rule")
+    session_contract = tuple(sessions)
+    invalid = valid.apply(
+        lambda row: not first_trade_date_is_valid(
+            parse_date(row["signal_date"]),
+            parse_date(row["first_trade_date"]),
+            session_contract,
+        ),
+        axis=1,
+    )
+    if invalid.any():
+        raise ValueError("first_trade_date does not obey the frozen session contract")
     if not signals.empty and not (signals["predictive_eligible"] == True).all():  # noqa: E712
         raise ValueError("Signal timeline contains an ineligible issuer")
 

@@ -548,9 +548,10 @@ Stage B 只讀 Stage A 的 `0050_pit_signal_timeline_v0.1.csv`，不重新分類
 Quality、canonical state、state_detail 或 Valuation，也不讀取或呼叫 MOPS 網路端點。執行前須同時驗證：
 
 - fixed cohort SHA-256：`aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46`
-- Stage A signal SHA-256：`9c13f87abe8ca25efeb869482724eb49f89c1c234df240d72472641e6bd81241`
+- Stage A signal SHA-256：`394e584bb83adc6b4a001ef605aa4dd58540fb76b48ddf1013d8d39c5bd2eeb2`
 - Frozen Quality / Valuation rules hash：`8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f`
-- Stage A hardening manifest identity：`fbc45f41048d9af30a2e9c04ae53d91715cee42087c89c08f818b23bbed1fcf9`
+- Final-correction Stage A manifest identity：`776f7b9d02c95db69e0c37cca96bf38333e8b582ac83a191af559f3bea0c7a55`
+- Frozen benchmark session calendar SHA-256：`151a7905b6983c422b3c7780d3f0e4ef559cd80ec5d0c91486f4ed457a0d7a34`
 
 任一 identity 不符即 fail closed。母體固定為 38 家 non-financial current constituents，12 家金融股完全排除；
 研究標籤固定為 `CURRENT_CONSTITUENTS_ONLY`，不能解讀成歷史 0050 策略或無 survivorship bias 的 alpha。
@@ -558,14 +559,15 @@ Quality、canonical state、state_detail 或 Valuation，也不讀取或呼叫 M
 ### 報酬與 entry contract
 
 - Entry 僅可使用 Stage A `first_trade_date`，不得以 period end、signal date 或公告日收盤價取代。
+- `first_trade_date` 必須嚴格晚於 signal date、存在於 frozen benchmark session calendar，且為該 calendar 中 signal 後第一個 session；否則 fail closed。
 - 股票與 0050 都使用既有 Yahoo adapter 的 adjusted close。
 - 以 0050 的共同交易日序列固定 60 / 120 / 252 / 504 sessions，股票與 benchmark 必須同一 entry / exit date。
 - entry 或 horizon endpoint 缺價時保留 observation，報酬為 NA 並附 fail-closed reason；不得向前或向後偷移價格日。
 - favorable/adverse excursion 與 drawdown 全為 adjusted-close path，不稱為 intraday MFE / MAE。
 
-### 預先固定的 support 與 inference
+### Mechanical rubric 的 support 與 inference
 
-在檢視結果前固定 `observations >= 30` 且 `unique issuers >= 5`；未達者一律
+程式中的 mechanical rubric 使用 `observations >= 30` 且 `unique issuers >= 5`；未達者一律
 `INSUFFICIENT_SUPPORT`，不得合併類別。每一 bucket/cell 同時報 mean、median、positive rate、
 excess return、outperform rate、standard deviation、P25/P75，以及 issuer-clustered 與
 entry-quarter-clustered mean uncertainty。Median 另以固定 seed、399 次 cluster bootstrap 分別產生
@@ -576,7 +578,7 @@ Concentration gate 同樣在結果前固定：issuer HHI 不得高於 0.15、最
 描述性回答，固定以 IMPROVING 相對 DETERIORATING 的 median-excess spread 加 outperform-rate spread 最大者
 表示，不用於重新選 horizon 或調整模型。
 
-### Predictive Evidence rubric（結果前固定）
+### Predictive Evidence mechanical rubric
 
 - `NONE`：沒有任何軸或 supported intersection 在至少兩個 horizon 同時改善 median excess return 與 outperform rate。
 - `WEAK`：至少一軸或 supported intersection 達上述兩個 horizon，但一致性、clustered uncertainty、regime 或 concentration robustness 不完整。
@@ -586,3 +588,13 @@ Concentration gate 同樣在結果前固定：issuer HHI 不得高於 0.15、最
 最終結論最多只能稱為 `EXPLORATORY_PREDICTIVE_ASSOCIATION`。Stage B PASS 代表執行、PIT、統計、
 artifacts 與結論契約正確，不代表模型一定有效。禁止 composite/weighted score、grid search、threshold
 optimization、buy/sell recommendation、target price 或 expected-return promise。
+
+### Final Review Correction Pass evidence boundary
+
+- `mechanical_rubric_grade = STRONG`。
+- `independent_reviewer_evidence_assessment = MODERATE`。
+- `primary_research_evidence_assessment = MODERATE`；Primary conclusion 不可單獨稱為 STRONG。
+- `pre_registration_status = NOT_VERIFIABLE`：No immutable pre-result Git checkpoint independently proves the rubric was fixed before predictive outcomes were observed.
+- 60d／120d／252d／504d 的 forward windows overlap ratio 均為 100%。Issuer-clustered、entry-quarter-clustered 與 cluster bootstrap 仍保留，但 `Clustered inference = LIMITED`、`Overlap handling = LIMITED`；目前不是完整 two-way dependence model，也未完整控制長 horizon 的共同市場衝擊。
+- 252d 共有 23 個 supported two-axis cells。`GOOD × STABLE` 是其中 ex-post strongest supported cell，未作 multiple-comparison adjustment，存在 winner's-curse risk，只能視為 exploratory descriptive evidence；不是 validated investment rule 或 pre-registered winner，也不得用來提高 evidence grade。
+- Claim 僅限 2026-09 fixed current 0050 non-financial cohort 的探索性預測關聯；不得主張 causal effect、survivorship-bias-free alpha、historical 0050 strategy performance、production-ready strategy 或 investment recommendation。

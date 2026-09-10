@@ -12,13 +12,14 @@ import numpy as np
 import pandas as pd
 
 from .stage_a import canonical_hash, sha256_path
+from .session_contract import first_frozen_session_after, normalize_sessions
 
 
 STAGE_B_STARTING_HEAD = "9a5f2ed69c960b1993b144caee1308c7f8a8046d"
 EXPECTED_UNIVERSE_SHA256 = "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46"
-EXPECTED_SIGNAL_SHA256 = "9c13f87abe8ca25efeb869482724eb49f89c1c234df240d72472641e6bd81241"
+EXPECTED_SIGNAL_SHA256 = "394e584bb83adc6b4a001ef605aa4dd58540fb76b48ddf1013d8d39c5bd2eeb2"
 EXPECTED_FROZEN_RULES_HASH = "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f"
-EXPECTED_STAGE_A_MANIFEST_IDENTITY = "fbc45f41048d9af30a2e9c04ae53d91715cee42087c89c08f818b23bbed1fcf9"
+EXPECTED_STAGE_A_MANIFEST_IDENTITY = "776f7b9d02c95db69e0c37cca96bf38333e8b582ac83a191af559f3bea0c7a55"
 EXPECTED_SIGNAL_ROWS = 1563
 EXPECTED_NON_FINANCIAL_ISSUERS = 38
 EXPECTED_FINANCIAL_ISSUERS = 12
@@ -42,7 +43,11 @@ VALUATION_BUCKETS = ("LOW", "NORMAL", "HIGH", "NOT_MEANINGFUL")
 TIMING_LABELS = ("CORRECT", "TOO_EARLY", "TOO_LATE", "FALSE_RECOVERY")
 
 EVIDENCE_RUBRIC = {
-    "registered_before_results": True,
+    "pre_registration_status": "NOT_VERIFIABLE",
+    "pre_registration_explanation": (
+        "No immutable pre-result Git checkpoint independently proves the rubric was fixed "
+        "before predictive outcomes were observed."
+    ),
     "support_gate": {
         "minimum_observations": MIN_SUPPORT_OBSERVATIONS,
         "minimum_unique_issuers": MIN_SUPPORT_ISSUERS,
@@ -96,6 +101,7 @@ class FrozenIdentity:
     signal_sha256: str
     frozen_rules_hash: str
     stage_a_manifest_identity: str
+    session_calendar_sha256: str
 
 
 def _finite(value: object) -> float | None:
@@ -120,6 +126,7 @@ def validate_frozen_inputs(
     signal_path: Path,
     config_path: Path,
     manifest_path: Path,
+    session_path: Path,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any], dict[str, Any], FrozenIdentity]:
     universe_hash = sha256_path(universe_path)
     signal_hash = sha256_path(signal_path)
@@ -138,9 +145,9 @@ def validate_frozen_inputs(
             f"Frozen Model rules hash mismatch: expected {EXPECTED_FROZEN_RULES_HASH}, got {rules_hash}"
         )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    stage_a = manifest.get("stage_a_hardening")
+    stage_a = manifest.get("stage_a")
     if not isinstance(stage_a, dict):
-        raise RuntimeError("Stage A manifest identity missing: stage_a_hardening")
+        raise RuntimeError("Stage A manifest identity missing: stage_a")
     stage_a_identity = canonical_hash(stage_a)
     if stage_a_identity != EXPECTED_STAGE_A_MANIFEST_IDENTITY:
         raise RuntimeError(
@@ -156,6 +163,9 @@ def validate_frozen_inputs(
         raise RuntimeError("Stage A manifest universe identity mismatch")
     if stage_a.get("frozen_rules_hash") != rules_hash:
         raise RuntimeError("Stage A manifest Frozen Model rules identity mismatch")
+    session_hash = sha256_path(session_path)
+    if stage_a.get("session_calendar_sha256") != session_hash:
+        raise RuntimeError("Stage A manifest frozen session calendar identity mismatch")
 
     universe = pd.read_csv(universe_path, dtype=str, encoding="utf-8-sig").fillna("")
     signals = pd.read_csv(signal_path, dtype={"symbol": str}, encoding="utf-8-sig")
@@ -190,7 +200,13 @@ def validate_frozen_inputs(
     missing = required.difference(signals.columns)
     if missing:
         raise RuntimeError(f"Frozen Stage A signals missing columns: {sorted(missing)}")
-    identity = FrozenIdentity(universe_hash, signal_hash, rules_hash, stage_a_identity)
+    identity = FrozenIdentity(
+        universe_hash,
+        signal_hash,
+        rules_hash,
+        stage_a_identity,
+        session_hash,
+    )
     return universe, signals, config, manifest, identity
 
 
@@ -245,6 +261,7 @@ def build_predictive_events(
     benchmark: pd.DataFrame,
     *,
     as_of: date,
+    frozen_sessions: Iterable[date],
     horizons: Iterable[int] = PRIMARY_HORIZONS,
     legacy_events: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
@@ -257,6 +274,9 @@ def build_predictive_events(
         raise RuntimeError("Stage B received a financial or out-of-cohort signal")
 
     benchmark_frame = _prepare_market(benchmark, as_of)
+    session_contract = normalize_sessions(frozen_sessions)
+    if tuple(benchmark_frame["date"]) != session_contract:
+        raise RuntimeError("Stage B benchmark calendar differs from frozen session contract")
     benchmark_index = {value: index for index, value in enumerate(benchmark_frame["date"])}
     benchmark_prices = dict(zip(benchmark_frame["date"], benchmark_frame["adj_close"]))
     universe_columns = ["symbol", "company", "sector_logic", "peer_group", "financial_subtype"]
@@ -304,6 +324,19 @@ def build_predictive_events(
             records.append(record)
             continue
         entry = entry_date.date()
+        signal_timestamp = pd.to_datetime(row.get("signal_date"), errors="coerce")
+        if pd.isna(signal_timestamp) or entry <= signal_timestamp.date():
+            record["exclusion_reason"] = "ENTRY_NOT_STRICTLY_AFTER_SIGNAL"
+            records.append(record)
+            continue
+        if entry not in set(session_contract):
+            record["exclusion_reason"] = "ENTRY_NOT_FROZEN_SESSION"
+            records.append(record)
+            continue
+        if entry != first_frozen_session_after(signal_timestamp.date(), session_contract):
+            record["exclusion_reason"] = "ENTRY_NOT_FIRST_FROZEN_SESSION_AFTER_SIGNAL"
+            records.append(record)
+            continue
         market = prepared_markets.get(symbol)
         if market is None or market.empty:
             record["exclusion_reason"] = "MISSING_ADJUSTED_CLOSE_SERIES"
@@ -752,7 +785,7 @@ def _strongest_supported(combinations: pd.DataFrame, dimension_kind: str) -> dic
         return None
     row = selected.iloc[0]
     return {
-        "selection_basis": "pre-specified 252d median excess-return lift among supported cells",
+        "selection_basis": "ex-post highest 252d median excess-return lift among supported cells",
         "bucket": str(row["bucket"]),
         "observations": int(row["observations"]),
         "unique_issuers": int(row["unique_issuers"]),
@@ -775,6 +808,7 @@ def build_evidence(
     outliers: pd.DataFrame,
     overlap: pd.DataFrame,
     identity: FrozenIdentity,
+    test_reporting: dict[str, int],
 ) -> dict[str, Any]:
     axis_checks = {
         "fundamental_state_improving": _bucket_horizon_signal(state, "IMPROVING"),
@@ -800,6 +834,15 @@ def build_evidence(
         ):
             strongest_two = {"dimension": dimension, **candidate}
     strongest_three = _strongest_supported(combinations, "QUALITY_X_STATE_X_VALUATION")
+    supported_two_axis_cells_252d = int(
+        (
+            combinations["dimension"].isin(
+                ["QUALITY_X_STATE", "STATE_X_VALUATION", "QUALITY_X_VALUATION"]
+            )
+            & (combinations["horizon"] == "252d")
+            & (combinations["support_status"] == "SUPPORTED")
+        ).sum()
+    )
 
     weak_axis = any(
         item["positive_median_excess_and_outperform_lift_horizons"] >= 2
@@ -913,6 +956,7 @@ def build_evidence(
         "interpretation": "Timing label is not automatically a failure; remaining return is measured after the Frozen entry date.",
     }
 
+    primary_assessment = "MODERATE"
     return {
         "stage": "Fundamental Model v0.1 — Stage B: Predictive Validation",
         "stage_b_status": "PASS",
@@ -921,7 +965,18 @@ def build_evidence(
         "mops_network_requests": 0,
         "survivorship_bias": "CURRENT_CONSTITUENTS_ONLY",
         "evidence_label": label,
-        "predictive_evidence_grade": grade,
+        "mechanical_rubric_grade": grade,
+        "independent_reviewer_evidence_assessment": "MODERATE",
+        "primary_research_evidence_assessment": primary_assessment,
+        "predictive_evidence_grade": primary_assessment,
+        "predictive_evidence_grade_deprecation": (
+            "Legacy field retained as an alias of primary_research_evidence_assessment; "
+            "mechanical rubric output is reported separately."
+        ),
+        "pre_registration_status": "NOT_VERIFIABLE",
+        "pre_registration_explanation": EVIDENCE_RUBRIC[
+            "pre_registration_explanation"
+        ],
         "rubric": EVIDENCE_RUBRIC,
         "eligible_observations_by_horizon": horizon_counts(),
         "axis_checks": axis_checks,
@@ -931,6 +986,18 @@ def build_evidence(
         "state_detail_lifecycle_ordering": lifecycle_ordering,
         "state_detail_strongest_and_weakest_supported": _supported_extremes(state_detail),
         "strongest_supported_two_axis_combination": strongest_two,
+        "good_x_stable_disclosure": {
+            "horizon": "252d",
+            "supported_two_axis_cells_at_252d": supported_two_axis_cells_252d,
+            "cell": "GOOD × STABLE",
+            "selection_status": "EX_POST_STRONGEST_SUPPORTED_CELL",
+            "multiple_comparison_adjustment": "NONE",
+            "winners_curse_risk": True,
+            "evidence_use": "EXPLORATORY_DESCRIPTIVE_ONLY",
+            "validated_investment_rule": False,
+            "pre_registered_winner": False,
+            "raises_evidence_grade": False,
+        },
         "strongest_supported_three_axis_combination": (
             {"dimension": "QUALITY_X_STATE_X_VALUATION", **strongest_three}
             if strongest_three
@@ -946,6 +1013,14 @@ def build_evidence(
             "state_robustness_gate": robust_state,
         },
         "overlap_diagnostics": overlap.to_dict(orient="records"),
+        "clustered_inference_status": "LIMITED",
+        "overlap_handling_status": "LIMITED",
+        "inference_limitation": (
+            "Primary-horizon overlap is 100%; issuer-clustered, entry-quarter-clustered, "
+            "and cluster-bootstrap estimates are not a complete two-way dependence model "
+            "and do not fully control long-horizon common market shocks."
+        ),
+        "targeted_tests": test_reporting,
         "research_questions": {
             "Q1_state_predictive_information": axis_checks["fundamental_state_improving"],
             "Q2_improving_vs_stable_deteriorating": ordering,
@@ -981,7 +1056,8 @@ def build_evidence(
                 "issuer_concentration_gate_pass": issuer_concentration_pass,
                 "sector_concentration_gate_pass": sector_concentration_pass,
             },
-            "Q13_overall_evidence": grade,
+            "Q13_mechanical_rubric_grade": grade,
+            "Q13_primary_research_evidence_assessment": primary_assessment,
         },
         "limitations": [
             "CURRENT_CONSTITUENTS_ONLY; results are not survivorship-bias-free historical 0050 performance.",
@@ -990,6 +1066,10 @@ def build_evidence(
             "Adjusted-close paths are close-to-close; excursions are not intraday MFE/MAE.",
             "Categorical intersections are exploratory and are not scores or tuned trading rules.",
             "Financial issuers are excluded from all predictive evidence.",
+            "Primary-horizon overlap is 100%; clustered inference and overlap handling remain LIMITED.",
+            "Factor and sector confounding remain; marginal associations are not independent effects.",
+            "Pre-registration cannot be independently verified from an immutable pre-result Git checkpoint.",
+            "Multiple comparisons are unadjusted; the ex-post strongest supported cell has winner's-curse risk.",
         ],
     }
 

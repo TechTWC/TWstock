@@ -35,6 +35,7 @@ UNIVERSE = ROOT / "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv"
 SIGNALS = ARTIFACTS / "0050_pit_signal_timeline_v0.1.csv"
 CONFIG = ROOT / "config/fundamental_quality_valuation_v0_1.json"
 MANIFEST = ARTIFACTS / "artifact_manifest.json"
+SESSIONS = ROOT / "data/research/0050_fundamental_v0_1/frozen_twse_sessions_v0.1.csv"
 
 
 def _market(days: int = 900, start: date = date(2019, 1, 2), slope: float = 0.001) -> pd.DataFrame:
@@ -76,7 +77,9 @@ def _signal(entry: str = "2019-01-02", symbol: str = "1111", state: str = "IMPRO
 
 
 def test_frozen_identities_match_exact_stage_a_inputs() -> None:
-    universe, signals, _, _, identity = validate_frozen_inputs(UNIVERSE, SIGNALS, CONFIG, MANIFEST)
+    universe, signals, _, _, identity = validate_frozen_inputs(
+        UNIVERSE, SIGNALS, CONFIG, MANIFEST, SESSIONS
+    )
     assert len(universe) == 50
     assert len(signals) == 1563
     assert identity.universe_sha256 == EXPECTED_UNIVERSE_SHA256
@@ -108,14 +111,17 @@ def test_each_frozen_identity_mismatch_fails_closed(tmp_path: Path, target: str)
         payload["stage_a_hardening"]["mops_exact"] = 0
         paths[target].write_text(json.dumps(payload))
     with pytest.raises(RuntimeError, match="mismatch"):
-        validate_frozen_inputs(paths["universe"], paths["signal"], paths["config"], paths["manifest"])
+        validate_frozen_inputs(
+            paths["universe"], paths["signal"], paths["config"], paths["manifest"], SESSIONS
+        )
 
 
 def test_first_trade_date_is_entry_and_returns_use_exact_common_dates() -> None:
     stock = _market(slope=0.002)
     benchmark = _market(slope=0.001)
     events = build_predictive_events(
-        _signal(), _universe(), {"1111": stock}, benchmark, as_of=date(2023, 1, 1)
+        _signal(), _universe(), {"1111": stock}, benchmark,
+        as_of=date(2023, 1, 1), frozen_sessions=tuple(benchmark["date"])
     )
     row = events.iloc[0]
     assert row["entry_date"] == "2019-01-02"
@@ -133,8 +139,14 @@ def test_future_price_changes_never_change_frozen_signal() -> None:
     base = _market(slope=0.001)
     changed = base.copy()
     changed.loc[changed.index >= 20, "adj_close"] *= 4
-    first = build_predictive_events(_signal(), _universe(), {"1111": base}, base, as_of=date(2023, 1, 1))
-    second = build_predictive_events(_signal(), _universe(), {"1111": changed}, base, as_of=date(2023, 1, 1))
+    first = build_predictive_events(
+        _signal(), _universe(), {"1111": base}, base,
+        as_of=date(2023, 1, 1), frozen_sessions=tuple(base["date"])
+    )
+    second = build_predictive_events(
+        _signal(), _universe(), {"1111": changed}, base,
+        as_of=date(2023, 1, 1), frozen_sessions=tuple(base["date"])
+    )
     for column in ("quality", "fundamental_state", "state_detail", "valuation_frozen", "entry_date"):
         assert first.loc[0, column] == second.loc[0, column]
     assert first.loc[0, "return_60d"] != second.loc[0, "return_60d"]
@@ -143,16 +155,18 @@ def test_future_price_changes_never_change_frozen_signal() -> None:
 def test_missing_entry_and_incomplete_horizon_fail_closed() -> None:
     market = _market(days=100)
     missing = build_predictive_events(
-        _signal(entry="2019-01-03"),
+        _signal(entry="2019-01-02"),
         _universe(),
-        {"1111": market[market["date"] != date(2019, 1, 3)]},
+        {"1111": market[market["date"] != date(2019, 1, 2)]},
         market,
         as_of=date(2019, 12, 31),
+        frozen_sessions=tuple(market["date"]),
     )
     assert missing.loc[0, "exclusion_reason"] == "ENTRY_ADJUSTED_CLOSE_MISSING"
     assert pd.isna(missing.loc[0, "return_60d"])
     short = build_predictive_events(
-        _signal(), _universe(), {"1111": market}, market, as_of=date(2019, 12, 31)
+        _signal(), _universe(), {"1111": market}, market,
+        as_of=date(2019, 12, 31), frozen_sessions=tuple(market["date"])
     )
     assert math.isfinite(short.loc[0, "return_60d"])
     assert pd.isna(short.loc[0, "return_120d"])
@@ -164,7 +178,8 @@ def test_financial_signal_is_never_accepted() -> None:
     market = _market()
     with pytest.raises(RuntimeError, match="financial"):
         build_predictive_events(
-            _signal(symbol="2880"), _universe(), {"2880": market}, market, as_of=date(2023, 1, 1)
+            _signal(symbol="2880"), _universe(), {"2880": market}, market,
+            as_of=date(2023, 1, 1), frozen_sessions=tuple(market["date"])
         )
 
 
@@ -272,7 +287,8 @@ def test_generated_stage_b_artifacts_are_finite_and_manifest_hashed() -> None:
     payload = json.loads((ARTIFACTS / "0050_predictive_evidence_v0.1.json").read_text())
     assert payload["mops_network_requests"] == 0
     assert payload["stage_b_status"] == "PASS"
-    assert payload["predictive_evidence_grade"] in {"NONE", "WEAK", "MODERATE", "STRONG"}
+    assert payload["mechanical_rubric_grade"] in {"NONE", "WEAK", "MODERATE", "STRONG"}
+    assert payload["primary_research_evidence_assessment"] == "MODERATE"
     for csv_path in (ARTIFACTS / name for name in required if name.endswith(".csv")):
         frame = pd.read_csv(csv_path, low_memory=False)
         numeric = frame.select_dtypes(include=[np.number])
