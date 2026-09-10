@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "oos_outcome_record.schema.json",
+  "title": "Fundamental v0.1 immutable OOS outcome record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "outcome_event_id",
+    "sequence_number",
+    "event_id",
+    "horizon_trading_days",
+    "status",
+    "entry_date",
+    "exit_date",
+    "stock_return",
+    "0050_return",
+    "excess_return",
+    "stock_source_hash",
+    "benchmark_source_hash",
+    "session_source_hash",
+    "calculated_at",
+    "record_hash",
+    "previous_record_hash"
+  ],
+  "properties": {
+    "outcome_event_id": {"type": "string", "minLength": 1},
+    "sequence_number": {"type": "integer", "minimum": 1},
+    "event_id": {"type": "string", "minLength": 1},
+    "horizon_trading_days": {"enum": [60, 120, 252, 504]},
+    "status": {"enum": ["PENDING", "MATURED", "UNAVAILABLE"]},
+    "entry_date": {"type": "string", "format": "date"},
+    "exit_date": {"type": ["string", "null"], "format": "date"},
+    "stock_return": {"type": ["number", "null"]},
+    "0050_return": {"type": ["number", "null"]},
+    "excess_return": {"type": ["number", "null"]},
+    "stock_source_hash": {"$ref": "#/$defs/nullableSha256"},
+    "benchmark_source_hash": {"$ref": "#/$defs/nullableSha256"},
+    "session_source_hash": {"$ref": "#/$defs/nullableSha256"},
+    "calculated_at": {"type": "string", "format": "date-time"},
+    "record_hash": {"$ref": "#/$defs/sha256"},
+    "previous_record_hash": {
+      "oneOf": [
+        {"const": "GENESIS"},
+        {"$ref": "#/$defs/sha256"}
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nullableSha256": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/sha256"}
+      ]
+    }
+  }
+}

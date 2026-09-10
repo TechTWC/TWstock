@@ -1,0 +1,32 @@
+{
+  "contract_id": "0050-FUNDAMENTAL-OOS-SHADOW-0.1",
+  "stage": "OOS-A",
+  "freeze_head": "188aa8120a6c35b3b6377490f1ed9456566824bd",
+  "frozen_model_config_path": "config/fundamental_quality_valuation_v0_1.json",
+  "frozen_model_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+  "frozen_universe_path": "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv",
+  "frozen_universe_hash": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+  "oos_start_timestamp": "2026-09-11T00:00:00+08:00",
+  "primary_horizons": [
+    60,
+    120,
+    252,
+    504
+  ],
+  "eligible_sector_policy": "NON_FINANCIAL_ONLY",
+  "frozen_cohort_count": 50,
+  "expected_non_financial": 38,
+  "financial_excluded": 12,
+  "historical_primary_evidence": "MODERATE",
+  "historical_evidence_label": "EXPLORATORY_PREDICTIVE_ASSOCIATION",
+  "return_benchmark": "0050",
+  "information_cutoff_policy": "MAX_MOPS_FINANCIAL_VALUATION_SIGNAL_AVAILABILITY",
+  "first_trade_policy": "FIRST_COMMON_FROZEN_TWSE_SESSION_STRICTLY_AFTER_INFORMATION_CUTOFF",
+  "signal_ledger_path": "data/research/0050_fundamental_oos_v0_1/oos_signal_ledger.jsonl",
+  "outcome_ledger_path": "data/research/0050_fundamental_oos_v0_1/oos_outcome_ledger.jsonl",
+  "raw_snapshot_root": "artifacts/0050_fundamental_oos_v0_1/raw",
+  "no_threshold_change": true,
+  "no_retroactive_backfill": true,
+  "no_composite_score": true,
+  "live_collection_enabled": false
+}

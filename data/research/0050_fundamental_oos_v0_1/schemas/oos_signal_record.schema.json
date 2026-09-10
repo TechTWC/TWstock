@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "oos_signal_record.schema.json",
+  "title": "Fundamental v0.1 immutable OOS signal record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "sequence_number",
+    "symbol",
+    "company",
+    "sector_logic",
+    "predictive_eligible",
+    "period_end",
+    "mops_announcement_timestamp",
+    "mops_retrieved_at",
+    "financial_source_retrieved_at",
+    "valuation_source_retrieved_at",
+    "information_cutoff_timestamp",
+    "signal_generated_at",
+    "signal_date",
+    "first_trade_date",
+    "quality",
+    "fundamental_state",
+    "state_detail",
+    "valuation",
+    "data_quality",
+    "reason_codes",
+    "financial_source_hash",
+    "mops_source_hash",
+    "valuation_source_hash",
+    "model_hash",
+    "universe_hash",
+    "record_hash",
+    "previous_record_hash",
+    "status"
+  ],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "sequence_number": {"type": "integer", "minimum": 1},
+    "symbol": {"type": "string", "pattern": "^[0-9A-Za-z.-]+$"},
+    "company": {"type": "string", "minLength": 1},
+    "sector_logic": {"enum": ["GENERAL", "CYCLICAL"]},
+    "predictive_eligible": {"const": true},
+    "period_end": {"type": "string", "format": "date"},
+    "mops_announcement_timestamp": {"type": "string", "format": "date-time"},
+    "mops_retrieved_at": {"type": "string", "format": "date-time"},
+    "financial_source_retrieved_at": {"type": "string", "format": "date-time"},
+    "valuation_source_retrieved_at": {"type": "string", "format": "date-time"},
+    "information_cutoff_timestamp": {"type": "string", "format": "date-time"},
+    "signal_generated_at": {"type": "string", "format": "date-time"},
+    "signal_date": {"type": "string", "format": "date"},
+    "first_trade_date": {"type": "string", "format": "date"},
+    "quality": {"enum": ["GOOD", "ACCEPTABLE", "WEAK", "UNKNOWN"]},
+    "fundamental_state": {"enum": ["IMPROVING", "STABLE", "DETERIORATING", "UNKNOWN"]},
+    "state_detail": {
+      "enum": [
+        "DETERIORATING",
+        "BOTTOMING",
+        "TURNING_UP",
+        "CONFIRMED_GROWTH",
+        "MATURE_GROWTH",
+        "DECELERATING",
+        "UNKNOWN"
+      ]
+    },
+    "valuation": {"enum": ["LOW", "NORMAL", "HIGH", "N/M"]},
+    "data_quality": {"enum": ["OK", "PARTIAL", "INSUFFICIENT"]},
+    "reason_codes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "financial_source_hash": {"$ref": "#/$defs/sha256"},
+    "mops_source_hash": {"$ref": "#/$defs/sha256"},
+    "valuation_source_hash": {"$ref": "#/$defs/sha256"},
+    "model_hash": {"$ref": "#/$defs/sha256"},
+    "universe_hash": {"$ref": "#/$defs/sha256"},
+    "record_hash": {"$ref": "#/$defs/sha256"},
+    "previous_record_hash": {
+      "oneOf": [
+        {"const": "GENESIS"},
+        {"$ref": "#/$defs/sha256"}
+      ]
+    },
+    "status": {"enum": ["ACTIVE_SIGNAL", "SUPERSEDING_EVENT"]},
+    "supersedes_event_id": {"type": ["string", "null"], "minLength": 1}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

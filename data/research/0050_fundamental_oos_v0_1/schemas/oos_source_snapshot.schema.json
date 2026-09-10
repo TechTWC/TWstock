@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "oos_source_snapshot.schema.json",
+  "title": "Fundamental v0.1 OOS source snapshot audit record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshot_id",
+    "event_id",
+    "snapshot_type",
+    "retrieved_at",
+    "source_url_or_identifier",
+    "sha256",
+    "artifact_path",
+    "processing_status"
+  ],
+  "properties": {
+    "snapshot_id": {"type": "string", "minLength": 1},
+    "event_id": {"type": "string", "minLength": 1},
+    "snapshot_type": {"enum": ["MOPS", "FINANCIAL", "VALUATION", "MARKET_SESSION"]},
+    "retrieved_at": {"type": "string", "format": "date-time"},
+    "source_url_or_identifier": {"type": "string", "minLength": 1},
+    "sha256": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      ]
+    },
+    "artifact_path": {"type": "string", "minLength": 1},
+    "processing_status": {"enum": ["READY", "PENDING_DATA", "PRE_OOS_EXCLUDED"]}
+  }
+}
