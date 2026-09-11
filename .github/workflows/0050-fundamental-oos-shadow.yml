@@ -1,0 +1,90 @@
+# PREPARED_NOT_ACTIVE: scheduled runs start only after this Draft PR is reviewed and merged to main.
+name: 0050 Fundamental OOS Shadow Collector
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 22 * * *"
+      timezone: "Asia/Taipei"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 0050-fundamental-oos-shadow-v0-1
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    name: Scheduled-safe OOS collection
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out frozen OOS collector branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: research/0050-fundamental-oos-shadow-v0-1
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install fixed dependencies
+        run: python -m pip install --disable-pip-version-check --requirement requirements-dev.txt
+
+      - name: Run scheduled-safe collector
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/run_0050_fundamental_oos_v0_1.py             --scheduled-run             --validate-freeze             --validate-ledger             --validate-snapshots             | tee "$RUNNER_TEMP/oos-c-report.json"
+
+      - name: Decide whether data state changed
+        id: state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "oos-c-report.json").read_text())
+          value = "true" if report["commit_worthy_state_change"] else "false"
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as handle:
+              handle.write(f"commit_worthy={value}\n")
+          PY
+
+      - name: Verify outcome ledger remains unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet --             data/research/0050_fundamental_oos_v0_1/oos_outcome_ledger.jsonl
+
+      - name: Commit and fast-forward push OOS data only
+        if: steps.state.outputs.commit_worthy == 'true'
+        shell: bash
+        env:
+          OOS_BRANCH: research/0050-fundamental-oos-shadow-v0-1
+        run: |
+          set -euo pipefail
+          starting_head="$(git rev-parse HEAD)"
+          git fetch --no-tags origin "$OOS_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$starting_head" || {
+            echo "CONCURRENT_WRITE_OR_PUSH_RACE"
+            exit 1
+          }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --             data/research/0050_fundamental_oos_v0_1/oos_signal_ledger.jsonl             data/research/0050_fundamental_oos_v0_1/oos_pending_candidates.json             artifacts/0050_fundamental_oos_v0_1/source_blobs             artifacts/0050_fundamental_oos_v0_1/runs
+          git diff --cached --quiet && {
+            echo "NO_COMMITTABLE_STATE_CHANGE"
+            exit 0
+          }
+          git commit -m "data: collect 0050 Fundamental OOS shadow"
+          git push origin "HEAD:$OOS_BRANCH"
