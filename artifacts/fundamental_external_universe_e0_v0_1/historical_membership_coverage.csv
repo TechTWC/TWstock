@@ -1,0 +1,13 @@
+metric,value,status
+study_calendar_quarter_intervals,31,OBSERVED
+verified_intervals,0,FAIL
+unverified_intervals,31,FAIL
+regular_review_source_candidates,31,DISCOVERED
+interim_extraordinary_source_candidates,27,DISCOVERED
+unique_midcap100_symbols_observed,0,NOT_ESTIMABLE
+unique_ex_0050_symbols,0,NOT_ESTIMABLE
+non_financial_candidates,0,NOT_ESTIMABLE
+financial_excluded,0,NOT_ESTIMABLE
+delisted_merged_removed_observed,0,NOT_ESTIMABLE
+pit_verified_ratio,0/31,FAIL
+complete_primary_cohort_timeline,false,FAIL
