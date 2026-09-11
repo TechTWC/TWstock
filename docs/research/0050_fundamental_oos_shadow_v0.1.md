@@ -84,6 +84,49 @@ python scripts/run_0050_fundamental_oos_v0_1.py \
   --validate-freeze --validate-ledger --dry-run --fixture
 ```
 
-The command performs no network requests and writes no signal. `--live` always fails closed
-with `LIVE_COLLECTION_NOT_ENABLED_IN_OOS_A`. Enabling collection, source persistence, or a
-scheduler belongs to a separately authorized Stage OOS-B.
+The command performs no network requests and writes no signal.
+
+## Stage OOS-B: Live Collection Contract
+
+OOS-B enables collection only when a human explicitly supplies `--live`. Normal CLI use,
+tests, and CI remain offline; there is no cron, scheduled GitHub Action, external service, or
+production deployment. Historical backfill and outcome calculation are disabled.
+
+An **OOS signal** is the first immutable classification produced after the OOS boundary when
+the official MOPS filing, the required frozen-model FinMind financial inputs, a permitted
+FinMind/TWSE valuation snapshot, and an accepted common TWSE/stock/0050 session contract are
+all genuinely available. A MOPS row by itself is only a candidate. `PENDING_FINANCIAL_DATA`,
+`PENDING_VALUATION_DATA`, and `PENDING_SESSION` mean that one of these required inputs is not
+yet observable; they are not signals and carry no investment conclusion.
+
+The candidate registry is mutable so a later manual run can recheck missing sources. Its
+identity is deterministic from the filing identity, frozen model hash, and frozen universe
+hash. Financial issuers are retained only as `FINANCIAL_EXCLUDED` audit candidates and cannot
+enter the predictive ledger. Any filing announced before `2026-09-11T00:00:00+08:00` is
+`PRE_OOS_EXCLUDED`, even when retrieved after that time.
+
+The **first-complete-data lock** captures the first financial and valuation snapshots and the
+actual generation time as soon as the frozen model becomes executable. Later valuation or
+price refreshes cannot create another ordinary `ACTIVE_SIGNAL` or move its information cutoff.
+The cutoff is the maximum of announcement, MOPS retrieval, financial retrieval, valuation
+retrieval, and actual signal generation timestamps. Backdating it to the filing announcement
+would falsely claim knowledge that the collector did not yet possess.
+
+Signal writes validate the frozen identity, existing SHA-256 chain, deterministic event ID,
+sequence, source hashes, and first common legal session before an atomic replace. Existing
+records are never rewritten. A genuine filing/source/data correction appends a distinct
+`SUPERSEDING_EVENT` that points to the earlier event; the original remains in the chain.
+Each source retrieval is stored in a content-addressed directory with raw bytes, normalized
+data when applicable, a manifest, retrieval time, source identifier, and reproducible SHA-256.
+Existing snapshots are never overwritten.
+
+Manual collection is invoked with:
+
+```bash
+python scripts/run_0050_fundamental_oos_v0_1.py --live \
+  --validate-freeze --validate-ledger --validate-snapshots
+```
+
+OOS-B makes no OOS performance claim. All 60/120/252/504-session outcomes remain immature,
+their return fields remain null, and outcome calculation stays disabled. Scheduled collection
+requires a separately authorized OOS-C stage.

@@ -1,0 +1,13 @@
+{
+  "event_or_candidate_identity": "scan-e20929f4f34af8de95145d45",
+  "files": {
+    "normalized.json": "b18737bd80d8e85a1a086a6c144eb1116fbfb5f4692fddb187d9ed0f1e3c26b7",
+    "raw.bin": "ada7ad2c9f847dca04734615dee891f21e1b083a7dd744217f0f7aa4c3dffabc"
+  },
+  "manifest_version": "OOS-B-1",
+  "retrieved_at": "2026-09-11T00:45:16.260513+00:00",
+  "snapshot_id": "54b0255d8ccb0937269dcac3f1803d032ef0ce0a3aff1cc4eae4c282f9aaaeef",
+  "snapshot_type": "MOPS",
+  "source_identifier": "https://doc.twse.com.tw/server-java/t57sb01?step=1&colorchg=1&check2858=Y&co_id=3017&year=&seamon=&mtype=A",
+  "source_sha256": "ada7ad2c9f847dca04734615dee891f21e1b083a7dd744217f0f7aa4c3dffabc"
+}

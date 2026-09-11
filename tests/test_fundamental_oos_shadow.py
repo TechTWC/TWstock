@@ -418,9 +418,27 @@ def test_pending_outcome_has_no_returns_and_matures_append_only(
     assert len(validate_outcome_ledger(ledger)) == 2
 
 
-def test_live_mode_fails_closed() -> None:
-    with pytest.raises(SystemExit, match="LIVE_COLLECTION_NOT_ENABLED_IN_OOS_A"):
-        cli_main(["--live"])
+def test_live_mode_requires_explicit_flag_and_dispatches_only_when_selected(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    calls: list[object] = []
+
+    class OfflineSource:
+        pass
+
+    def fake_run(root: Path, contract: dict[str, object], source: object, *, symbols: object) -> dict[str, object]:
+        calls.append((root, contract["stage"], source, symbols))
+        return {"network_requests": {"MOPS": 0, "FinMind": 0, "TWSE": 0, "Other": 0}}
+
+    monkeypatch.setattr(
+        "scripts.run_0050_fundamental_oos_v0_1.ExistingContractLiveSource", OfflineSource
+    )
+    monkeypatch.setattr("scripts.run_0050_fundamental_oos_v0_1.run_live_collection", fake_run)
+    assert cli_main(["--live", "--symbols", "2330"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["stage"] == "OOS-B"
+    assert len(calls) == 1
+    assert calls[0][3] == ["2330"]
 
 
 def test_dry_run_makes_zero_network_connections(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -430,7 +448,7 @@ def test_dry_run_makes_zero_network_connections(monkeypatch: pytest.MonkeyPatch,
     monkeypatch.setattr(socket.socket, "connect", blocked_connect)
     assert cli_main(["--dry-run", "--fixture", "--validate-ledger"]) == 0
     report = json.loads(capsys.readouterr().out)
-    assert report["network_requests"] == 0
+    assert report["network_requests"] == {"MOPS": 0, "FinMind": 0, "TWSE": 0, "Other": 0}
     assert report["signal_ledger_records"] == 0
     assert report["outcome_ledger_records"] == 0
     assert report["fixture"]["persisted"] is False
@@ -459,7 +477,11 @@ def test_no_composite_score_and_future_snooping_guards(contract: dict[str, objec
     assert contract["no_threshold_change"] is True
     assert contract["no_retroactive_backfill"] is True
     assert contract["no_composite_score"] is True
-    assert contract["live_collection_enabled"] is False
+    assert contract["live_collection_enabled"] is True
+    assert contract["live_collection_mode"] == "MANUAL_ONLY"
+    assert contract["scheduled_collection_enabled"] is False
+    assert contract["historical_backfill_enabled"] is False
+    assert contract["outcome_calculation_enabled"] is False
     assert "composite_score" not in signal_schema["properties"]
 
 

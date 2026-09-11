@@ -8,6 +8,7 @@ import math
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 from typing import Any, Iterable, Mapping
 
 import pandas as pd
@@ -167,11 +168,17 @@ def load_contract(path: Path) -> dict[str, Any]:
         "no_retroactive_backfill",
         "no_composite_score",
         "live_collection_enabled",
+        "live_collection_mode",
+        "scheduled_collection_enabled",
+        "historical_backfill_enabled",
+        "outcome_calculation_enabled",
+        "pending_candidate_registry_path",
     }
     missing = sorted(required - contract.keys())
     if missing:
         raise ContractError(f"OOS contract missing fields: {', '.join(missing)}")
     fixed = {
+        "stage": "OOS-B",
         "freeze_head": "188aa8120a6c35b3b6377490f1ed9456566824bd",
         "frozen_model_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
         "frozen_universe_hash": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
@@ -187,7 +194,11 @@ def load_contract(path: Path) -> dict[str, Any]:
         "no_threshold_change": True,
         "no_retroactive_backfill": True,
         "no_composite_score": True,
-        "live_collection_enabled": False,
+        "live_collection_enabled": True,
+        "live_collection_mode": "MANUAL_ONLY",
+        "scheduled_collection_enabled": False,
+        "historical_backfill_enabled": False,
+        "outcome_calculation_enabled": False,
     }
     for key, expected in fixed.items():
         if contract.get(key) != expected:
@@ -427,12 +438,32 @@ def validate_outcome_ledger(path: Path) -> list[dict[str, Any]]:
     return records
 
 
-def _append_line(path: Path, record: Mapping[str, Any]) -> None:
+def _atomic_append_line(path: Path, record: Mapping[str, Any]) -> None:
+    """Replace the ledger with its old bytes plus one complete, fsynced line.
+
+    Validation happens before this function.  A write/fsync/replace failure therefore
+    leaves either the prior ledger or the complete new ledger, never a partial line.
+    """
+
     encoded = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(encoded + "\n")
-        handle.flush()
-        os.fsync(handle.fileno())
+    before = path.read_bytes()
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(before)
+            handle.write((encoded + "\n").encode("utf-8"))
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
 
 
 def append_signal_record(
@@ -444,6 +475,7 @@ def append_signal_record(
     stock_sessions: Iterable[str],
     benchmark_sessions: Iterable[str],
 ) -> dict[str, Any]:
+    verify_freeze(PROJECT_ROOT, contract)
     existing = validate_signal_ledger(path)
     record = deepcopy(dict(candidate))
     record["sequence_number"] = len(existing) + 1
@@ -463,11 +495,8 @@ def append_signal_record(
         target = record.get("supersedes_event_id")
         if target not in {item["event_id"] for item in existing}:
             raise LedgerError("SUPERSEDING_EVENT target does not exist")
-    before = path.read_bytes()
-    _append_line(path, record)
-    after = path.read_bytes()
-    if not after.startswith(before):
-        raise LedgerError("Append-only prefix invariant failed")
+    _validate_chain([*existing, record], identity_field="event_id")
+    _atomic_append_line(path, record)
     validate_signal_ledger(path)
     return record
 
@@ -564,7 +593,8 @@ def append_outcome_record(
             raise LedgerError("Final maturity outcome cannot be superseded")
         if record["status"] == "PENDING":
             raise LedgerError("Duplicate PENDING maturity state")
-    _append_line(path, record)
+    _validate_chain([*existing, record], identity_field="outcome_event_id")
+    _atomic_append_line(path, record)
     validate_outcome_ledger(path)
     return record
 
@@ -583,7 +613,12 @@ def validate_source_snapshot(snapshot: Mapping[str, Any], contract: Mapping[str,
     _require_fields(snapshot, required, "Source snapshot")
     if snapshot["snapshot_type"] not in {"MOPS", "FINANCIAL", "VALUATION", "MARKET_SESSION"}:
         raise ContractError("Unknown source snapshot type")
-    if snapshot["processing_status"] not in {"READY", "PENDING_DATA", "PRE_OOS_EXCLUDED"}:
+    if snapshot["processing_status"] not in {
+        "READY",
+        "PENDING_DATA",
+        "PRE_OOS_EXCLUDED",
+        "FAILED_CLOSED",
+    }:
         raise ContractError("Unknown source snapshot processing status")
     retrieved = _parse_timestamp(snapshot["retrieved_at"], "snapshot.retrieved_at")
     start = _parse_timestamp(contract["oos_start_timestamp"], "oos_start_timestamp")

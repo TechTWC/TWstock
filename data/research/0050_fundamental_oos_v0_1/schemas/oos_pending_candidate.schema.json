@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "oos_pending_candidate.schema.json",
+  "title": "Fundamental v0.1 OOS-B pending candidate",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "candidate_id",
+    "event_id",
+    "symbol",
+    "company",
+    "period_end",
+    "fiscal_year",
+    "fiscal_quarter",
+    "mops_announcement_timestamp",
+    "mops_retrieved_at",
+    "mops_source_hash",
+    "mops_filing_identity_hash",
+    "status"
+  ],
+  "properties": {
+    "candidate_id": {"type": "string", "minLength": 1},
+    "event_id": {"type": "string", "minLength": 1},
+    "symbol": {"type": "string", "pattern": "^[0-9A-Za-z.-]+$"},
+    "company": {"type": "string", "minLength": 1},
+    "period_end": {"type": "string", "format": "date"},
+    "fiscal_year": {"type": "integer", "minimum": 2026},
+    "fiscal_quarter": {"type": "integer", "minimum": 1, "maximum": 4},
+    "mops_announcement_timestamp": {"type": "string", "format": "date-time"},
+    "mops_retrieved_at": {"type": "string", "format": "date-time"},
+    "mops_source_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "mops_filing_identity_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "status": {
+      "enum": [
+        "MOPS_DISCOVERED",
+        "PENDING_FINANCIAL_DATA",
+        "PENDING_VALUATION_DATA",
+        "PENDING_SESSION",
+        "READY_FOR_SIGNAL",
+        "SIGNAL_EMITTED",
+        "FINANCIAL_EXCLUDED",
+        "SOURCE_CONFLICT",
+        "FAILED_CLOSED"
+      ]
+    }
+  }
+}

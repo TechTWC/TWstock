@@ -27,6 +27,6 @@
       ]
     },
     "artifact_path": {"type": "string", "minLength": 1},
-    "processing_status": {"enum": ["READY", "PENDING_DATA", "PRE_OOS_EXCLUDED"]}
+    "processing_status": {"enum": ["READY", "PENDING_DATA", "PRE_OOS_EXCLUDED", "FAILED_CLOSED"]}
   }
 }

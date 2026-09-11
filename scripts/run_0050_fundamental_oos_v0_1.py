@@ -18,6 +18,11 @@ from experiments.fundamental_oos_shadow.ledger import (  # noqa: E402
     validate_signal_ledger,
     verify_freeze,
 )
+from experiments.fundamental_oos_shadow.live import (  # noqa: E402
+    ExistingContractLiveSource,
+    run_live_collection,
+    validate_snapshot_tree,
+)
 
 
 DEFAULT_CONTRACT = ROOT / "config/fundamental_oos_shadow_v0_1.json"
@@ -26,30 +31,60 @@ DEFAULT_FIXTURE = ROOT / "tests/fixtures/fundamental_oos_shadow/oos_a_valid_fixt
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
-        description="Bounded OOS-A validation scaffold; live collection is intentionally disabled."
+        description="OOS-B manual-only live collection and offline validation."
     )
     result.add_argument("--dry-run", action="store_true", help="Validate a fixture without writing")
     result.add_argument("--validate-ledger", action="store_true", help="Verify both immutable ledgers")
     result.add_argument("--validate-freeze", action="store_true", help="Verify frozen model/universe identity")
     result.add_argument("--fixture", action="store_true", help="Use the tracked synthetic OOS-A fixture")
-    result.add_argument("--live", action="store_true", help="Reserved for a later authorized stage")
+    result.add_argument("--live", action="store_true", help="Explicitly run bounded manual OOS-B collection")
+    result.add_argument(
+        "--symbols",
+        help="Optional comma-separated frozen-universe subset for an authorized smoke test",
+    )
+    result.add_argument("--validate-snapshots", action="store_true", help="Verify immutable snapshot manifests")
     result.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT)
     return result
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parser().parse_args(argv)
-    if args.live:
-        raise SystemExit("LIVE_COLLECTION_NOT_ENABLED_IN_OOS_A")
-    if not any((args.dry_run, args.validate_ledger, args.validate_freeze, args.fixture)):
-        raise SystemExit("Select --dry-run, --validate-ledger, --validate-freeze, or --fixture")
     contract = load_contract(args.contract)
+    if not any(
+        (
+            args.live,
+            args.dry_run,
+            args.validate_ledger,
+            args.validate_freeze,
+            args.fixture,
+            args.validate_snapshots,
+        )
+    ):
+        raise SystemExit(
+            "Select --live, --dry-run, --validate-ledger, --validate-freeze, "
+            "--validate-snapshots, or --fixture"
+        )
     report: dict[str, object] = {
-        "stage": "OOS-A",
-        "live_collection_enabled": False,
-        "historical_backfill_enabled": False,
-        "network_requests": 0,
+        "stage": "OOS-B",
+        "live_collection_enabled": contract["live_collection_enabled"],
+        "live_collection_mode": contract["live_collection_mode"],
+        "scheduled_collection_enabled": contract["scheduled_collection_enabled"],
+        "historical_backfill_enabled": contract["historical_backfill_enabled"],
+        "outcome_calculation_enabled": contract["outcome_calculation_enabled"],
+        "network_requests": {"MOPS": 0, "FinMind": 0, "TWSE": 0, "Other": 0},
     }
+    if args.live:
+        selected = None
+        if args.symbols:
+            selected = [item.strip() for item in args.symbols.split(",") if item.strip()]
+        report.update(
+            run_live_collection(
+                ROOT,
+                contract,
+                ExistingContractLiveSource(),
+                symbols=selected,
+            )
+        )
     if args.validate_freeze:
         report["freeze"] = verify_freeze(ROOT, contract)
     if args.validate_ledger:
@@ -67,6 +102,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             "validation": "PASS",
             "persisted": False,
         }
+    if args.validate_snapshots:
+        report["snapshot_manifests_validated"] = validate_snapshot_tree(
+            ROOT / str(contract["raw_snapshot_root"])
+        )
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
 

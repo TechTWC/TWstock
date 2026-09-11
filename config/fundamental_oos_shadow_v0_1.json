@@ -1,6 +1,6 @@
 {
   "contract_id": "0050-FUNDAMENTAL-OOS-SHADOW-0.1",
-  "stage": "OOS-A",
+  "stage": "OOS-B",
   "freeze_head": "188aa8120a6c35b3b6377490f1ed9456566824bd",
   "frozen_model_config_path": "config/fundamental_quality_valuation_v0_1.json",
   "frozen_model_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
@@ -25,8 +25,13 @@
   "signal_ledger_path": "data/research/0050_fundamental_oos_v0_1/oos_signal_ledger.jsonl",
   "outcome_ledger_path": "data/research/0050_fundamental_oos_v0_1/oos_outcome_ledger.jsonl",
   "raw_snapshot_root": "artifacts/0050_fundamental_oos_v0_1/raw",
+  "pending_candidate_registry_path": "data/research/0050_fundamental_oos_v0_1/oos_pending_candidates.json",
   "no_threshold_change": true,
   "no_retroactive_backfill": true,
   "no_composite_score": true,
-  "live_collection_enabled": false
+  "live_collection_enabled": true,
+  "live_collection_mode": "MANUAL_ONLY",
+  "scheduled_collection_enabled": false,
+  "historical_backfill_enabled": false,
+  "outcome_calculation_enabled": false
 }
