@@ -1,0 +1,208 @@
+# PREPARED_NOT_ACTIVE: scheduled runs start only after this Draft PR is reviewed and merged to main.
+name: 0050 Fundamental OOS Shadow Collector
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 22 * * *"
+      timezone: "Asia/Taipei"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 0050-fundamental-oos-shadow-v0-1
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    name: Scheduled-safe OOS collection
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OOS_BRANCH: research/0050-fundamental-oos-shadow-v0-1
+      RUNTIME_MANIFEST_PATH: config/collector_runtime_manifest_v0_1.json
+      COLLECTOR_CODE_BASELINE_HEAD: c44f5f723b25e22b7d65adcbe9b8db23dabf58fc
+      EXPECTED_COLLECTOR_RUNTIME_FREEZE_SHA: 131ef2d6964d7169a647baede2d2c2c80205488db55acec7d79411b12ad78239
+
+    steps:
+      - name: Check out OOS collector branch without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: research/0050-fundamental-oos-shadow-v0-1
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify reviewed collector baseline is an ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${COLLECTOR_CODE_BASELINE_HEAD}^{commit}" || {
+            echo "COLLECTOR_CODE_BASELINE_MISSING"
+            exit 1
+          }
+          git merge-base --is-ancestor "$COLLECTOR_CODE_BASELINE_HEAD" HEAD || {
+            echo "COLLECTOR_CODE_BASELINE_NOT_ANCESTOR"
+            exit 1
+          }
+
+      - name: Verify independent runtime freeze and protected-path diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path, PurePosixPath
+
+          manifest_path = Path(os.environ["RUNTIME_MANIFEST_PATH"])
+          if not manifest_path.is_file() or manifest_path.stat().st_size > 1_000_000:
+              raise SystemExit("COLLECTOR_RUNTIME_MANIFEST_INVALID")
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          required_keys = {
+              "manifest_version",
+              "hash_algorithm",
+              "canonical_path_ordering",
+              "runtime_paths",
+          }
+          if set(manifest) != required_keys:
+              raise SystemExit("COLLECTOR_RUNTIME_MANIFEST_SCHEMA_INVALID")
+          if (
+              manifest["manifest_version"] != "OOS-C-RUNTIME-1"
+              or manifest["hash_algorithm"] != "SHA256"
+              or manifest["canonical_path_ordering"] != "UTF8_BYTEWISE_ASCENDING"
+              or not isinstance(manifest["runtime_paths"], list)
+          ):
+              raise SystemExit("COLLECTOR_RUNTIME_MANIFEST_CONTRACT_INVALID")
+          canonical = json.dumps(
+              manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+          ).encode("utf-8")
+          actual_manifest_sha = sha256(canonical).hexdigest()
+          if actual_manifest_sha != os.environ["EXPECTED_COLLECTOR_RUNTIME_FREEZE_SHA"]:
+              raise SystemExit("COLLECTOR_RUNTIME_FREEZE_MISMATCH")
+
+          protected = []
+          for entry in manifest["runtime_paths"]:
+              if not isinstance(entry, dict) or set(entry) != {"runtime_path", "blob_sha256"}:
+                  raise SystemExit("COLLECTOR_RUNTIME_MANIFEST_ENTRY_INVALID")
+              relative = entry["runtime_path"]
+              if not isinstance(relative, str) or not relative:
+                  raise SystemExit("COLLECTOR_RUNTIME_PATH_INVALID")
+              path = PurePosixPath(relative)
+              if path.is_absolute() or ".." in path.parts or path.as_posix() != relative:
+                  raise SystemExit("COLLECTOR_RUNTIME_PATH_INVALID")
+              expected_blob = entry["blob_sha256"]
+              candidate = Path(relative)
+              if not candidate.is_file() or sha256(candidate.read_bytes()).hexdigest() != expected_blob:
+                  raise SystemExit(f"COLLECTOR_RUNTIME_DRIFT:{relative}")
+              protected.append(relative)
+          if protected != sorted(protected) or len(protected) != len(set(protected)):
+              raise SystemExit("COLLECTOR_RUNTIME_PATH_ORDER_INVALID")
+          output = Path(os.environ["RUNNER_TEMP"]) / "collector-runtime-protected-paths.txt"
+          output.write_text("\n".join(protected) + "\n", encoding="utf-8")
+          PY
+
+          mapfile -t protected_paths < "$RUNNER_TEMP/collector-runtime-protected-paths.txt"
+          git diff --quiet "$COLLECTOR_CODE_BASELINE_HEAD..HEAD" -- \
+            "$RUNTIME_MANIFEST_PATH" "${protected_paths[@]}" || {
+              echo "COLLECTOR_CODE_DRIFT"
+              git diff --name-only "$COLLECTOR_CODE_BASELINE_HEAD..HEAD" -- \
+                "$RUNTIME_MANIFEST_PATH" "${protected_paths[@]}"
+              exit 1
+            }
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install fixed dependencies
+        run: python -m pip install --disable-pip-version-check --requirement requirements-dev.txt
+
+      - name: Verify frozen identities ledgers and snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/run_0050_fundamental_oos_v0_1.py \
+            --validate-freeze \
+            --validate-ledger \
+            --validate-snapshots
+
+      - name: Run scheduled-safe collector
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/run_0050_fundamental_oos_v0_1.py \
+            --scheduled-run \
+            | tee "$RUNNER_TEMP/oos-c-report.json"
+
+      - name: Validate collector result and decide whether data state changed
+        id: state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "oos-c-report.json").read_text())
+          if report["hash_chain_validation"] != "PASS":
+              raise SystemExit("LEDGER_VALIDATION_FAILED")
+          if report["collector_runtime_freeze"]["status"] != "PASS":
+              raise SystemExit("COLLECTOR_RUNTIME_VALIDATION_FAILED")
+          if report["outcome_calculation_enabled"]:
+              raise SystemExit("OUTCOME_CALCULATION_MUST_REMAIN_DISABLED")
+          value = "true" if report["commit_worthy_state_change"] else "false"
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as handle:
+              handle.write(f"commit_worthy={value}\n")
+          PY
+
+      - name: Verify outcome ledger and write allowlist
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet -- \
+            data/research/0050_fundamental_oos_v0_1/oos_outcome_ledger.jsonl
+          mapfile -t changed_paths < <(git status --porcelain=v1 --untracked-files=all | sed 's/^...//')
+          for path in "${changed_paths[@]}"; do
+            case "$path" in
+              data/research/0050_fundamental_oos_v0_1/oos_signal_ledger.jsonl|\
+              data/research/0050_fundamental_oos_v0_1/oos_pending_candidates.json|\
+              artifacts/0050_fundamental_oos_v0_1/source_blobs/*|\
+              artifacts/0050_fundamental_oos_v0_1/runs/*) ;;
+              *) echo "NON_ALLOWLISTED_SCHEDULED_DIFF:$path"; exit 1 ;;
+            esac
+          done
+
+      - name: Commit and fast-forward push OOS data only
+        if: steps.state.outputs.commit_worthy == 'true'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          starting_head="$(git rev-parse HEAD)"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: bearer ${GITHUB_TOKEN}" \
+            fetch --no-tags origin "$OOS_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$starting_head" || {
+            echo "CONCURRENT_WRITE_OR_PUSH_RACE"
+            exit 1
+          }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            data/research/0050_fundamental_oos_v0_1/oos_signal_ledger.jsonl \
+            data/research/0050_fundamental_oos_v0_1/oos_pending_candidates.json \
+            artifacts/0050_fundamental_oos_v0_1/source_blobs \
+            artifacts/0050_fundamental_oos_v0_1/runs
+          git diff --cached --quiet && {
+            echo "NO_COMMITTABLE_STATE_CHANGE"
+            exit 0
+          }
+          git commit -m "data: collect 0050 Fundamental OOS shadow"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: bearer ${GITHUB_TOKEN}" \
+            push --no-force origin "HEAD:refs/heads/$OOS_BRANCH"
