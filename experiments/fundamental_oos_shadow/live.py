@@ -36,7 +36,7 @@ from .ledger import (
 from .scheduled import (
     assert_clean_scheduler_start,
     assert_scheduled_write_allowlist,
-    verify_collector_code_freeze,
+    verify_collector_runtime_freeze,
 )
 
 
@@ -753,7 +753,9 @@ def run_collection(
         assert_clean_scheduler_start(root)
 
     verify_freeze(root, contract)
-    code_freeze = verify_collector_code_freeze(root, contract)
+    runtime_freeze = verify_collector_runtime_freeze(
+        root, manifest_path=str(contract["collector_runtime_manifest_path"])
+    )
     signal_path = root / str(contract["signal_ledger_path"])
     outcome_path = root / str(contract["outcome_ledger_path"])
     existing_signals = validate_signal_ledger(signal_path)
@@ -812,7 +814,7 @@ def run_collection(
         "unchanged_source_bodies": 0,
         "new_blobs": 0,
         "duplicate_blobs_avoided": 0,
-        "collector_code_freeze": code_freeze,
+        "collector_runtime_freeze": runtime_freeze,
     }
 
     def audit_source(audit: dict[str, Any]) -> None:
@@ -1082,7 +1084,9 @@ def run_collection(
         "frozen_model_hash": contract["frozen_model_hash"],
         "frozen_universe_hash": contract["frozen_universe_hash"],
         "oos_start_timestamp": contract["oos_start_timestamp"],
-        "collector_code_freeze_sha": contract["collector_code_freeze_sha"],
+        "collector_runtime_freeze_sha": runtime_freeze[
+            "collector_runtime_freeze_sha"
+        ],
         "outcome_calculation_enabled": False,
         "symbols": [symbol_audits[symbol] for symbol in requested],
         "sources": source_audits,

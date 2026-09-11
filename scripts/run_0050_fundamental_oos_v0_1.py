@@ -25,7 +25,7 @@ from experiments.fundamental_oos_shadow.live import (  # noqa: E402
     validate_snapshot_tree,
 )
 from experiments.fundamental_oos_shadow.scheduled import (  # noqa: E402
-    verify_collector_code_freeze,
+    verify_collector_runtime_freeze,
 )
 
 
@@ -111,7 +111,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     if args.validate_freeze:
         report["freeze"] = verify_freeze(ROOT, contract)
-        report["collector_code_freeze"] = verify_collector_code_freeze(ROOT, contract)
+        report["collector_runtime_freeze"] = verify_collector_runtime_freeze(
+            ROOT, manifest_path=str(contract["collector_runtime_manifest_path"])
+        )
     if args.validate_ledger:
         signal_path = ROOT / str(contract["signal_ledger_path"])
         outcome_path = ROOT / str(contract["outcome_ledger_path"])

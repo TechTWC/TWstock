@@ -177,8 +177,7 @@ def load_contract(path: Path) -> dict[str, Any]:
         "pending_candidate_registry_path",
         "source_blob_root",
         "run_manifest_root",
-        "collector_code_paths",
-        "collector_code_freeze_sha",
+        "collector_runtime_manifest_path",
     }
     missing = sorted(required - contract.keys())
     if missing:
@@ -209,13 +208,7 @@ def load_contract(path: Path) -> dict[str, Any]:
         "outcome_calculation_enabled": False,
         "source_blob_root": "artifacts/0050_fundamental_oos_v0_1/source_blobs",
         "run_manifest_root": "artifacts/0050_fundamental_oos_v0_1/runs",
-        "collector_code_paths": [
-            "experiments/fundamental_oos_shadow/__init__.py",
-            "experiments/fundamental_oos_shadow/ledger.py",
-            "experiments/fundamental_oos_shadow/live.py",
-            "experiments/fundamental_oos_shadow/scheduled.py",
-            "scripts/run_0050_fundamental_oos_v0_1.py",
-        ],
+        "collector_runtime_manifest_path": "config/collector_runtime_manifest_v0_1.json",
     }
     for key, expected in fixed.items():
         if contract.get(key) != expected:

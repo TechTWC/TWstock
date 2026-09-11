@@ -38,12 +38,5 @@
   "scheduled_collection_active": false,
   "historical_backfill_enabled": false,
   "outcome_calculation_enabled": false,
-  "collector_code_paths": [
-    "experiments/fundamental_oos_shadow/__init__.py",
-    "experiments/fundamental_oos_shadow/ledger.py",
-    "experiments/fundamental_oos_shadow/live.py",
-    "experiments/fundamental_oos_shadow/scheduled.py",
-    "scripts/run_0050_fundamental_oos_v0_1.py"
-  ],
-  "collector_code_freeze_sha": "8edfd5e6bd61021b88ea2c8e65043751f464059b8696315113391b5ae5caa6b7"
+  "collector_runtime_manifest_path": "config/collector_runtime_manifest_v0_1.json"
 }

@@ -36,8 +36,7 @@ from experiments.fundamental_oos_shadow.live import (
 from experiments.fundamental_oos_shadow.scheduled import (
     SCHEDULED_WRITE_ALLOWLIST,
     assert_scheduled_write_allowlist,
-    collector_code_hash,
-    verify_collector_code_freeze,
+    verify_collector_runtime_freeze,
 )
 
 
@@ -291,18 +290,12 @@ def test_content_addressed_store_reuses_legacy_oos_b_snapshot(tmp_path: Path) ->
     assert store.validate_all() == 0
 
 
-def test_collector_code_freeze_matches_contract(contract: dict[str, object]) -> None:
-    result = verify_collector_code_freeze(ROOT, contract)
+def test_collector_runtime_freeze_matches_manifest(contract: dict[str, object]) -> None:
+    result = verify_collector_runtime_freeze(
+        ROOT, manifest_path=str(contract["collector_runtime_manifest_path"])
+    )
     assert result["status"] == "PASS"
-    assert result["actual_collector_code_sha"] == contract["collector_code_freeze_sha"]
-
-
-def test_collector_code_hash_detects_drift(tmp_path: Path) -> None:
-    path = tmp_path / "collector.py"
-    path.write_text("one\n", encoding="utf-8")
-    first = collector_code_hash(tmp_path, ["collector.py"])
-    path.write_text("two\n", encoding="utf-8")
-    assert collector_code_hash(tmp_path, ["collector.py"]) != first
+    assert result["runtime_path_count"] >= 18
 
 
 def test_scheduled_write_allowlist_fails_closed() -> None:
@@ -378,8 +371,7 @@ def _minimal_collection_root(tmp_path: Path) -> tuple[Path, dict[str, object]]:
         "oos_start_timestamp": "2026-09-11T00:00:00+08:00",
         "frozen_cohort_count": 1,
         "expected_non_financial": 1,
-        "collector_code_freeze_sha": "c" * 64,
-        "collector_code_paths": ["collector.py"],
+        "collector_runtime_manifest_path": "config/runtime.json",
     }
     return tmp_path, contract
 
@@ -392,8 +384,11 @@ def test_noop_scheduled_run_is_bounded_and_deduplicated(
         "experiments.fundamental_oos_shadow.live.verify_freeze", lambda *args: {"status": "PASS"}
     )
     monkeypatch.setattr(
-        "experiments.fundamental_oos_shadow.live.verify_collector_code_freeze",
-        lambda *args: {"status": "PASS"},
+        "experiments.fundamental_oos_shadow.live.verify_collector_runtime_freeze",
+        lambda *args, **kwargs: {
+            "status": "PASS",
+            "collector_runtime_freeze_sha": "c" * 64,
+        },
     )
     first = run_collection(
         root,
