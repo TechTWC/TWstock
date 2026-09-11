@@ -1,0 +1,243 @@
+{
+  "retrieved_at": "2026-09-11T09:39:21.332Z",
+  "source_url": "https://taiwanindex.com.tw/downloads/technical_notice?count=65535&page=1&year&month&category_id",
+  "selection_contract": {
+    "published_from": "2018-12-01",
+    "published_through": "2026-09-03",
+    "membership_related_only": true
+  },
+  "rows": [
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1295/tw",
+      "row": "2026/07/07 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：成分股納入禾伸堂 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1294/tw",
+      "row": "2026/07/03 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：成分股納入大量 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1283/tw",
+      "row": "2026/06/30 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：成分股刪除來億-KY 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1281/tw",
+      "row": "2026/06/25 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：成分股刪除富邦媒 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1276/tw",
+      "row": "2026/06/18 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：禾伸堂延期納入成分股 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1275/tw",
+      "row": "2026/06/18 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：大量延期納入成分股 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1270/tw",
+      "row": "2026/06/15 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：延期刪除來億-KY及富邦媒 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1262/tw",
+      "row": "2026/06/05 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股定期審核結果 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1217/tw",
+      "row": "2026/04/09 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：旺宏納入成分股 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1215/tw",
+      "row": "2026/04/02 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：欣興納入刪除成分股 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1205/tw",
+      "row": "2026/03/19 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：旺宏納入成分股延期 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1206/tw",
+      "row": "2026/03/19 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：欣興納入刪除成分股延期 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1199/tw",
+      "row": "2026/03/06 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股定期審核結果 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1173/tw",
+      "row": "2025/12/23 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：南亞科納入刪除成分股 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1170/tw",
+      "row": "2025/12/16 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：南亞科納入刪除成分股延期 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1156/tw",
+      "row": "2025/12/05 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1113/tw",
+      "row": "2025/09/15 臺灣證券交易所與富時羅素有限公司合編之臺灣指數系列指數成分股變動：永豐金融控股股份有限公司合併京城商業銀行股份有限公司 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1105/tw",
+      "row": "2025/09/05 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1108/tw",
+      "row": "2025/09/05 臺灣證券交易所與富時羅素有限公司合編之臺灣指數系列指數成分股變動：永豐金融控股股份有限公司合併京城商業銀行股份有限公司 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1085/tw",
+      "row": "2025/07/09 臺灣證券交易所與富時羅素有限公司合編之臺灣指數系列指數成分股變動：台新金融控股股份有限公司合併新光金融控股股份有限公司 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1082/tw",
+      "row": "2025/07/04 臺灣證券交易所與富時羅素有限公司合編之臺灣指數系列指數成分股變動：台新金融控股股份有限公司合併新光金融控股股份有限公司 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1055/tw",
+      "row": "2025/06/06 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股定期審核結果 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/1002/tw",
+      "row": "2025/03/07 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股定期審核結果 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/976/tw",
+      "row": "2024/12/24 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：AES Holding Co., Ltd.納入指數成分股 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/974/tw",
+      "row": "2024/12/19 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：AES Holding Co., Ltd.納入成分股延期 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/961/tw",
+      "row": "2024/12/06 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股定期審核結果 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/918/tw",
+      "row": "2024/09/06 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股定期審核結果 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/883/tw",
+      "row": "2024/06/07 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股定期審核結果 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/834/tw",
+      "row": "2024/03/01 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股定期審核結果 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/800/tw",
+      "row": "2023/12/01 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股定期審核結果 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/764/tw",
+      "row": "2023/09/01 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/719/tw",
+      "row": "2023/06/03 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/683/tw",
+      "row": "2023/03/04 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/654/tw",
+      "row": "2022/12/03 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/629/tw",
+      "row": "2022/09/03 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/604/tw",
+      "row": "2022/06/03 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/569/tw",
+      "row": "2022/03/05 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/554/tw",
+      "row": "2021/12/20 臺灣證券交易所與富時羅素有限公司合編之臺灣指數系列指數成分股變動：國巨股份有限公司併購奇力新電子股份有限公司 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/545/tw",
+      "row": "2021/12/16 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列指數成分股變動(接續)：中華開發金融控股股份有限公司併購中國人壽保險股份有限公司 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/541/tw",
+      "row": "2021/12/04 臺灣證券交易所與富時羅素有限公司合編之臺灣指數系列及臺灣高股息指數成分股變動：中華開發金融控股股份有限公司併購中國人壽保險股份有限公司 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/540/tw",
+      "row": "2021/12/04 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/511/tw",
+      "row": "2021/09/04 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/489/tw",
+      "row": "2021/06/05 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/464/tw",
+      "row": "2021/03/06 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/450/tw",
+      "row": "2021/01/05 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：刪除鎧勝控股有限公司 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/443/tw",
+      "row": "2020/12/18 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股變動：富采投資控股股份有限公司反向收購晶元光電股份有限公司及隆達電子股份有限公司 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/432/tw",
+      "row": "2020/12/04 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/414/tw",
+      "row": "2020/09/05 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/404/tw",
+      "row": "2020/07/03 臺灣證券交易所與富時羅素有限公司合編之臺灣指數系列成分股變動：大同股份有限公司成分股刪除 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/389/tw",
+      "row": "2020/06/06 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數定期審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/358/tw",
+      "row": "2020/03/07 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/340/tw",
+      "row": "2019/12/07 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/321/tw",
+      "row": "2019/09/07 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/303/tw",
+      "row": "2019/06/06 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/278/tw",
+      "row": "2019/02/27 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列成分股審核 定審結果"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/275/tw",
+      "row": "2019/01/22 臺灣證券交易所與富時羅素有限公司合編之臺灣指數系列成分股異動(接續)：刪除李長榮化學工業股份有限公司 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/273/tw",
+      "row": "2019/01/10 臺灣證券交易所與富時羅素有限公司合編之臺灣指數系列成分股異動 其他"
+    },
+    {
+      "href": "https://backend.taiwanindex.com.tw/api/downloadFile/TechnicalNotices/265/tw",
+      "row": "2018/12/07 臺灣證券交易所與富時國際有限公司合編之臺灣指數系列及臺灣高股息指數成分股審核 定審結果"
+    }
+  ]
+}

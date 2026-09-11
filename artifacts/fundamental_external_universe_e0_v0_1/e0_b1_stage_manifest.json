@@ -1,0 +1,51 @@
+{
+  "contract_id": "FUNDAMENTAL-V0.1-EXTERNAL-UNIVERSE-E0-B1",
+  "stage": "E0_B1_HISTORICAL_PIT_UNIVERSE_AND_SECURITY_MASTER",
+  "status": "DATA_NOT_READY",
+  "e0_b2_gate": "BLOCKED",
+  "observation_window": [
+    "2019-01-01",
+    "2026-09-03"
+  ],
+  "official_source_authorities_used": [
+    "TAIWAN_INDEX_PLUS"
+  ],
+  "source_discovery": {
+    "regular_review_candidates": 31,
+    "interim_or_extraordinary_candidates": 27,
+    "raw_index_capture_sha256": "be44775a427bc392e612dfc599f73d2c236f8da8f05e5f15e8b0e0b61b219df4",
+    "notice_documents_retrieved": 0
+  },
+  "seed_snapshot": {
+    "source": "",
+    "date": "",
+    "status": "FAIL",
+    "reason": "MISSING_OFFICIAL_FULL_CONSTITUENT_SEED"
+  },
+  "verified_membership_intervals": 0,
+  "unverified_membership_intervals": 31,
+  "taiwan50_pit_reconstruction": "FAIL",
+  "midcap100_pit_reconstruction": "FAIL",
+  "interval_count_reconciliation": "FAIL",
+  "unique_midcap100_historical_symbols": 0,
+  "unique_ex_0050_symbols": 0,
+  "non_financial_candidate_symbols": 0,
+  "financial_excluded": 0,
+  "removed_delisted_merged_symbols_retained": 0,
+  "security_master_lifecycle": "FAIL",
+  "governance": {
+    "outcome_files_read": [],
+    "future_returns_computed": false,
+    "frozen_model_modified": false,
+    "frozen_model_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+    "network_acquisition_contract_enabled": true,
+    "reconstruction_script_network_requests": 0
+  },
+  "unresolved": [
+    "official full-membership seed snapshot",
+    "raw linked technical-notice documents and effective dates",
+    "complete regular/interim event reconciliation",
+    "historical TWSE/MOPS security lifecycle for reconstructed symbols"
+  ],
+  "next_allowed_action": "continue E0-B1 official evidence acquisition; E0-B2 and E1 remain forbidden"
+}

@@ -1,0 +1,5 @@
+input,path,status,rows,sha256,detail
+historical_membership,data/research/fundamental_external_universe_e0_v0_1/historical_external_membership.csv,MISSING,0,,required pre-outcome input is not present
+security_master,data/research/fundamental_external_universe_e0_v0_1/external_security_master.csv,MISSING,0,,required pre-outcome input is not present
+mops_coverage,data/research/fundamental_external_universe_e0_v0_1/external_mops_pit_coverage.csv,MISSING,0,,required pre-outcome input is not present
+expected_support,data/research/fundamental_external_universe_e0_v0_1/external_expected_support.csv,MISSING,0,,required pre-outcome input is not present

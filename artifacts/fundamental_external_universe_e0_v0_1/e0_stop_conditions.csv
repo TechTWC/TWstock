@@ -1,0 +1,6 @@
+condition,status,evidence
+PIT_EXTERNAL_UNIVERSE,BLOCKED,required pre-outcome input is not present
+SURVIVORSHIP_AND_DELISTING,BLOCKED,required pre-outcome input is not present
+EXTERNAL_MOPS_PIT_COVERAGE,BLOCKED,required pre-outcome input is not present
+EXPECTED_SUPPORT_BY_HORIZON,BLOCKED,required pre-outcome input is not present
+CROSS_INPUT_SYMBOL_CLOSURE,BLOCKED,required inputs have not all passed schema/content validation

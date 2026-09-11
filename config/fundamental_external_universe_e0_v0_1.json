@@ -1,0 +1,36 @@
+{
+  "contract_id": "FUNDAMENTAL-V0.1-EXTERNAL-UNIVERSE-E0",
+  "stage": "E0_DATA_AND_COHORT_FEASIBILITY",
+  "issue": 35,
+  "audit_as_of_date": "2026-09-11",
+  "freeze_head": "188aa8120a6c35b3b6377490f1ed9456566824bd",
+  "frozen_model_config_path": "config/fundamental_quality_valuation_v0_1.json",
+  "frozen_model_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+  "frozen_0050_universe_path": "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv",
+  "frozen_0050_universe_hash": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+  "frozen_0050_financial_path": "artifacts/0050_fundamental_v0_1/0050_normalized_financials_pit_v0.1.csv",
+  "frozen_0050_mops_checkpoint_path": "artifacts/0050_fundamental_v0_1/checkpoints/mops_20260904/checkpoint.json",
+  "external_input_root": "data/research/fundamental_external_universe_e0_v0_1",
+  "primary_cohort_policy": "HISTORICAL_PIT_TAIWAN_MID_CAP_100_NON_FINANCIAL_EX_0050",
+  "primary_cohort_source_authority": "TAIWAN_INDEX_PLUS_OR_FTSE_RUSSELL_OFFICIAL_RECORDS",
+  "primary_benchmark": "0050",
+  "primary_horizons": [60, 120, 252, 504],
+  "minimum_observations_per_bucket_horizon": 30,
+  "minimum_unique_issuers_per_bucket_horizon": 5,
+  "primary_bucket_grid": {
+    "FUNDAMENTAL_STATE": ["IMPROVING", "STABLE", "DETERIORATING"],
+    "QUALITY": ["GOOD", "ACCEPTABLE", "WEAK"],
+    "VALUATION": ["LOW", "NORMAL", "HIGH"]
+  },
+  "no_future_returns": true,
+  "no_model_change": true,
+  "no_threshold_change": true,
+  "no_composite_score": true,
+  "no_network_requests": true,
+  "required_external_inputs": {
+    "historical_membership": "historical_external_membership.csv",
+    "security_master": "external_security_master.csv",
+    "mops_coverage": "external_mops_pit_coverage.csv",
+    "expected_support": "external_expected_support.csv"
+  }
+}
