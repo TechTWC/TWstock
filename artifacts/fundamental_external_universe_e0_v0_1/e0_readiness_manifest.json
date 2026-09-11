@@ -1,0 +1,100 @@
+{
+  "contract_id": "FUNDAMENTAL-V0.1-EXTERNAL-UNIVERSE-E0",
+  "stage": "E0_DATA_AND_COHORT_FEASIBILITY",
+  "issue": 35,
+  "audit_as_of_date": "2026-09-11",
+  "status": "DATA_NOT_READY",
+  "e1_return_analysis_gate": "BLOCKED",
+  "frozen_identity": {
+    "freeze_head": "188aa8120a6c35b3b6377490f1ed9456566824bd",
+    "model_sha256": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+    "original_0050_universe_sha256": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+    "original_0050_financial_sha256": "5fcee7b023b5c134842c4fbf154f26f9782387774b5bd85f8d8e4bd0695d4647",
+    "original_0050_mops_checkpoint_sha256": "470fc7a9d8ce132cff45331ae256bbc3950579a1b3905324472a1623e9a31a35",
+    "e0_config_sha256": "8f1c2f25a7b6bc2aea93828f48f9824de1fedbf8c87985181e572291593ac058",
+    "e0_audit_code_sha256": "53b739acf025ae108ffcc3d84db3a464eae7c3fcc725d5c14e8bb7c99b780af8"
+  },
+  "frozen_repository_coverage": {
+    "current_0050_universe_rows": 50,
+    "current_0050_unique_symbols": 50,
+    "current_0050_non_financial_symbols": 38,
+    "current_0050_financial_symbols": 12,
+    "normalized_financial_rows": 2067,
+    "normalized_financial_unique_symbols": 50,
+    "normalized_external_symbols": 0,
+    "mops_checkpoint_successful_company_archives": 50,
+    "historical_membership_available": false,
+    "survivorship_or_delisting_coverage_available": false
+  },
+  "external_inputs": [
+    {
+      "input": "historical_membership",
+      "path": "data/research/fundamental_external_universe_e0_v0_1/historical_external_membership.csv",
+      "status": "MISSING",
+      "rows": 0,
+      "sha256": "",
+      "detail": "required pre-outcome input is not present"
+    },
+    {
+      "input": "security_master",
+      "path": "data/research/fundamental_external_universe_e0_v0_1/external_security_master.csv",
+      "status": "MISSING",
+      "rows": 0,
+      "sha256": "",
+      "detail": "required pre-outcome input is not present"
+    },
+    {
+      "input": "mops_coverage",
+      "path": "data/research/fundamental_external_universe_e0_v0_1/external_mops_pit_coverage.csv",
+      "status": "MISSING",
+      "rows": 0,
+      "sha256": "",
+      "detail": "required pre-outcome input is not present"
+    },
+    {
+      "input": "expected_support",
+      "path": "data/research/fundamental_external_universe_e0_v0_1/external_expected_support.csv",
+      "status": "MISSING",
+      "rows": 0,
+      "sha256": "",
+      "detail": "required pre-outcome input is not present"
+    }
+  ],
+  "stop_conditions": [
+    {
+      "condition": "PIT_EXTERNAL_UNIVERSE",
+      "status": "BLOCKED",
+      "evidence": "required pre-outcome input is not present"
+    },
+    {
+      "condition": "SURVIVORSHIP_AND_DELISTING",
+      "status": "BLOCKED",
+      "evidence": "required pre-outcome input is not present"
+    },
+    {
+      "condition": "EXTERNAL_MOPS_PIT_COVERAGE",
+      "status": "BLOCKED",
+      "evidence": "required pre-outcome input is not present"
+    },
+    {
+      "condition": "EXPECTED_SUPPORT_BY_HORIZON",
+      "status": "BLOCKED",
+      "evidence": "required pre-outcome input is not present"
+    },
+    {
+      "condition": "CROSS_INPUT_SYMBOL_CLOSURE",
+      "status": "BLOCKED",
+      "evidence": "required inputs have not all passed schema/content validation"
+    }
+  ],
+  "governance": {
+    "network_requests_performed": 0,
+    "future_returns_computed": false,
+    "outcome_files_read": [],
+    "frozen_model_modified": false,
+    "thresholds_modified": false,
+    "composite_score_created": false,
+    "external_cohort_frozen": false
+  },
+  "next_allowed_action": "acquire and freeze the four required PIT inputs, then rerun E0; E1 remains forbidden"
+}
