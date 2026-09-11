@@ -1,0 +1,32 @@
+{
+  "contract_stage": "OOS-B",
+  "failed_closed_events": 0,
+  "financial_exclusions_observed": 0,
+  "formal_signals_appended": 0,
+  "frozen_model_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+  "frozen_universe_hash": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+  "hash_chain_validation": "PASS",
+  "historical_backfill_enabled": false,
+  "live_collection_mode": "MANUAL_ONLY",
+  "live_smoke_run_timestamp": "2026-09-11T00:41:47.420957+00:00",
+  "network_requests": {
+    "FinMind": 0,
+    "MOPS": 38,
+    "Other": 0,
+    "TWSE": 0
+  },
+  "oos_start_timestamp": "2026-09-11T00:00:00+08:00",
+  "pending_candidates": {
+    "MOPS_DISCOVERED": 0,
+    "PENDING_FINANCIAL_DATA": 0,
+    "PENDING_SESSION": 0,
+    "PENDING_VALUATION_DATA": 0
+  },
+  "post_oos_mops_filings_discovered": 0,
+  "pre_oos_exclusions_observed": 1968,
+  "raw_snapshots_created": 38,
+  "scheduled_collection_enabled": false,
+  "signal_ledger_total_records": 0,
+  "snapshot_manifests_validated": 38,
+  "source_conflicts": 0
+}

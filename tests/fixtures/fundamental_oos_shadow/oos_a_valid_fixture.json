@@ -1,0 +1,80 @@
+{
+  "signal": {
+    "event_id": "0050-FQV-OOS-2330-2026Q3-001",
+    "symbol": "2330",
+    "company": "台積電",
+    "sector_logic": "GENERAL",
+    "predictive_eligible": true,
+    "period_end": "2026-09-30",
+    "mops_announcement_timestamp": "2026-11-13T15:00:00+08:00",
+    "mops_retrieved_at": "2026-11-13T15:05:00+08:00",
+    "financial_source_retrieved_at": "2026-11-14T08:00:00+08:00",
+    "valuation_source_retrieved_at": "2026-11-14T14:00:00+08:00",
+    "information_cutoff_timestamp": "2026-11-14T14:05:00+08:00",
+    "signal_generated_at": "2026-11-14T14:05:00+08:00",
+    "signal_date": "2026-11-14",
+    "first_trade_date": "2026-11-16",
+    "quality": "GOOD",
+    "fundamental_state": "IMPROVING",
+    "state_detail": "CONFIRMED_GROWTH",
+    "valuation": "NORMAL",
+    "data_quality": "OK",
+    "reason_codes": [
+      "SYNTHETIC_OOS_A_FIXTURE",
+      "ALL_REQUIRED_SOURCES_AVAILABLE"
+    ],
+    "financial_source_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "mops_source_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valuation_source_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "model_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+    "universe_hash": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+    "status": "ACTIVE_SIGNAL"
+  },
+  "source_snapshots": [
+    {
+      "snapshot_id": "fixture-mops-001",
+      "event_id": "0050-FQV-OOS-2330-2026Q3-001",
+      "snapshot_type": "MOPS",
+      "retrieved_at": "2026-11-13T15:05:00+08:00",
+      "source_url_or_identifier": "fixture://mops/2330/2026Q3",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "artifact_path": "artifacts/0050_fundamental_oos_v0_1/raw/fixture/mops.json",
+      "processing_status": "READY"
+    },
+    {
+      "snapshot_id": "fixture-financial-001",
+      "event_id": "0050-FQV-OOS-2330-2026Q3-001",
+      "snapshot_type": "FINANCIAL",
+      "retrieved_at": "2026-11-14T08:00:00+08:00",
+      "source_url_or_identifier": "fixture://financial/2330/2026Q3",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "artifact_path": "artifacts/0050_fundamental_oos_v0_1/raw/fixture/financial.json",
+      "processing_status": "READY"
+    },
+    {
+      "snapshot_id": "fixture-valuation-001",
+      "event_id": "0050-FQV-OOS-2330-2026Q3-001",
+      "snapshot_type": "VALUATION",
+      "retrieved_at": "2026-11-14T14:00:00+08:00",
+      "source_url_or_identifier": "fixture://valuation/2330/2026-11-14",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "artifact_path": "artifacts/0050_fundamental_oos_v0_1/raw/fixture/valuation.json",
+      "processing_status": "READY"
+    },
+    {
+      "snapshot_id": "fixture-session-001",
+      "event_id": "0050-FQV-OOS-2330-2026Q3-001",
+      "snapshot_type": "MARKET_SESSION",
+      "retrieved_at": "2026-11-14T14:02:00+08:00",
+      "source_url_or_identifier": "fixture://twse-and-0050-sessions/2026-11",
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "artifact_path": "artifacts/0050_fundamental_oos_v0_1/raw/fixture/sessions.json",
+      "processing_status": "READY"
+    }
+  ],
+  "session_snapshot": {
+    "twse_sessions": ["2026-11-13", "2026-11-16", "2026-11-17"],
+    "stock_sessions": ["2026-11-13", "2026-11-16", "2026-11-17"],
+    "benchmark_sessions": ["2026-11-13", "2026-11-16", "2026-11-17"]
+  }
+}

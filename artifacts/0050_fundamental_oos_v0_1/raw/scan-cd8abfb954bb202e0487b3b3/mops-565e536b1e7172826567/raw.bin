@@ -1,0 +1,1925 @@
+<html><head><title>電子資料查詢作業</title><meta http-equiv="Content-Type" content="text/html;charset=big5"><link rel='stylesheet' href='/ppp.css' type='text/css'></head><body>
+<style text='text/css'>
+<!--
+	 TH{color:#000099;font-weight:normal;font-size:10pt}
+-->
+</style>
+<script>
+function readfile(kind,coid,filename)
+{
+	var f = document.forms[0];
+	f.step.value = 9;
+	f.kind.value = kind;
+	f.co_id.value = coid;
+	f.filename.value = filename;
+	f.submit();
+}
+var win = null;
+function readfile2(kind,coid,filename)
+{
+	var f = document.forms[0];
+	var today = new Date();
+	var rand = today.getTime();
+	if (win==null || win.closed){
+		win = window.open('','download'+rand);
+	}
+	f.target = 'download'+rand;
+	f.step.value = 9;
+	f.kind.value = kind;
+	f.co_id.value = coid;
+	f.filename.value = filename;
+	f.submit();
+	f.target = this;
+}
+</script>
+<center>
+<h2><font color="blue">電子資料查詢作業</font></h2>
+<form action='/server-java/t57sb01' method='post' name='fm2'>
+<input type='hidden' name='colorchg' value='1'>
+<input type='hidden' name='step'>
+<input type='hidden' name='kind'>
+<input type='hidden' name='co_id'>
+<input type='hidden' name='filename'>
+<input type='hidden' name='DEBUG' value=''>
+公司名稱：南亞科<br>會計期間：
+曆年制
+<br><table border=0  width=100% >
+<tr ><td style="padding-left:75%;"><font color='red' size='2'>財務報告更(補)正：為該公司最近一次更<br>補正資訊，該公司歷次 更補正資訊，請<br>至「財務報告更(補)正 查詢作業」查詢<br></font></td></tr>
+<table border='5' bordercolor='#ff6600' bgcolor='#ffffff' align='center'>
+<tr><th>證券代號</th><th>資料年度</th><th>資料類型</th><th>結案類型</th><th>性質</th><th>資料細節說明</th><th>備註</th><th>電子檔案</th><th>檔案大小</th><th>上傳日期</th><th>財務報告更(補)正</th></tr>
+<tr>
+<td align='center'>2408</td><td align='center'>89 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200002_2408_A01.doc");'>200002_2408_A01.doc</a></td><td align='right'>                413,184</td>
+<td align='cetern'>89/09/04 08:54:24</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>89 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200003_2408_A01.doc");'>200003_2408_A01.doc</a></td><td align='right'>                253,952</td>
+<td align='cetern'>89/11/10 16:32:54</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>89 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200004_2408_A01.doc");'>200004_2408_A01.doc</a></td><td align='right'>                540,672</td>
+<td align='cetern'>90/04/27 16:26:59</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>89 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200004_2408_A02.doc");'>200004_2408_A02.doc</a></td><td align='right'>                318,976</td>
+<td align='cetern'>90/04/27 16:27:56</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>90 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200101_2408_A01.doc");'>200101_2408_A01.doc</a></td><td align='right'>                265,216</td>
+<td align='cetern'>90/05/02 08:10:40</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>90 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200102_2408_A01.wdl");'>200102_2408_A01.wdl</a></td><td align='right'>                198,427</td>
+<td align='cetern'>90/09/04 09:03:41</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>90 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200103_2408_A01.wdl");'>200103_2408_A01.wdl</a></td><td align='right'>                131,850</td>
+<td align='cetern'>90/11/15 17:14:17</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>90 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200104_2408_A01.doc");'>200104_2408_A01.doc</a></td><td align='right'>              1,081,344</td>
+<td align='cetern'>91/04/16 14:06:46</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>90 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200104_2408_A02.doc");'>200104_2408_A02.doc</a></td><td align='right'>                582,144</td>
+<td align='cetern'>91/04/16 14:08:02</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>91 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200201_2408_A01.doc");'>200201_2408_A01.doc</a></td><td align='right'>                533,504</td>
+<td align='cetern'>91/04/16 14:09:09</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>91 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200202_2408_A01.zip");'>200202_2408_A01.zip</a></td><td align='right'>              1,156,873</td>
+<td align='cetern'>91/08/09 10:01:07</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>91 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200203_2408_A01.zip");'>200203_2408_A01.zip</a></td><td align='right'>                378,575</td>
+<td align='cetern'>91/10/31 10:37:04</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>91 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200204_2408_A01.wdl");'>200204_2408_A01.wdl</a></td><td align='right'>                500,542</td>
+<td align='cetern'>92/04/24 10:04:00</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>91 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200204_2408_A02.wdl");'>200204_2408_A02.wdl</a></td><td align='right'>                207,580</td>
+<td align='cetern'>92/04/24 10:04:58</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>92 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200301_2408_A01.wdl");'>200301_2408_A01.wdl</a></td><td align='right'>                246,419</td>
+<td align='cetern'>92/04/30 10:54:04</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>92 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile("A","2408","200302_2408_A01.doc");'>200302_2408_A01.doc</a></td><td align='right'>              1,038,848</td>
+<td align='cetern'>92/08/29 16:43:02</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>92 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200303_2408_A01.pdf");'>200303_2408_A01.pdf</a></td><td align='right'>              2,456,683</td>
+<td align='cetern'>92/10/31 08:18:14</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>92 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200304_2408_A01.pdf");'>200304_2408_A01.pdf</a></td><td align='right'>                512,890</td>
+<td align='cetern'>93/04/30 13:40:59</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>92 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200304_2408_A02.pdf");'>200304_2408_A02.pdf</a></td><td align='right'>                287,393</td>
+<td align='cetern'>93/04/30 13:41:54</td>
+<td align='center'><input type='button' onclick="location.href='http://mopsov.twse.com.tw/mops/web/t56sb31?step=2&colorchg=1&TYPEK=sii&kind=&CID=2408&YEAR_SEASON=200304&RID=2&DTYPE=02&SKEY=1&firstin=1';" value='詳細資料'></td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>93 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200401_2408_A01.pdf");'>200401_2408_A01.pdf</a></td><td align='right'>                259,043</td>
+<td align='cetern'>93/04/30 13:47:10</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>93 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200402_2408_A01.pdf");'>200402_2408_A01.pdf</a></td><td align='right'>                392,321</td>
+<td align='cetern'>93/08/27 18:21:12</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>93 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200403_2408_A01.pdf");'>200403_2408_A01.pdf</a></td><td align='right'>                307,964</td>
+<td align='cetern'>93/10/29 15:55:47</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>93 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200404_2408_A01.pdf");'>200404_2408_A01.pdf</a></td><td align='right'>                502,533</td>
+<td align='cetern'>94/05/03 18:23:24</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>93 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200404_2408_A02.pdf");'>200404_2408_A02.pdf</a></td><td align='right'>                348,319</td>
+<td align='cetern'>94/05/03 11:39:30</td>
+<td align='center'><input type='button' onclick="location.href='http://mopsov.twse.com.tw/mops/web/t56sb31?step=2&colorchg=1&TYPEK=sii&kind=&CID=2408&YEAR_SEASON=200404&RID=2&DTYPE=02&SKEY=1&firstin=1';" value='詳細資料'></td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>94 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200501_2408_A01.pdf");'>200501_2408_A01.pdf</a></td><td align='right'>                228,767</td>
+<td align='cetern'>94/05/03 18:08:41</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>94 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200502_2408_A01.pdf");'>200502_2408_A01.pdf</a></td><td align='right'>                461,529</td>
+<td align='cetern'>94/08/30 18:33:52</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>94 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200502_2408_A02.pdf");'>200502_2408_A02.pdf</a></td><td align='right'>                355,627</td>
+<td align='cetern'>94/09/12 18:14:55</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>94 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200503_2408_A01.pdf");'>200503_2408_A01.pdf</a></td><td align='right'>                395,360</td>
+<td align='cetern'>94/11/01 09:22:44</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>94 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200504_2408_A01.pdf");'>200504_2408_A01.pdf</a></td><td align='right'>                697,693</td>
+<td align='cetern'>95/04/28 11:06:27</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>94 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200504_2408_A02.pdf");'>200504_2408_A02.pdf</a></td><td align='right'>                418,217</td>
+<td align='cetern'>95/04/28 11:06:51</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>95 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200601_2408_A01.pdf");'>200601_2408_A01.pdf</a></td><td align='right'>                343,897</td>
+<td align='cetern'>95/05/02 16:22:58</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>95 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200602_2408_A01.pdf");'>200602_2408_A01.pdf</a></td><td align='right'>                498,719</td>
+<td align='cetern'>95/08/31 14:24:13</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>95 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200602_2408_A02.pdf");'>200602_2408_A02.pdf</a></td><td align='right'>                380,315</td>
+<td align='cetern'>95/09/13 15:15:49</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>95 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200603_2408_A01.pdf");'>200603_2408_A01.pdf</a></td><td align='right'>                369,229</td>
+<td align='cetern'>95/10/31 14:44:52</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>95 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200604_2408_A01.pdf");'>200604_2408_A01.pdf</a></td><td align='right'>                444,588</td>
+<td align='cetern'>96/04/25 17:47:46</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>95 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200604_2408_A02.pdf");'>200604_2408_A02.pdf</a></td><td align='right'>                394,939</td>
+<td align='cetern'>96/04/25 17:48:11</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>96 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200701_2408_A01.pdf");'>200701_2408_A01.pdf</a></td><td align='right'>                372,310</td>
+<td align='cetern'>96/04/30 12:12:26</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>96 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200702_2408_A01.pdf");'>200702_2408_A01.pdf</a></td><td align='right'>                445,172</td>
+<td align='cetern'>96/08/31 13:07:32</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>96 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200702_2408_A02.pdf");'>200702_2408_A02.pdf</a></td><td align='right'>                384,838</td>
+<td align='cetern'>96/08/31 13:07:51</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>96 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200703_2408_A01.pdf");'>200703_2408_A01.pdf</a></td><td align='right'>                361,486</td>
+<td align='cetern'>96/10/31 11:43:15</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>96 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200704_2408_A01.pdf");'>200704_2408_A01.pdf</a></td><td align='right'>                448,725</td>
+<td align='cetern'>97/04/30 16:58:53</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>96 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200704_2408_A02.pdf");'>200704_2408_A02.pdf</a></td><td align='right'>                407,066</td>
+<td align='cetern'>97/04/30 16:59:24</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>97 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200801_2408_A01.pdf");'>200801_2408_A01.pdf</a></td><td align='right'>                380,017</td>
+<td align='cetern'>97/04/30 17:01:16</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>97 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200801_2408_A02.pdf");'>200801_2408_A02.pdf</a></td><td align='right'>                244,501</td>
+<td align='cetern'>97/04/30 17:02:49</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>97 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200802_2408_A01.pdf");'>200802_2408_A01.pdf</a></td><td align='right'>                432,714</td>
+<td align='cetern'>97/08/29 14:38:18</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>97 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200802_2408_A02.pdf");'>200802_2408_A02.pdf</a></td><td align='right'>                404,153</td>
+<td align='cetern'>97/08/29 14:38:37</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>97 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200803_2408_A01.pdf");'>200803_2408_A01.pdf</a></td><td align='right'>                371,137</td>
+<td align='cetern'>97/10/30 18:04:39</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>97 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200803_2408_A02.pdf");'>200803_2408_A02.pdf</a></td><td align='right'>                241,383</td>
+<td align='cetern'>97/10/30 18:04:52</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>97 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200804_2408_A01.pdf");'>200804_2408_A01.pdf</a></td><td align='right'>                448,628</td>
+<td align='cetern'>98/04/30 11:05:53</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>97 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200804_2408_A02.pdf");'>200804_2408_A02.pdf</a></td><td align='right'>                403,429</td>
+<td align='cetern'>98/04/30 11:06:34</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>98 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200901_2408_A01.pdf");'>200901_2408_A01.pdf</a></td><td align='right'>                365,317</td>
+<td align='cetern'>98/04/30 17:35:22</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>98 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200901_2408_A02.pdf");'>200901_2408_A02.pdf</a></td><td align='right'>                279,299</td>
+<td align='cetern'>98/04/30 17:35:41</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>98 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200902_2408_A01.pdf");'>200902_2408_A01.pdf</a></td><td align='right'>                437,225</td>
+<td align='cetern'>98/08/28 16:40:42</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>98 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200902_2408_A02.pdf");'>200902_2408_A02.pdf</a></td><td align='right'>                400,442</td>
+<td align='cetern'>98/08/28 16:40:55</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>98 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200903_2408_A01.pdf");'>200903_2408_A01.pdf</a></td><td align='right'>                371,676</td>
+<td align='cetern'>98/10/30 14:40:11</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>98 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200903_2408_A02.pdf");'>200903_2408_A02.pdf</a></td><td align='right'>                279,611</td>
+<td align='cetern'>98/10/30 14:40:25</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>98 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200904_2408_A01.pdf");'>200904_2408_A01.pdf</a></td><td align='right'>                361,197</td>
+<td align='cetern'>99/04/22 15:11:15</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>98 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","200904_2408_A02.pdf");'>200904_2408_A02.pdf</a></td><td align='right'>                333,218</td>
+<td align='cetern'>99/04/22 15:11:30</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>99 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201001_2408_A01.pdf");'>201001_2408_A01.pdf</a></td><td align='right'>                298,518</td>
+<td align='cetern'>99/04/29 16:23:58</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>99 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201001_2408_A02.pdf");'>201001_2408_A02.pdf</a></td><td align='right'>                234,501</td>
+<td align='cetern'>99/04/29 16:24:32</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>99 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201002_2408_A01.pdf");'>201002_2408_A01.pdf</a></td><td align='right'>                323,003</td>
+<td align='cetern'>99/08/30 15:24:29</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>99 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201002_2408_A02.pdf");'>201002_2408_A02.pdf</a></td><td align='right'>                298,708</td>
+<td align='cetern'>99/08/30 15:25:22</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>99 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201003_2408_A01.pdf");'>201003_2408_A01.pdf</a></td><td align='right'>                309,091</td>
+<td align='cetern'>99/10/28 16:13:22</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>99 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201003_2408_A02.pdf");'>201003_2408_A02.pdf</a></td><td align='right'>                241,728</td>
+<td align='cetern'>99/10/28 16:17:00</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>99 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201004_2408_A01.pdf");'>201004_2408_A01.pdf</a></td><td align='right'>                419,761</td>
+<td align='cetern'>100/05/03 09:06:21</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>99 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201004_2408_A02.pdf");'>201004_2408_A02.pdf</a></td><td align='right'>                337,294</td>
+<td align='cetern'>100/05/03 09:05:24</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>100 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201101_2408_A01.pdf");'>201101_2408_A01.pdf</a></td><td align='right'>                311,458</td>
+<td align='cetern'>100/05/03 14:00:42</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>100 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201101_2408_A02.pdf");'>201101_2408_A02.pdf</a></td><td align='right'>                248,378</td>
+<td align='cetern'>100/05/03 14:04:43</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>100 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201102_2408_A01.pdf");'>201102_2408_A01.pdf</a></td><td align='right'>                564,618</td>
+<td align='cetern'>100/08/30 09:10:47</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>100 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201102_2408_A02.pdf");'>201102_2408_A02.pdf</a></td><td align='right'>                534,235</td>
+<td align='cetern'>100/08/30 09:11:13</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>100 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201103_2408_A01.pdf");'>201103_2408_A01.pdf</a></td><td align='right'>                300,116</td>
+<td align='cetern'>100/10/28 16:31:46</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>100 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201103_2408_A02.pdf");'>201103_2408_A02.pdf</a></td><td align='right'>                243,421</td>
+<td align='cetern'>100/10/28 16:32:11</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>100 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201104_2408_A01.pdf");'>201104_2408_A01.pdf</a></td><td align='right'>                343,550</td>
+<td align='cetern'>101/03/27 13:58:13</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>100 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201104_2408_A02.pdf");'>201104_2408_A02.pdf</a></td><td align='right'>                336,865</td>
+<td align='cetern'>101/03/27 13:58:37</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>101 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201201_2408_A01.pdf");'>201201_2408_A01.pdf</a></td><td align='right'>                301,668</td>
+<td align='cetern'>101/04/27 17:27:36</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>101 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201201_2408_A02.pdf");'>201201_2408_A02.pdf</a></td><td align='right'>                256,138</td>
+<td align='cetern'>101/05/10 14:56:25</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>101 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201202_2408_A01.pdf");'>201202_2408_A01.pdf</a></td><td align='right'>                336,778</td>
+<td align='cetern'>101/08/29 10:14:10</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>101 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201202_2408_A02.pdf");'>201202_2408_A02.pdf</a></td><td align='right'>                328,953</td>
+<td align='cetern'>101/08/29 10:14:29</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>101 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201203_2408_A01.pdf");'>201203_2408_A01.pdf</a></td><td align='right'>                528,504</td>
+<td align='cetern'>101/10/30 10:31:07</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>101 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201203_2408_A02.pdf");'>201203_2408_A02.pdf</a></td><td align='right'>                411,296</td>
+<td align='cetern'>101/10/30 10:31:26</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>101 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母公司財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201204_2408_A01.pdf");'>201204_2408_A01.pdf</a></td><td align='right'>                346,770</td>
+<td align='cetern'>102/03/28 17:16:34</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>101 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>母子公司合併報表</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201204_2408_A02.pdf");'>201204_2408_A02.pdf</a></td><td align='right'>                344,802</td>
+<td align='cetern'>102/03/28 17:17:12</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>102 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>母子公司合併財務季報告</td><td><a href='javascript:readfile2("A","2408","201301_2408_AI1.pdf");'>201301_2408_AI1.pdf</a></td><td align='right'>                388,118</td>
+<td align='cetern'>102/05/15 08:10:31</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>102 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>母子公司合併財務季報告</td><td><a href='javascript:readfile2("A","2408","201302_2408_AI1.pdf");'>201302_2408_AI1.pdf</a></td><td align='right'>                321,164</td>
+<td align='cetern'>102/08/12 16:03:41</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>102 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>母子公司合併財務季報告</td><td><a href='javascript:readfile2("A","2408","201303_2408_AI1.pdf");'>201303_2408_AI1.pdf</a></td><td align='right'>                321,981</td>
+<td align='cetern'>102/11/12 15:58:52</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>102 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>母子公司合併財務報告</td><td><a href='javascript:readfile2("A","2408","201304_2408_AI1.pdf");'>201304_2408_AI1.pdf</a></td><td align='right'>              3,914,730</td>
+<td align='cetern'>103/03/18 17:22:33</td>
+<td align='center'><input type='button' onclick="location.href='http://mopsov.twse.com.tw/mops/web/t56sb31_q1?step=2&colorchg=1&TYPEK=sii&kind=&CID=2408&YEAR_SEASON=201304&RID=4&DTYPE=I1&SKEY=1&firstin=1';" value='詳細資料'></td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>102 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>個體財務報告</td><td><a href='javascript:readfile2("A","2408","201304_2408_AI3.pdf");'>201304_2408_AI3.pdf</a></td><td align='right'>              3,664,542</td>
+<td align='cetern'>103/03/18 17:23:31</td>
+<td align='center'><input type='button' onclick="location.href='http://mopsov.twse.com.tw/mops/web/t56sb31_q1?step=2&colorchg=1&TYPEK=sii&kind=&CID=2408&YEAR_SEASON=201304&RID=5&DTYPE=I3&SKEY=1&firstin=1';" value='詳細資料'></td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>103 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>母子公司合併財務季報告</td><td><a href='javascript:readfile2("A","2408","201401_2408_AI1.pdf");'>201401_2408_AI1.pdf</a></td><td align='right'>              2,462,125</td>
+<td align='cetern'>103/05/09 14:07:31</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>103 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>母子公司合併財務季報告</td><td><a href='javascript:readfile2("A","2408","201402_2408_AI1.pdf");'>201402_2408_AI1.pdf</a></td><td align='right'>              2,641,514</td>
+<td align='cetern'>103/08/08 15:18:32</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>103 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>母子公司合併財務季報告</td><td><a href='javascript:readfile2("A","2408","201403_2408_AI1.pdf");'>201403_2408_AI1.pdf</a></td><td align='right'>              2,623,672</td>
+<td align='cetern'>103/11/10 16:22:17</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>103 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>母子公司合併財務報告</td><td><a href='javascript:readfile2("A","2408","201404_2408_AI1.pdf");'>201404_2408_AI1.pdf</a></td><td align='right'>              3,838,275</td>
+<td align='cetern'>104/03/12 15:32:55</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>103 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>個體財務報告</td><td><a href='javascript:readfile2("A","2408","201404_2408_AI3.pdf");'>201404_2408_AI3.pdf</a></td><td align='right'>              3,441,504</td>
+<td align='cetern'>104/03/12 15:33:54</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>104 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201501_2408_AI1.pdf");'>201501_2408_AI1.pdf</a></td><td align='right'>              2,693,485</td>
+<td align='cetern'>104/05/11 17:05:36</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>104 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201501_2408_AIA.pdf");'>201501_2408_AIA.pdf</a></td><td align='right'>              6,814,198</td>
+<td align='cetern'>104/10/19 15:44:23</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>104 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201502_2408_AI1.pdf");'>201502_2408_AI1.pdf</a></td><td align='right'>              3,200,694</td>
+<td align='cetern'>104/08/10 16:55:51</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>104 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201502_2408_AIA.pdf");'>201502_2408_AIA.pdf</a></td><td align='right'>              1,934,877</td>
+<td align='cetern'>104/10/19 15:44:48</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>104 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201503_2408_AI1.pdf");'>201503_2408_AI1.pdf</a></td><td align='right'>              2,834,029</td>
+<td align='cetern'>104/11/10 17:35:17</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>104 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201503_2408_AIA.pdf");'>201503_2408_AIA.pdf</a></td><td align='right'>              3,058,132</td>
+<td align='cetern'>105/01/20 10:58:37</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>104 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201504_2408_AI1.pdf");'>201504_2408_AI1.pdf</a></td><td align='right'>              4,218,841</td>
+<td align='cetern'>105/03/15 18:41:56</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>104 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201504_2408_AI3.pdf");'>201504_2408_AI3.pdf</a></td><td align='right'>              3,503,364</td>
+<td align='cetern'>105/03/15 18:42:43</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>104 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201504_2408_AIA.pdf");'>201504_2408_AIA.pdf</a></td><td align='right'>              1,589,819</td>
+<td align='cetern'>105/06/14 10:48:57</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>104 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201504_2408_AIC.pdf");'>201504_2408_AIC.pdf</a></td><td align='right'>              1,445,038</td>
+<td align='cetern'>105/06/14 10:49:18</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>105 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201601_2408_AI1.pdf");'>201601_2408_AI1.pdf</a></td><td align='right'>              2,390,109</td>
+<td align='cetern'>105/05/10 17:54:41</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>105 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201601_2408_AIA.pdf");'>201601_2408_AIA.pdf</a></td><td align='right'>              1,315,667</td>
+<td align='cetern'>105/08/16 11:41:15</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>105 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201602_2408_AI1.pdf");'>201602_2408_AI1.pdf</a></td><td align='right'>              2,800,755</td>
+<td align='cetern'>105/08/11 16:00:36</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>105 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201602_2408_AIA.pdf");'>201602_2408_AIA.pdf</a></td><td align='right'>              1,984,385</td>
+<td align='cetern'>105/09/23 13:37:06</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>105 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201603_2408_AI1.pdf");'>201603_2408_AI1.pdf</a></td><td align='right'>              2,640,983</td>
+<td align='cetern'>105/11/09 20:12:49</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>105 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201603_2408_AIA.pdf");'>201603_2408_AIA.pdf</a></td><td align='right'>              1,531,873</td>
+<td align='cetern'>106/01/18 11:42:30</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>105 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201604_2408_AI1.pdf");'>201604_2408_AI1.pdf</a></td><td align='right'>              3,539,044</td>
+<td align='cetern'>106/03/09 21:14:29</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>105 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201604_2408_AI3.pdf");'>201604_2408_AI3.pdf</a></td><td align='right'>              3,478,726</td>
+<td align='cetern'>106/03/09 21:14:48</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>105 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201604_2408_AIA.pdf");'>201604_2408_AIA.pdf</a></td><td align='right'>              2,849,438</td>
+<td align='cetern'>106/05/22 14:20:03</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>105 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201604_2408_AIC.pdf");'>201604_2408_AIC.pdf</a></td><td align='right'>              2,465,277</td>
+<td align='cetern'>106/05/22 14:20:25</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>106 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201701_2408_AI1.pdf");'>201701_2408_AI1.pdf</a></td><td align='right'>              3,145,846</td>
+<td align='cetern'>106/05/12 18:22:37</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>106 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201701_2408_AIA.pdf");'>201701_2408_AIA.pdf</a></td><td align='right'>              3,292,027</td>
+<td align='cetern'>106/09/23 15:37:30</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>106 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201702_2408_AI1.pdf");'>201702_2408_AI1.pdf</a></td><td align='right'>              5,880,800</td>
+<td align='cetern'>106/08/11 17:09:11</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>106 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201702_2408_AIA.pdf");'>201702_2408_AIA.pdf</a></td><td align='right'>              1,970,696</td>
+<td align='cetern'>106/09/23 15:37:50</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>106 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201703_2408_AI1.pdf");'>201703_2408_AI1.pdf</a></td><td align='right'>              2,648,159</td>
+<td align='cetern'>106/11/10 14:55:48</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>106 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201703_2408_AIA.pdf");'>201703_2408_AIA.pdf</a></td><td align='right'>              3,638,879</td>
+<td align='cetern'>106/12/22 15:57:34</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>106 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201704_2408_AI1.pdf");'>201704_2408_AI1.pdf</a></td><td align='right'>              4,191,946</td>
+<td align='cetern'>107/02/26 18:53:45</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>106 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201704_2408_AI3.pdf");'>201704_2408_AI3.pdf</a></td><td align='right'>              3,932,959</td>
+<td align='cetern'>107/02/26 18:54:10</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>106 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201704_2408_AIA.pdf");'>201704_2408_AIA.pdf</a></td><td align='right'>              3,894,563</td>
+<td align='cetern'>107/05/16 17:15:41</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>106 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201704_2408_AIC.pdf");'>201704_2408_AIC.pdf</a></td><td align='right'>              3,512,654</td>
+<td align='cetern'>107/05/16 17:17:06</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>107 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201801_2408_AI1.pdf");'>201801_2408_AI1.pdf</a></td><td align='right'>              2,252,344</td>
+<td align='cetern'>107/05/09 16:57:26</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>107 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201801_2408_AIA.pdf");'>201801_2408_AIA.pdf</a></td><td align='right'>              2,149,001</td>
+<td align='cetern'>107/06/26 16:44:32</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>107 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201802_2408_AI1.pdf");'>201802_2408_AI1.pdf</a></td><td align='right'>              2,449,706</td>
+<td align='cetern'>107/08/10 17:21:59</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>107 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201802_2408_AIA.pdf");'>201802_2408_AIA.pdf</a></td><td align='right'>              2,224,172</td>
+<td align='cetern'>107/08/21 13:31:47</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>107 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201803_2408_AI1.pdf");'>201803_2408_AI1.pdf</a></td><td align='right'>              3,584,588</td>
+<td align='cetern'>107/11/12 17:06:33</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>107 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201803_2408_AIA.pdf");'>201803_2408_AIA.pdf</a></td><td align='right'>              2,542,242</td>
+<td align='cetern'>107/11/26 13:34:05</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>107 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201804_2408_AI1.pdf");'>201804_2408_AI1.pdf</a></td><td align='right'>              8,754,238</td>
+<td align='cetern'>108/02/27 19:17:17</td>
+<td align='center'><input type='button' onclick="location.href='http://mopsov.twse.com.tw/mops/web/t56sb31_q1?step=2&colorchg=1&TYPEK=sii&kind=&CID=2408&YEAR_SEASON=201804&RID=4&DTYPE=I1&SKEY=1&firstin=1';" value='詳細資料'></td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>107 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201804_2408_AI3.pdf");'>201804_2408_AI3.pdf</a></td><td align='right'>              8,315,048</td>
+<td align='cetern'>108/02/27 19:17:45</td>
+<td align='center'><input type='button' onclick="location.href='http://mopsov.twse.com.tw/mops/web/t56sb31_q1?step=2&colorchg=1&TYPEK=sii&kind=&CID=2408&YEAR_SEASON=201804&RID=5&DTYPE=I3&SKEY=2&firstin=1';" value='詳細資料'></td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>107 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201804_2408_AIA.pdf");'>201804_2408_AIA.pdf</a></td><td align='right'>              3,877,641</td>
+<td align='cetern'>108/04/01 16:14:58</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>107 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201804_2408_AIC.pdf");'>201804_2408_AIC.pdf</a></td><td align='right'>              3,608,625</td>
+<td align='cetern'>108/04/01 16:15:22</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>108 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201901_2408_AI1.pdf");'>201901_2408_AI1.pdf</a></td><td align='right'>              3,093,991</td>
+<td align='cetern'>108/05/10 17:17:14</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>108 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201901_2408_AIA.pdf");'>201901_2408_AIA.pdf</a></td><td align='right'>              2,010,253</td>
+<td align='cetern'>108/06/20 16:13:07</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>108 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201902_2408_AI1.pdf");'>201902_2408_AI1.pdf</a></td><td align='right'>              2,325,338</td>
+<td align='cetern'>108/08/12 17:02:58</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>108 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201902_2408_AIA.pdf");'>201902_2408_AIA.pdf</a></td><td align='right'>              2,135,018</td>
+<td align='cetern'>108/08/28 13:58:44</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>108 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201903_2408_AI1.pdf");'>201903_2408_AI1.pdf</a></td><td align='right'>              3,280,838</td>
+<td align='cetern'>108/11/08 17:09:41</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>108 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201903_2408_AIA.pdf");'>201903_2408_AIA.pdf</a></td><td align='right'>              2,231,295</td>
+<td align='cetern'>108/11/22 13:53:43</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>108 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201904_2408_AI1.pdf");'>201904_2408_AI1.pdf</a></td><td align='right'>              4,535,889</td>
+<td align='cetern'>109/02/26 18:02:54</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>108 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201904_2408_AI3.pdf");'>201904_2408_AI3.pdf</a></td><td align='right'>              3,480,913</td>
+<td align='cetern'>109/02/26 18:03:11</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>108 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201904_2408_AIA.pdf");'>201904_2408_AIA.pdf</a></td><td align='right'>              3,462,626</td>
+<td align='cetern'>109/04/08 13:34:22</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>108 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","201904_2408_AIC.pdf");'>201904_2408_AIC.pdf</a></td><td align='right'>              3,257,755</td>
+<td align='cetern'>109/04/08 13:36:07</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>109 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202001_2408_AI1.pdf");'>202001_2408_AI1.pdf</a></td><td align='right'>              2,689,459</td>
+<td align='cetern'>109/05/06 17:30:33</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>109 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202001_2408_AIA.pdf");'>202001_2408_AIA.pdf</a></td><td align='right'>              1,708,510</td>
+<td align='cetern'>109/07/08 17:37:09</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>109 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202002_2408_AI1.pdf");'>202002_2408_AI1.pdf</a></td><td align='right'>              2,051,936</td>
+<td align='cetern'>109/08/06 16:31:27</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>109 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202002_2408_AIA.pdf");'>202002_2408_AIA.pdf</a></td><td align='right'>              1,888,721</td>
+<td align='cetern'>109/09/08 14:29:19</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>109 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202003_2408_AI1.pdf");'>202003_2408_AI1.pdf</a></td><td align='right'>                962,328</td>
+<td align='cetern'>109/11/04 16:05:03</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>109 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202003_2408_AIA.pdf");'>202003_2408_AIA.pdf</a></td><td align='right'>                356,933</td>
+<td align='cetern'>109/12/09 16:17:17</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>109 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202004_2408_AI1.pdf");'>202004_2408_AI1.pdf</a></td><td align='right'>              1,156,150</td>
+<td align='cetern'>110/02/26 17:28:54</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>109 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202004_2408_AI3.pdf");'>202004_2408_AI3.pdf</a></td><td align='right'>              1,174,185</td>
+<td align='cetern'>110/02/26 17:30:01</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>109 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202004_2408_AIA.pdf");'>202004_2408_AIA.pdf</a></td><td align='right'>                371,500</td>
+<td align='cetern'>110/05/04 13:31:37</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>109 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202004_2408_AIC.pdf");'>202004_2408_AIC.pdf</a></td><td align='right'>                425,803</td>
+<td align='cetern'>110/05/04 13:32:05</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>110 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202101_2408_AI1.pdf");'>202101_2408_AI1.pdf</a></td><td align='right'>                848,014</td>
+<td align='cetern'>110/05/05 16:45:33</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>110 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202101_2408_AIA.pdf");'>202101_2408_AIA.pdf</a></td><td align='right'>                290,103</td>
+<td align='cetern'>110/06/23 13:46:24</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>110 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202102_2408_AI1.pdf");'>202102_2408_AI1.pdf</a></td><td align='right'>              4,535,749</td>
+<td align='cetern'>110/08/04 16:36:39</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>110 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202102_2408_AIA.pdf");'>202102_2408_AIA.pdf</a></td><td align='right'>                312,077</td>
+<td align='cetern'>110/09/02 15:20:42</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>110 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202103_2408_AI1.pdf");'>202103_2408_AI1.pdf</a></td><td align='right'>                800,873</td>
+<td align='cetern'>110/11/03 17:09:08</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>110 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202103_2408_AIA.pdf");'>202103_2408_AIA.pdf</a></td><td align='right'>                322,573</td>
+<td align='cetern'>110/12/15 13:32:47</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>110 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202104_2408_AI1.pdf");'>202104_2408_AI1.pdf</a></td><td align='right'>              4,553,994</td>
+<td align='cetern'>111/02/24 18:03:02</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>110 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202104_2408_AI3.pdf");'>202104_2408_AI3.pdf</a></td><td align='right'>              4,373,685</td>
+<td align='cetern'>111/02/24 18:03:21</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>110 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202104_2408_AIA.pdf");'>202104_2408_AIA.pdf</a></td><td align='right'>                383,089</td>
+<td align='cetern'>111/05/03 14:56:30</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>110 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202104_2408_AIC.pdf");'>202104_2408_AIC.pdf</a></td><td align='right'>                464,145</td>
+<td align='cetern'>111/05/03 14:56:56</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>111 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202201_2408_AI1.pdf");'>202201_2408_AI1.pdf</a></td><td align='right'>              2,264,184</td>
+<td align='cetern'>111/05/04 18:31:53</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>111 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202201_2408_AIA.pdf");'>202201_2408_AIA.pdf</a></td><td align='right'>                293,095</td>
+<td align='cetern'>111/06/23 14:40:00</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>111 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202202_2408_AI1.pdf");'>202202_2408_AI1.pdf</a></td><td align='right'>              3,649,241</td>
+<td align='cetern'>111/08/03 17:42:38</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>111 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202202_2408_AIA.pdf");'>202202_2408_AIA.pdf</a></td><td align='right'>                311,876</td>
+<td align='cetern'>111/09/16 08:16:55</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>111 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202203_2408_AI1.pdf");'>202203_2408_AI1.pdf</a></td><td align='right'>              3,820,139</td>
+<td align='cetern'>111/11/02 17:17:51</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>111 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202203_2408_AIA.pdf");'>202203_2408_AIA.pdf</a></td><td align='right'>                316,669</td>
+<td align='cetern'>111/12/06 13:46:10</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>111 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202204_2408_AI1.pdf");'>202204_2408_AI1.pdf</a></td><td align='right'>              5,129,683</td>
+<td align='cetern'>112/02/22 17:32:01</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>111 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202204_2408_AI3.pdf");'>202204_2408_AI3.pdf</a></td><td align='right'>              4,811,003</td>
+<td align='cetern'>112/02/22 17:32:28</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>111 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202204_2408_AIA.pdf");'>202204_2408_AIA.pdf</a></td><td align='right'>                430,381</td>
+<td align='cetern'>112/04/24 16:32:09</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>111 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202204_2408_AIC.pdf");'>202204_2408_AIC.pdf</a></td><td align='right'>                432,079</td>
+<td align='cetern'>112/04/24 16:32:28</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>112 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202301_2408_AI1.pdf");'>202301_2408_AI1.pdf</a></td><td align='right'>              1,135,858</td>
+<td align='cetern'>112/05/03 19:33:59</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>112 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202301_2408_AIA.pdf");'>202301_2408_AIA.pdf</a></td><td align='right'>                437,423</td>
+<td align='cetern'>112/06/01 13:40:22</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>112 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202302_2408_AI1.pdf");'>202302_2408_AI1.pdf</a></td><td align='right'>              3,498,932</td>
+<td align='cetern'>112/08/02 18:29:23</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>112 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202302_2408_AIA.pdf");'>202302_2408_AIA.pdf</a></td><td align='right'>                422,090</td>
+<td align='cetern'>112/08/30 16:01:31</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>112 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202303_2408_AI1.pdf");'>202303_2408_AI1.pdf</a></td><td align='right'>              1,173,476</td>
+<td align='cetern'>112/11/08 16:25:16</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>112 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202303_2408_AIA.pdf");'>202303_2408_AIA.pdf</a></td><td align='right'>                436,395</td>
+<td align='cetern'>112/12/08 13:35:47</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>112 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202304_2408_AI1.pdf");'>202304_2408_AI1.pdf</a></td><td align='right'>              1,741,426</td>
+<td align='cetern'>113/02/23 18:27:43</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>112 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202304_2408_AI3.pdf");'>202304_2408_AI3.pdf</a></td><td align='right'>              1,754,922</td>
+<td align='cetern'>113/02/23 18:28:07</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>112 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202304_2408_AIA.pdf");'>202304_2408_AIA.pdf</a></td><td align='right'>                513,440</td>
+<td align='cetern'>113/04/15 13:52:29</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>112 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202304_2408_AIC.pdf");'>202304_2408_AIC.pdf</a></td><td align='right'>                579,630</td>
+<td align='cetern'>113/04/15 13:53:21</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>113 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202401_2408_AI1.pdf");'>202401_2408_AI1.pdf</a></td><td align='right'>              1,144,871</td>
+<td align='cetern'>113/05/09 18:42:18</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>113 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202401_2408_AIA.pdf");'>202401_2408_AIA.pdf</a></td><td align='right'>                406,135</td>
+<td align='cetern'>113/06/07 14:04:01</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>113 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202402_2408_AI1.pdf");'>202402_2408_AI1.pdf</a></td><td align='right'>              1,171,657</td>
+<td align='cetern'>113/08/02 17:24:25</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>113 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202402_2408_AIA.pdf");'>202402_2408_AIA.pdf</a></td><td align='right'>                435,012</td>
+<td align='cetern'>113/08/28 15:38:02</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>113 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202403_2408_AI1.pdf");'>202403_2408_AI1.pdf</a></td><td align='right'>              1,181,312</td>
+<td align='cetern'>113/11/06 17:25:40</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>113 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202403_2408_AIA.pdf");'>202403_2408_AIA.pdf</a></td><td align='right'>                429,910</td>
+<td align='cetern'>113/12/06 15:37:50</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>113 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202404_2408_AI1.pdf");'>202404_2408_AI1.pdf</a></td><td align='right'>              1,755,354</td>
+<td align='cetern'>114/02/26 17:32:39</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>113 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202404_2408_AI3.pdf");'>202404_2408_AI3.pdf</a></td><td align='right'>              1,712,523</td>
+<td align='cetern'>114/02/26 17:32:55</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>113 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202404_2408_AIA.pdf");'>202404_2408_AIA.pdf</a></td><td align='right'>                511,219</td>
+<td align='cetern'>114/04/02 13:38:25</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>113 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202404_2408_AIC.pdf");'>202404_2408_AIC.pdf</a></td><td align='right'>                505,628</td>
+<td align='cetern'>114/04/02 13:38:54</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>114 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202501_2408_AI1.pdf");'>202501_2408_AI1.pdf</a></td><td align='right'>              1,139,546</td>
+<td align='cetern'>114/05/02 16:52:30</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>114 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202501_2408_AIA.pdf");'>202501_2408_AIA.pdf</a></td><td align='right'>                383,338</td>
+<td align='cetern'>114/06/04 13:44:37</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>114 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202502_2408_AI1.pdf");'>202502_2408_AI1.pdf</a></td><td align='right'>              1,234,912</td>
+<td align='cetern'>114/08/07 17:05:49</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>114 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202502_2408_AIA.pdf");'>202502_2408_AIA.pdf</a></td><td align='right'>                315,248</td>
+<td align='cetern'>114/09/08 13:32:49</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>114 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202503_2408_AI1.pdf");'>202503_2408_AI1.pdf</a></td><td align='right'>              1,234,281</td>
+<td align='cetern'>114/11/04 16:51:26</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>114 年 第三季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202503_2408_AIA.pdf");'>202503_2408_AIA.pdf</a></td><td align='right'>                413,271</td>
+<td align='cetern'>114/11/20 14:44:56</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>114 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202504_2408_AI1.pdf");'>202504_2408_AI1.pdf</a></td><td align='right'>              1,807,903</td>
+<td align='cetern'>115/03/04 16:16:51</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>114 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202504_2408_AI3.pdf");'>202504_2408_AI3.pdf</a></td><td align='right'>              1,758,451</td>
+<td align='cetern'>115/03/04 16:17:07</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>114 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202504_2408_AIA.pdf");'>202504_2408_AIA.pdf</a></td><td align='right'>                502,085</td>
+<td align='cetern'>115/04/02 15:19:54</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>114 年 第四季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-個體財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202504_2408_AIC.pdf");'>202504_2408_AIC.pdf</a></td><td align='right'>                490,522</td>
+<td align='cetern'>115/04/02 15:20:16</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>115 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202601_2408_AI1.pdf");'>202601_2408_AI1.pdf</a></td><td align='right'>              1,233,125</td>
+<td align='cetern'>115/05/06 18:22:05</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>115 年 第一季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202601_2408_AIA.pdf");'>202601_2408_AIA.pdf</a></td><td align='right'>                297,266</td>
+<td align='cetern'>115/06/04 13:45:39</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>115 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202602_2408_AI1.pdf");'>202602_2408_AI1.pdf</a></td><td align='right'>              1,245,554</td>
+<td align='cetern'>115/08/05 18:01:31</td>
+<td align='center'>無</td>
+</tr>
+<tr>
+<td align='center'>2408</td><td align='center'>115 年 第二季</td>
+<td align='center'>財務報告書</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>&nbsp;</td>
+<td align='center'>IFRSs英文版-合併財報</td><td align='center'>&nbsp;</td><td><a href='javascript:readfile2("A","2408","202602_2408_AIA.pdf");'>202602_2408_AIA.pdf</a></td><td align='right'>                420,754</td>
+<td align='cetern'>115/08/19 14:34:19</td>
+<td align='center'>無</td>
+</tr>
+</table>
+<font color='red'>採非曆年制者，財務報告公告期限，請參閱公司基本資料</font>
+</form>
+<font color='blue'>倘無法順利開啟電子檔案，請注意電腦是否已具備相關讀檔軟體</font>
+<br><font color='red'>Adobe  reader建議安裝8.0(含)以上</font>
+<br><br>
+<form action='/server-java/t57sb01' method='post' name='fm3'>
+<input type='hidden' name='colorchg' value='1'>
+<input type='hidden' name='step' value='1'>
+<input type='hidden' name='co_id' value='2408'>
+<input type='hidden' name='year' value='0'>
+<input type='hidden' name='mtype' value='F'>
+<cetern><input type="button" value="查詢股東會年報之永續專章資訊" onclick='fm3.submit();'></cetern>
+</form>
+<br>
+<table>
+<tr><td><font color='red'>註：</font></td><td align='left'></td></tr>
+<tr><td><font color='red'>(1)</font></td><td align='left'><font color='red'>實收資本額達100億元以上之上市櫃公司，應自115會計年度起適用永續揭露準則編制永續相關財務資訊，並自116年起申報。</font></td></tr>
+<tr><td><font color='red'>(2)</font></td><td align='left'><font color='red'>實收資本額達50億元以上且未達100億元之上市櫃公司，應自116會計年度起適用永續揭露準則編制永續相關財務資訊，並自117年起申報。</font></td></tr>
+<tr><td><font color='red'>(3)</font></td><td align='left'><font color='red'>實收資本額未達50億元之上市櫃公司，應自117會計年度起適用永續揭露準則編制永續相關財務資訊，並自118年起申報。</font></td></tr>
+</table>
+</body></html>

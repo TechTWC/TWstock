@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "oos_run_manifest.schema.json",
+  "title": "Fundamental v0.1 OOS-C bounded run manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "run_id",
+    "stage",
+    "mode",
+    "started_at",
+    "frozen_model_hash",
+    "frozen_universe_hash",
+    "oos_start_timestamp",
+    "collector_runtime_freeze_sha",
+    "outcome_calculation_enabled",
+    "symbols",
+    "sources",
+    "summary",
+    "failure_count"
+  ],
+  "properties": {
+    "manifest_version": {"const": "OOS-C-1"},
+    "run_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "stage": {"const": "OOS-C"},
+    "mode": {"enum": ["MANUAL", "SCHEDULED"]},
+    "started_at": {"type": "string", "format": "date-time"},
+    "frozen_model_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "frozen_universe_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "oos_start_timestamp": {"const": "2026-09-11T00:00:00+08:00"},
+    "collector_runtime_freeze_sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "outcome_calculation_enabled": {"const": false},
+    "symbols": {"type": "array", "maxItems": 38, "items": {"type": "object"}},
+    "sources": {"type": "array", "items": {"type": "object"}},
+    "summary": {"type": "object"},
+    "failure_count": {"type": "integer", "minimum": 0}
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "oos_snapshot_manifest.schema.json",
+  "title": "Fundamental v0.1 OOS-B immutable retrieval manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "snapshot_id",
+    "event_or_candidate_identity",
+    "snapshot_type",
+    "retrieved_at",
+    "source_identifier",
+    "source_sha256",
+    "files"
+  ],
+  "properties": {
+    "manifest_version": {"const": "OOS-B-1"},
+    "snapshot_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "event_or_candidate_identity": {"type": "string", "minLength": 1},
+    "snapshot_type": {"enum": ["MOPS", "FINANCIAL", "VALUATION", "MARKET_SESSION"]},
+    "retrieved_at": {"type": "string", "format": "date-time"},
+    "source_identifier": {"type": "string", "minLength": 1},
+    "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "files": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "canonical_path_ordering": "UTF8_BYTEWISE_ASCENDING",
+  "hash_algorithm": "SHA256",
+  "manifest_version": "OOS-C-RUNTIME-1",
+  "runtime_paths": [
+    {
+      "blob_sha256": "4ca61f4285f12a05c7c0f4a64e24a1309d71d16841b0477b746c77c6b03e0eb5",
+      "runtime_path": "config/fundamental_oos_shadow_v0_1.json"
+    },
+    {
+      "blob_sha256": "f5a3889c183a9c137b8779310e2c8c0c7822fd1eff9f4f13adbd62a7ae30e366",
+      "runtime_path": "config/fundamental_quality_valuation_v0_1.json"
+    },
+    {
+      "blob_sha256": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+      "runtime_path": "data/research/0050_fundamental_v0_1/universe_2026-09-03.csv"
+    },
+    {
+      "blob_sha256": "134d95366626fb2865e20894dbee2b1d839e6674d02c9ac98087d8e9f55c511b",
+      "runtime_path": "experiments/__init__.py"
+    },
+    {
+      "blob_sha256": "d971a4f53ef26174bc299b18ad8793e08b856f95b9f480614570f9a119200e7f",
+      "runtime_path": "experiments/fundamental_oos_shadow/__init__.py"
+    },
+    {
+      "blob_sha256": "1adb291d1a598549ad780c8a065dc96521a83ccaeca1bd5017a5028952cb6b7e",
+      "runtime_path": "experiments/fundamental_oos_shadow/ledger.py"
+    },
+    {
+      "blob_sha256": "f77d93f72065b95f629cc850080eedf026971433cb9649c36fdb8a596c9c2b54",
+      "runtime_path": "experiments/fundamental_oos_shadow/live.py"
+    },
+    {
+      "blob_sha256": "d2f0efddd01bb7c7794e753199b921d7c14d940cebc7bc328d92e34cf8487655",
+      "runtime_path": "experiments/fundamental_oos_shadow/scheduled.py"
+    },
+    {
+      "blob_sha256": "ea2a514056bb5b218f4045b6f22e4245c9d7db4b8da0ec583ec21b230883d49b",
+      "runtime_path": "experiments/fundamental_quality_valuation/__init__.py"
+    },
+    {
+      "blob_sha256": "701d2d00d61c606643d869e16d27a29ca186b6081b3311d06c4ffbb96384e275",
+      "runtime_path": "experiments/fundamental_quality_valuation/data.py"
+    },
+    {
+      "blob_sha256": "11b5ea2d11fdd03a00e08b80bf2709ba10c6d43156d3ee7907fa6a1e9d923a20",
+      "runtime_path": "experiments/fundamental_quality_valuation/engine.py"
+    },
+    {
+      "blob_sha256": "884b75c9495df16e08bb921fa3de3b0068ebd1ec3de454648b950714ff3365b1",
+      "runtime_path": "experiments/fundamental_quality_valuation/models.py"
+    },
+    {
+      "blob_sha256": "82ccf885f369f06ad77a40ebf953db928b5df1bcc5ccbb92ea717c977eeb2f14",
+      "runtime_path": "experiments/fundamental_quality_valuation/mops.py"
+    },
+    {
+      "blob_sha256": "4a0be0379a42b3d69cdccef01406946005225c3f36421464931cbf992765a454",
+      "runtime_path": "experiments/fundamental_quality_valuation/pit.py"
+    },
+    {
+      "blob_sha256": "420ba7e09eaf896cc3428ee328a14395a6b2dabe3ea58d767c999f502188bc57",
+      "runtime_path": "experiments/fundamental_quality_valuation/session_contract.py"
+    },
+    {
+      "blob_sha256": "d10283b32d117f10112992ea0a0f64b1cd5e9dca141519f378c341244f0add5c",
+      "runtime_path": "experiments/fundamental_quality_valuation/stage_a.py"
+    },
+    {
+      "blob_sha256": "b3ef5719ad89495b90f0a7ff4b4b4b86852e2526a6079b31c219065bb92fa3e7",
+      "runtime_path": "requirements-dev.txt"
+    },
+    {
+      "blob_sha256": "8b838091bcbb05eed56828329901e5451ec11cdeba649f76b3d1f6238348d2b0",
+      "runtime_path": "scripts/run_0050_fundamental_oos_v0_1.py"
+    }
+  ]
+}
