@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "oos_pending_candidate.schema.json",
-  "title": "Fundamental v0.1 OOS-B pending candidate",
+  "title": "Fundamental v0.1 OOS-C pending candidate",
   "type": "object",
   "additionalProperties": true,
   "required": [

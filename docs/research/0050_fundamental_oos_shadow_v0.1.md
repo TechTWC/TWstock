@@ -130,3 +130,41 @@ python scripts/run_0050_fundamental_oos_v0_1.py --live \
 OOS-B makes no OOS performance claim. All 60/120/252/504-session outcomes remain immature,
 their return fields remain null, and outcome calculation stays disabled. Scheduled collection
 requires a separately authorized OOS-C stage.
+
+## Stage OOS-C: Incremental Scheduled-Collection Architecture
+
+OOS-C keeps one collection engine for explicit `--live` execution and `--scheduled-run`.
+Every run verifies the frozen Fundamental head, model hash, universe hash, OOS start,
+signal-ledger chain, outcome ledger, pending-candidate registry, and the machine-readable
+collector code-freeze identity before scanning. Historical backfill and 60/120/252/504-session
+outcome calculation remain disabled.
+
+New source responses use a SHA-256 content-addressed store under
+`artifacts/0050_fundamental_oos_v0_1/source_blobs/`. A body already present there—or in the
+preserved OOS-B immutable snapshot tree—is `UNCHANGED_SOURCE` and is referenced rather than
+stored again. A genuinely changed body creates one new immutable `<sha256>.bin`. Each scan
+also emits at most one compact manifest under `artifacts/0050_fundamental_oos_v0_1/runs/`,
+recording symbols, retrieval times, source hashes, prior references, candidate states, and
+formal-signal results. A no-op scan therefore cannot reproduce dozens of historical archives.
+
+Scheduled execution starts from a clean checkout and may modify only the signal ledger,
+outcome ledger (which must remain unchanged while outcome calculation is disabled), pending
+registry, content-addressed blobs, and bounded run manifests. Any code, configuration,
+workflow, frozen-model, frozen-universe, or other non-allowlisted diff is
+`NON_ALLOWLISTED_SCHEDULED_DIFF` and fails closed. Collector source drift is
+`COLLECTOR_CODE_DRIFT` and also fails closed. Pushes must be ordinary fast-forward pushes to
+`research/0050-fundamental-oos-shadow-v0-1`; force-push and writes to `main` are prohibited.
+
+The scheduler bridge is intentionally a separate Draft PR targeting `main`, because GitHub
+scheduled workflows run only when their workflow file exists on the default branch. It is
+prepared for one run daily at 22:30 `Asia/Taipei`, retains `workflow_dispatch`, uses
+`cancel-in-progress: false`, and grants only `contents: write`. Until that separate PR is
+reviewed and merged, the exact status is **PREPARED_NOT_ACTIVE**:
+
+- `scheduled_collection_prepared = true`
+- `scheduled_collection_active = false`
+
+Local fixture-backed dry simulation does not activate the GitHub schedule. A scheduled run
+that encounters a source error, hash/freeze mismatch, ledger corruption, concurrent write,
+non-allowlisted change, or push race fails without guessing, backdating, overwriting a ledger,
+or force-pushing.

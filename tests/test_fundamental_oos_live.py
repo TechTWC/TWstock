@@ -19,6 +19,7 @@ from experiments.fundamental_oos_shadow.ledger import (
 from experiments.fundamental_oos_shadow.live import (
     CANDIDATE_STATUSES,
     CandidateRegistry,
+    ContentAddressedSourceStore,
     SnapshotStore,
     _candidate_from_filing,
     _financial_complete,
@@ -26,8 +27,17 @@ from experiments.fundamental_oos_shadow.live import (
     _valuation_complete,
     conservative_cutoff,
     filing_identity_hash,
+    run_collection,
+    run_live_collection,
+    run_scheduled_collection,
     stable_event_id,
     validate_snapshot_tree,
+)
+from experiments.fundamental_oos_shadow.scheduled import (
+    SCHEDULED_WRITE_ALLOWLIST,
+    assert_scheduled_write_allowlist,
+    collector_code_hash,
+    verify_collector_code_freeze,
 )
 
 
@@ -76,11 +86,13 @@ def _registry_candidate(contract: dict[str, object], filing: dict[str, object]) 
     }
 
 
-def test_contract_is_exact_oos_b_manual_only(contract: dict[str, object]) -> None:
-    assert contract["stage"] == "OOS-B"
+def test_contract_is_exact_oos_c_prepared_not_active(contract: dict[str, object]) -> None:
+    assert contract["stage"] == "OOS-C"
     assert contract["live_collection_enabled"] is True
-    assert contract["live_collection_mode"] == "MANUAL_ONLY"
+    assert contract["live_collection_mode"] == "MANUAL_AND_SCHEDULED_ENGINE"
     assert contract["scheduled_collection_enabled"] is False
+    assert contract["scheduled_collection_prepared"] is True
+    assert contract["scheduled_collection_active"] is False
     assert contract["historical_backfill_enabled"] is False
     assert contract["outcome_calculation_enabled"] is False
 
@@ -151,7 +163,7 @@ def test_candidate_registry_round_trip_first_seen_lock(
     assert loaded[str(candidate["candidate_id"])]["first_complete_data_locked_at"] == current["first_complete_data_locked_at"]
 
 
-def test_candidate_registry_rejects_identity_conflict(
+def test_candidate_registry_keeps_first_archive_hash_and_rejects_identity_conflict(
     tmp_path: Path, contract: dict[str, object], filing: dict[str, object]
 ) -> None:
     registry = CandidateRegistry(tmp_path / "pending.json")
@@ -159,6 +171,8 @@ def test_candidate_registry_rejects_identity_conflict(
     candidates = {str(candidate["candidate_id"]): candidate}
     conflict = deepcopy(candidate)
     conflict["mops_source_hash"] = "b" * 64
+    assert registry.upsert_first_seen(candidates, conflict)["mops_source_hash"] == "a" * 64
+    conflict["period_end"] = "2026-12-31"
     with pytest.raises(ContractError, match="identity conflict"):
         registry.upsert_first_seen(candidates, conflict)
 
@@ -244,6 +258,183 @@ def test_snapshot_tampering_is_detected(tmp_path: Path) -> None:
     assert manifest["source_sha256"] != "0" * 64
 
 
+def test_content_addressed_store_deduplicates_identical_body(tmp_path: Path) -> None:
+    store = ContentAddressedSourceStore(tmp_path / "source_blobs", tmp_path / "raw")
+    first = store.put(b"same-official-body")
+    second = store.put(b"same-official-body")
+    assert first["changed"] is True
+    assert second["status"] == "UNCHANGED_SOURCE"
+    assert second["previous_snapshot_reference"]
+    assert store.validate_all() == 1
+
+
+def test_content_addressed_store_writes_changed_body_once(tmp_path: Path) -> None:
+    store = ContentAddressedSourceStore(tmp_path / "source_blobs", tmp_path / "raw")
+    assert store.put(b"version-1")["new_blob"] is True
+    assert store.put(b"version-2")["new_blob"] is True
+    assert store.validate_all() == 2
+
+
+def test_content_addressed_store_reuses_legacy_oos_b_snapshot(tmp_path: Path) -> None:
+    legacy = SnapshotStore(tmp_path / "raw")
+    legacy.write(
+        identity="scan-1",
+        snapshot_type="MOPS",
+        retrieved_at="2026-09-11T00:00:00+00:00",
+        source_identifier="mops://2330",
+        raw=b"legacy-body",
+    )
+    store = ContentAddressedSourceStore(tmp_path / "source_blobs", tmp_path / "raw")
+    result = store.put(b"legacy-body")
+    assert result["status"] == "UNCHANGED_SOURCE"
+    assert result["new_blob"] is False
+    assert store.validate_all() == 0
+
+
+def test_collector_code_freeze_matches_contract(contract: dict[str, object]) -> None:
+    result = verify_collector_code_freeze(ROOT, contract)
+    assert result["status"] == "PASS"
+    assert result["actual_collector_code_sha"] == contract["collector_code_freeze_sha"]
+
+
+def test_collector_code_hash_detects_drift(tmp_path: Path) -> None:
+    path = tmp_path / "collector.py"
+    path.write_text("one\n", encoding="utf-8")
+    first = collector_code_hash(tmp_path, ["collector.py"])
+    path.write_text("two\n", encoding="utf-8")
+    assert collector_code_hash(tmp_path, ["collector.py"]) != first
+
+
+def test_scheduled_write_allowlist_fails_closed() -> None:
+    assert "artifacts/0050_fundamental_oos_v0_1/runs/" in SCHEDULED_WRITE_ALLOWLIST
+    allowed = assert_scheduled_write_allowlist(
+        ROOT,
+        [
+            "data/research/0050_fundamental_oos_v0_1/oos_pending_candidates.json",
+            "artifacts/0050_fundamental_oos_v0_1/source_blobs/a.bin",
+        ],
+    )
+    assert len(allowed) == 2
+    with pytest.raises(ContractError, match="NON_ALLOWLISTED"):
+        assert_scheduled_write_allowlist(ROOT, ["experiments/fundamental_oos_shadow/live.py"])
+
+
+class _NoOpSource:
+    def __init__(self) -> None:
+        self.network_requests = {"MOPS": 0, "FinMind": 0, "TWSE": 0, "Other": 0}
+
+    def scan_mops(self, symbol: str) -> tuple[dict[str, object], bytes]:
+        self.network_requests["MOPS"] += 1
+        raw = f"official-{symbol}".encode()
+        return {
+            "symbol": symbol,
+            "source_url": f"mops://{symbol}",
+            "retrieval_timestamp": "2026-09-11T16:00:00+08:00",
+            "response_sha256": __import__("hashlib").sha256(raw).hexdigest(),
+            "records": [],
+            "source_conflicts": [],
+        }, raw
+
+    def financial(self, symbol: str, start: str, end: str) -> tuple[dict[str, object], bytes]:
+        raise AssertionError("no candidate must not fetch financial data")
+
+    def valuation(self, symbol: str, start: str, end: str) -> tuple[dict[str, object], bytes]:
+        raise AssertionError("no candidate must not fetch valuation data")
+
+    def sessions(self, symbol: str, start: str, end: str) -> tuple[dict[str, object], bytes]:
+        raise AssertionError("no candidate must not fetch sessions")
+
+
+def _minimal_collection_root(tmp_path: Path) -> tuple[Path, dict[str, object]]:
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data/universe.csv").write_text(
+        "symbol,company,sector_logic,peer_group,financial_subtype\n2330,TSMC,GENERAL,TECH,\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "data/signals.jsonl").write_text("", encoding="utf-8")
+    (tmp_path / "data/outcomes.jsonl").write_text("", encoding="utf-8")
+    (tmp_path / "data/pending.json").write_text(
+        '{"candidates":[],"registry_version":"OOS-C-1"}\n', encoding="utf-8"
+    )
+    (tmp_path / "model.json").write_text('{"history_start":"2016-01-01"}\n', encoding="utf-8")
+    contract: dict[str, object] = {
+        "stage": "OOS-C",
+        "live_collection_enabled": True,
+        "live_collection_mode": "MANUAL_AND_SCHEDULED_ENGINE",
+        "scheduled_collection_prepared": True,
+        "scheduled_collection_active": False,
+        "historical_backfill_enabled": False,
+        "outcome_calculation_enabled": False,
+        "signal_ledger_path": "data/signals.jsonl",
+        "outcome_ledger_path": "data/outcomes.jsonl",
+        "pending_candidate_registry_path": "data/pending.json",
+        "raw_snapshot_root": "artifacts/raw",
+        "source_blob_root": "artifacts/source_blobs",
+        "run_manifest_root": "artifacts/runs",
+        "frozen_universe_path": "data/universe.csv",
+        "frozen_model_config_path": "model.json",
+        "frozen_model_hash": "a" * 64,
+        "frozen_universe_hash": "b" * 64,
+        "oos_start_timestamp": "2026-09-11T00:00:00+08:00",
+        "frozen_cohort_count": 1,
+        "expected_non_financial": 1,
+        "collector_code_freeze_sha": "c" * 64,
+        "collector_code_paths": ["collector.py"],
+    }
+    return tmp_path, contract
+
+
+def test_noop_scheduled_run_is_bounded_and_deduplicated(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root, minimal = _minimal_collection_root(tmp_path)
+    monkeypatch.setattr(
+        "experiments.fundamental_oos_shadow.live.verify_freeze", lambda *args: {"status": "PASS"}
+    )
+    monkeypatch.setattr(
+        "experiments.fundamental_oos_shadow.live.verify_collector_code_freeze",
+        lambda *args: {"status": "PASS"},
+    )
+    first = run_collection(
+        root,
+        minimal,
+        _NoOpSource(),
+        mode="SCHEDULED",
+        now=lambda: datetime(2026, 9, 11, 14, 30, tzinfo=timezone.utc),
+        enforce_repository_guards=False,
+    )
+    second = run_collection(
+        root,
+        minimal,
+        _NoOpSource(),
+        mode="SCHEDULED",
+        now=lambda: datetime(2026, 9, 12, 14, 30, tzinfo=timezone.utc),
+        enforce_repository_guards=False,
+    )
+    assert first["new_blobs"] == 1
+    assert second["new_blobs"] == 0
+    assert second["unchanged_source_bodies"] == 1
+    assert second["duplicate_blobs_avoided"] == 1
+    assert second["commit_worthy_state_change"] is False
+    assert len(list((root / "artifacts/runs").glob("*.json"))) == 2
+    assert sum(path.stat().st_size for path in (root / "artifacts/runs").glob("*.json")) < 20_000
+
+
+def test_manual_and_scheduled_wrappers_share_collection_engine(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    modes: list[str] = []
+
+    def fake_engine(*args: object, mode: str, **kwargs: object) -> dict[str, object]:
+        modes.append(mode)
+        return {"mode": mode}
+
+    monkeypatch.setattr("experiments.fundamental_oos_shadow.live.run_collection", fake_engine)
+    run_live_collection(tmp_path, {}, _NoOpSource())
+    run_scheduled_collection(tmp_path, {}, _NoOpSource(), enforce_repository_guards=False)
+    assert modes == ["MANUAL", "SCHEDULED"]
+
+
 def test_atomic_append_failure_leaves_ledger_unchanged(
     tmp_path: Path, contract: dict[str, object], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -296,16 +487,18 @@ def test_offline_import_and_validation_do_not_connect(
         raise AssertionError("network attempted")
 
     monkeypatch.setattr(socket.socket, "connect", blocked)
-    assert contract["stage"] == "OOS-B"
+    assert contract["stage"] == "OOS-C"
     assert validate_signal_ledger(ROOT / str(contract["signal_ledger_path"])) == []
 
 
-def test_no_scheduler_or_composite_score_in_oos_contract(contract: dict[str, object]) -> None:
+def test_scheduler_prepared_but_inactive_and_no_composite_score(contract: dict[str, object]) -> None:
     schema = json.loads(
         (ROOT / "data/research/0050_fundamental_oos_v0_1/schemas/oos_signal_record.schema.json").read_text(
             encoding="utf-8"
         )
     )
     assert contract["scheduled_collection_enabled"] is False
+    assert contract["scheduled_collection_prepared"] is True
+    assert contract["scheduled_collection_active"] is False
     assert contract["no_composite_score"] is True
     assert "composite_score" not in schema["properties"]

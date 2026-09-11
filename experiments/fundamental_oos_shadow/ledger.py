@@ -170,15 +170,21 @@ def load_contract(path: Path) -> dict[str, Any]:
         "live_collection_enabled",
         "live_collection_mode",
         "scheduled_collection_enabled",
+        "scheduled_collection_prepared",
+        "scheduled_collection_active",
         "historical_backfill_enabled",
         "outcome_calculation_enabled",
         "pending_candidate_registry_path",
+        "source_blob_root",
+        "run_manifest_root",
+        "collector_code_paths",
+        "collector_code_freeze_sha",
     }
     missing = sorted(required - contract.keys())
     if missing:
         raise ContractError(f"OOS contract missing fields: {', '.join(missing)}")
     fixed = {
-        "stage": "OOS-B",
+        "stage": "OOS-C",
         "freeze_head": "188aa8120a6c35b3b6377490f1ed9456566824bd",
         "frozen_model_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
         "frozen_universe_hash": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
@@ -195,10 +201,21 @@ def load_contract(path: Path) -> dict[str, Any]:
         "no_retroactive_backfill": True,
         "no_composite_score": True,
         "live_collection_enabled": True,
-        "live_collection_mode": "MANUAL_ONLY",
+        "live_collection_mode": "MANUAL_AND_SCHEDULED_ENGINE",
         "scheduled_collection_enabled": False,
+        "scheduled_collection_prepared": True,
+        "scheduled_collection_active": False,
         "historical_backfill_enabled": False,
         "outcome_calculation_enabled": False,
+        "source_blob_root": "artifacts/0050_fundamental_oos_v0_1/source_blobs",
+        "run_manifest_root": "artifacts/0050_fundamental_oos_v0_1/runs",
+        "collector_code_paths": [
+            "experiments/fundamental_oos_shadow/__init__.py",
+            "experiments/fundamental_oos_shadow/ledger.py",
+            "experiments/fundamental_oos_shadow/live.py",
+            "experiments/fundamental_oos_shadow/scheduled.py",
+            "scripts/run_0050_fundamental_oos_v0_1.py",
+        ],
     }
     for key, expected in fixed.items():
         if contract.get(key) != expected:

@@ -436,7 +436,7 @@ def test_live_mode_requires_explicit_flag_and_dispatches_only_when_selected(
     monkeypatch.setattr("scripts.run_0050_fundamental_oos_v0_1.run_live_collection", fake_run)
     assert cli_main(["--live", "--symbols", "2330"]) == 0
     report = json.loads(capsys.readouterr().out)
-    assert report["stage"] == "OOS-B"
+    assert report["stage"] == "OOS-C"
     assert len(calls) == 1
     assert calls[0][3] == ["2330"]
 
@@ -478,8 +478,10 @@ def test_no_composite_score_and_future_snooping_guards(contract: dict[str, objec
     assert contract["no_retroactive_backfill"] is True
     assert contract["no_composite_score"] is True
     assert contract["live_collection_enabled"] is True
-    assert contract["live_collection_mode"] == "MANUAL_ONLY"
+    assert contract["live_collection_mode"] == "MANUAL_AND_SCHEDULED_ENGINE"
     assert contract["scheduled_collection_enabled"] is False
+    assert contract["scheduled_collection_prepared"] is True
+    assert contract["scheduled_collection_active"] is False
     assert contract["historical_backfill_enabled"] is False
     assert contract["outcome_calculation_enabled"] is False
     assert "composite_score" not in signal_schema["properties"]

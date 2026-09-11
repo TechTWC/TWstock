@@ -21,7 +21,11 @@ from experiments.fundamental_oos_shadow.ledger import (  # noqa: E402
 from experiments.fundamental_oos_shadow.live import (  # noqa: E402
     ExistingContractLiveSource,
     run_live_collection,
+    run_scheduled_collection,
     validate_snapshot_tree,
+)
+from experiments.fundamental_oos_shadow.scheduled import (  # noqa: E402
+    verify_collector_code_freeze,
 )
 
 
@@ -31,13 +35,19 @@ DEFAULT_FIXTURE = ROOT / "tests/fixtures/fundamental_oos_shadow/oos_a_valid_fixt
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
-        description="OOS-B manual-only live collection and offline validation."
+        description="OOS-C shared manual/scheduled collection and offline validation."
     )
     result.add_argument("--dry-run", action="store_true", help="Validate a fixture without writing")
     result.add_argument("--validate-ledger", action="store_true", help="Verify both immutable ledgers")
     result.add_argument("--validate-freeze", action="store_true", help="Verify frozen model/universe identity")
     result.add_argument("--fixture", action="store_true", help="Use the tracked synthetic OOS-A fixture")
-    result.add_argument("--live", action="store_true", help="Explicitly run bounded manual OOS-B collection")
+    mode = result.add_mutually_exclusive_group()
+    mode.add_argument("--live", action="store_true", help="Explicitly run bounded manual OOS-C collection")
+    mode.add_argument(
+        "--scheduled-run",
+        action="store_true",
+        help="Run the scheduled-safe OOS-C collector with freeze and write guards",
+    )
     result.add_argument(
         "--symbols",
         help="Optional comma-separated frozen-universe subset for an authorized smoke test",
@@ -53,6 +63,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not any(
         (
             args.live,
+            args.scheduled_run,
             args.dry_run,
             args.validate_ledger,
             args.validate_freeze,
@@ -61,14 +72,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     ):
         raise SystemExit(
-            "Select --live, --dry-run, --validate-ledger, --validate-freeze, "
+            "Select --live, --scheduled-run, --dry-run, --validate-ledger, --validate-freeze, "
             "--validate-snapshots, or --fixture"
         )
     report: dict[str, object] = {
-        "stage": "OOS-B",
+        "stage": "OOS-C",
         "live_collection_enabled": contract["live_collection_enabled"],
         "live_collection_mode": contract["live_collection_mode"],
-        "scheduled_collection_enabled": contract["scheduled_collection_enabled"],
+        "scheduled_collection_prepared": contract["scheduled_collection_prepared"],
+        "scheduled_collection_active": contract["scheduled_collection_active"],
         "historical_backfill_enabled": contract["historical_backfill_enabled"],
         "outcome_calculation_enabled": contract["outcome_calculation_enabled"],
         "network_requests": {"MOPS": 0, "FinMind": 0, "TWSE": 0, "Other": 0},
@@ -85,8 +97,21 @@ def main(argv: Sequence[str] | None = None) -> int:
                 symbols=selected,
             )
         )
+    if args.scheduled_run:
+        selected = None
+        if args.symbols:
+            selected = [item.strip() for item in args.symbols.split(",") if item.strip()]
+        report.update(
+            run_scheduled_collection(
+                ROOT,
+                contract,
+                ExistingContractLiveSource(),
+                symbols=selected,
+            )
+        )
     if args.validate_freeze:
         report["freeze"] = verify_freeze(ROOT, contract)
+        report["collector_code_freeze"] = verify_collector_code_freeze(ROOT, contract)
     if args.validate_ledger:
         signal_path = ROOT / str(contract["signal_ledger_path"])
         outcome_path = ROOT / str(contract["outcome_ledger_path"])

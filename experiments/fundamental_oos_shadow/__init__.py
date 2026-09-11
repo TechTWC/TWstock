@@ -13,10 +13,12 @@ from .ledger import (
 )
 from .live import (
     CandidateRegistry,
+    ContentAddressedSourceStore,
     ExistingContractLiveSource,
     SnapshotStore,
     filing_identity_hash,
     run_live_collection,
+    run_scheduled_collection,
     stable_event_id,
     validate_snapshot_tree,
 )
@@ -32,10 +34,12 @@ __all__ = [
     "validate_signal_ledger",
     "verify_freeze",
     "CandidateRegistry",
+    "ContentAddressedSourceStore",
     "ExistingContractLiveSource",
     "SnapshotStore",
     "filing_identity_hash",
     "run_live_collection",
+    "run_scheduled_collection",
     "stable_event_id",
     "validate_snapshot_tree",
 ]

@@ -33,6 +33,11 @@ from .ledger import (
     validate_signal_ledger,
     verify_freeze,
 )
+from .scheduled import (
+    assert_clean_scheduler_start,
+    assert_scheduled_write_allowlist,
+    verify_collector_code_freeze,
+)
 
 
 CANDIDATE_STATUSES = {
@@ -130,6 +135,25 @@ def _atomic_json(path: Path, payload: object) -> None:
             temporary.unlink()
 
 
+def _immutable_json(path: Path, payload: object) -> None:
+    encoded = (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
+        "utf-8"
+    )
+    if path.exists():
+        if path.read_bytes() != encoded:
+            raise ContractError(f"Immutable JSON identity conflict: {path}")
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with path.open("xb") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except FileExistsError:
+        if path.read_bytes() != encoded:
+            raise ContractError(f"Concurrent immutable JSON conflict: {path}")
+
+
 class CandidateRegistry:
     """Mutable state machine; emitted signals remain authoritative in the ledger."""
 
@@ -140,7 +164,7 @@ class CandidateRegistry:
         if not self.path.exists():
             return {}
         payload = json.loads(self.path.read_text(encoding="utf-8"))
-        if payload.get("registry_version") != "OOS-B-1" or not isinstance(
+        if payload.get("registry_version") not in {"OOS-B-1", "OOS-C-1"} or not isinstance(
             payload.get("candidates"), list
         ):
             raise ContractError("Invalid OOS pending candidate registry")
@@ -181,7 +205,7 @@ class CandidateRegistry:
         _atomic_json(
             self.path,
             {
-                "registry_version": "OOS-B-1",
+                "registry_version": "OOS-C-1",
                 "candidates": [dict(candidates[key]) for key in sorted(candidates)],
             },
         )
@@ -200,7 +224,6 @@ class CandidateRegistry:
                 "symbol",
                 "period_end",
                 "mops_announcement_timestamp",
-                "mops_source_hash",
                 "mops_filing_identity_hash",
             }
             if any(existing.get(key) != candidate.get(key) for key in immutable):
@@ -309,6 +332,89 @@ class SnapshotStore:
         for path in manifests:
             self.validate_manifest(path)
         return len(manifests)
+
+
+class ContentAddressedSourceStore:
+    """Deduplicate source bytes against both OOS-C blobs and OOS-B snapshots."""
+
+    def __init__(self, root: Path, legacy_snapshot_root: Path) -> None:
+        self.root = root
+        self.legacy_snapshot_root = legacy_snapshot_root
+        self._legacy_index: dict[str, str] | None = None
+
+    def _index_legacy(self) -> dict[str, str]:
+        if self._legacy_index is not None:
+            return self._legacy_index
+        index: dict[str, str] = {}
+        if self.legacy_snapshot_root.exists():
+            SnapshotStore(self.legacy_snapshot_root).validate_all()
+            base = self.legacy_snapshot_root.parents[2]
+            for path in sorted(self.legacy_snapshot_root.glob("*/*/raw.bin")):
+                digest = sha256_bytes(path.read_bytes())
+                index.setdefault(digest, path.relative_to(base).as_posix())
+        self._legacy_index = index
+        return index
+
+    def put(self, raw: bytes) -> dict[str, Any]:
+        digest = sha256_bytes(raw)
+        path = self.root / f"{digest}.bin"
+        reference = path.relative_to(self.root.parents[2]).as_posix()
+        if path.exists():
+            if sha256_bytes(path.read_bytes()) != digest:
+                raise ContractError(f"Source blob hash mismatch: {path}")
+            return {
+                "source_sha256": digest,
+                "changed": False,
+                "status": "UNCHANGED_SOURCE",
+                "previous_snapshot_reference": reference,
+                "new_blob": False,
+            }
+        legacy = self._index_legacy().get(digest)
+        if legacy is not None:
+            return {
+                "source_sha256": digest,
+                "changed": False,
+                "status": "UNCHANGED_SOURCE",
+                "previous_snapshot_reference": legacy,
+                "new_blob": False,
+            }
+        self.root.mkdir(parents=True, exist_ok=True)
+        try:
+            with path.open("xb") as handle:
+                handle.write(raw)
+                handle.flush()
+                os.fsync(handle.fileno())
+        except FileExistsError:
+            if sha256_bytes(path.read_bytes()) != digest:
+                raise ContractError(f"Concurrent source blob conflict: {path}")
+            return {
+                "source_sha256": digest,
+                "changed": False,
+                "status": "UNCHANGED_SOURCE",
+                "previous_snapshot_reference": reference,
+                "new_blob": False,
+            }
+        if sha256_bytes(path.read_bytes()) != digest:
+            raise ContractError(f"Source blob write verification failed: {path}")
+        return {
+            "source_sha256": digest,
+            "changed": True,
+            "status": "CHANGED_SOURCE",
+            "previous_snapshot_reference": None,
+            "blob_reference": reference,
+            "new_blob": True,
+        }
+
+    def validate_all(self) -> int:
+        if not self.root.exists():
+            return 0
+        count = 0
+        for path in sorted(self.root.glob("*.bin")):
+            expected = path.stem
+            if len(expected) != 64 or sha256_bytes(path.read_bytes()) != expected:
+                raise ContractError(f"Source blob hash mismatch: {path}")
+            count += 1
+        return count
 
 
 class LiveSource(Protocol):
@@ -599,37 +705,73 @@ def _next_common_session(cutoff: str, sessions: Mapping[str, Any]) -> str | None
     )
 
 
-def run_live_collection(
+def _source_audit(
+    store: ContentAddressedSourceStore,
+    *,
+    source_type: str,
+    symbol: str,
+    retrieved_at: str,
+    source_identifier: str,
+    raw: bytes,
+) -> dict[str, Any]:
+    stored = store.put(raw)
+    return {
+        "source_type": source_type,
+        "symbol": symbol,
+        "retrieved_at": retrieved_at,
+        "source_identifier": source_identifier,
+        **stored,
+    }
+
+
+def run_collection(
     root: Path,
     contract: Mapping[str, Any],
     source: LiveSource,
     *,
+    mode: str,
     now: Callable[[], datetime] = utc_now,
     symbols: Iterable[str] | None = None,
+    enforce_repository_guards: bool = True,
 ) -> dict[str, Any]:
-    """Perform one bounded manual live run; no caller other than --live invokes it."""
+    """Run the one shared manual/scheduled OOS-C collection engine."""
 
+    mode = mode.upper()
+    if mode not in {"MANUAL", "SCHEDULED"}:
+        raise ContractError("Unknown collection mode")
     if not contract.get("live_collection_enabled"):
         raise ContractError("LIVE_COLLECTION_DISABLED")
-    if contract.get("live_collection_mode") != "MANUAL_ONLY":
-        raise ContractError("Live collection must remain MANUAL_ONLY")
-    if contract.get("scheduled_collection_enabled"):
-        raise ContractError("Scheduled collection is prohibited in OOS-B")
+    if contract.get("live_collection_mode") != "MANUAL_AND_SCHEDULED_ENGINE":
+        raise ContractError("OOS-C requires the shared manual and scheduled engine")
+    if not contract.get("scheduled_collection_prepared"):
+        raise ContractError("SCHEDULED_COLLECTION_NOT_PREPARED")
     if contract.get("historical_backfill_enabled"):
         raise ContractError("Historical backfill is prohibited")
     if contract.get("outcome_calculation_enabled"):
-        raise ContractError("Outcome calculation is prohibited in OOS-B")
+        raise ContractError("Outcome calculation is prohibited in OOS-C")
+    if mode == "SCHEDULED" and enforce_repository_guards:
+        assert_clean_scheduler_start(root)
 
     verify_freeze(root, contract)
+    code_freeze = verify_collector_code_freeze(root, contract)
     signal_path = root / str(contract["signal_ledger_path"])
     outcome_path = root / str(contract["outcome_ledger_path"])
     existing_signals = validate_signal_ledger(signal_path)
     validate_outcome_ledger(outcome_path)
     registry = CandidateRegistry(root / str(contract["pending_candidate_registry_path"]))
+    registry_before = registry.path.read_bytes() if registry.path.exists() else b""
+    signal_before = signal_path.read_bytes() if signal_path.exists() else b""
     candidates = registry.load()
-    snapshots = SnapshotStore(root / str(contract["raw_snapshot_root"]))
+    legacy_root = root / str(contract["raw_snapshot_root"])
+    SnapshotStore(legacy_root).validate_all()
+    source_store = ContentAddressedSourceStore(
+        root / str(contract["source_blob_root"]), legacy_root
+    )
+    before_blobs = source_store.validate_all()
     universe = pd.read_csv(root / str(contract["frozen_universe_path"]), dtype=str).fillna("")
-    universe_by_symbol = {str(row["symbol"]): row for row in universe.to_dict(orient="records")}
+    universe_by_symbol = {
+        str(row["symbol"]): row for row in universe.to_dict(orient="records")
+    }
     default_symbols = [
         symbol
         for symbol, row in universe_by_symbol.items()
@@ -645,33 +787,72 @@ def run_live_collection(
 
     started_at = timestamp(now())
     start = datetime.fromisoformat(str(contract["oos_start_timestamp"]))
+    source_audits: list[dict[str, Any]] = []
+    symbol_audits: dict[str, dict[str, Any]] = {
+        symbol: {
+            "symbol": symbol,
+            "scan_timestamp": started_at,
+            "candidate_statuses": [],
+            "formal_signal_result": "NO_SIGNAL",
+        }
+        for symbol in requested
+    }
     report: dict[str, Any] = {
-        "live_smoke_run_timestamp": started_at,
+        "stage": "OOS-C",
+        "collection_mode": mode,
+        "run_timestamp": started_at,
         "post_oos_mops_filings_discovered": 0,
         "formal_signals_appended": 0,
         "financial_exclusions_observed": 0,
         "pre_oos_exclusions_observed": 0,
         "duplicate_idempotent_skips": 0,
-        "raw_snapshots_created": 0,
         "source_conflicts": 0,
         "failed_closed_events": 0,
+        "changed_source_bodies": 0,
+        "unchanged_source_bodies": 0,
+        "new_blobs": 0,
+        "duplicate_blobs_avoided": 0,
+        "collector_code_freeze": code_freeze,
     }
-    before_manifests = snapshots.validate_all()
+
+    def audit_source(audit: dict[str, Any]) -> None:
+        source_audits.append(audit)
+        if audit["changed"]:
+            report["changed_source_bodies"] += 1
+        else:
+            report["unchanged_source_bodies"] += 1
+            report["duplicate_blobs_avoided"] += 1
+        if audit["new_blob"]:
+            report["new_blobs"] += 1
 
     for symbol in requested:
         try:
             scan, raw = source.scan_mops(symbol)
-            scan_identity = f"scan-{sha256_bytes((started_at + ':' + symbol).encode())[:24]}"
-            snapshots.write(
-                identity=scan_identity,
-                snapshot_type="MOPS",
+            if str(scan.get("response_sha256")) != sha256_bytes(raw):
+                raise ContractError("MOPS response hash mismatch")
+            scan_audit = _source_audit(
+                source_store,
+                source_type="MOPS",
+                symbol=symbol,
                 retrieved_at=str(scan["retrieval_timestamp"]),
                 source_identifier=str(scan["source_url"]),
                 raw=raw,
-                normalized=scan,
+            )
+            audit_source(scan_audit)
+            symbol_audits[symbol].update(
+                {
+                    "source_hash": scan_audit["source_sha256"],
+                    "source_status": scan_audit["status"],
+                    "previous_snapshot_reference": scan_audit.get(
+                        "previous_snapshot_reference"
+                    ),
+                }
             )
             records = list(scan.get("records", []))
-            report["source_conflicts"] += len(scan.get("source_conflicts", []))
+            conflicts = len(scan.get("source_conflicts", []))
+            report["source_conflicts"] += conflicts
+            if conflicts:
+                raise ContractError("MOPS source conflict")
             report["pre_oos_exclusions_observed"] += sum(
                 datetime.fromisoformat(str(item["announcement_timestamp"])) < start
                 for item in records
@@ -686,9 +867,11 @@ def run_live_collection(
                     report["financial_exclusions_observed"] += 1
         except Exception as exc:
             report["failed_closed_events"] += 1
-            report.setdefault("run_errors", []).append(f"{symbol}:{type(exc).__name__}")
-        registry.save(candidates)
+            report.setdefault("run_errors", []).append(
+                f"{symbol}:{type(exc).__name__}:{exc}"
+            )
 
+    registry.save(candidates)
     model_config = json.loads(
         (root / str(contract["frozen_model_config_path"])).read_text(encoding="utf-8")
     )
@@ -705,7 +888,12 @@ def run_live_collection(
     )
     for candidate_id in ordered_candidate_ids:
         candidate = candidates[candidate_id]
-        if candidate["status"] in {"FINANCIAL_EXCLUDED", "SIGNAL_EMITTED", "FAILED_CLOSED", "SOURCE_CONFLICT"}:
+        if candidate["status"] in {
+            "FINANCIAL_EXCLUDED",
+            "SIGNAL_EMITTED",
+            "FAILED_CLOSED",
+            "SOURCE_CONFLICT",
+        }:
             if candidate["status"] == "SIGNAL_EMITTED":
                 report["duplicate_idempotent_skips"] += 1
             continue
@@ -714,16 +902,17 @@ def run_live_collection(
                 financial, financial_raw = source.financial(
                     str(candidate["symbol"]), history_start, today
                 )
-                financial_manifest = snapshots.write(
-                    identity=candidate_id,
-                    snapshot_type="FINANCIAL",
+                financial_audit = _source_audit(
+                    source_store,
+                    source_type="FINANCIAL",
+                    symbol=str(candidate["symbol"]),
                     retrieved_at=str(financial["retrieved_at"]),
                     source_identifier=str(financial["source_identifier"]),
                     raw=financial_raw,
-                    normalized=financial["normalized"],
                 )
+                audit_source(financial_audit)
                 candidate["financial_source_retrieved_at"] = financial["retrieved_at"]
-                candidate["financial_source_hash"] = financial_manifest["source_sha256"]
+                candidate["financial_source_hash"] = financial_audit["source_sha256"]
                 if not _financial_complete(financial["normalized"], str(candidate["period_end"])):
                     candidate["status"] = "PENDING_FINANCIAL_DATA"
                     continue
@@ -731,16 +920,17 @@ def run_live_collection(
                 valuation, valuation_raw = source.valuation(
                     str(candidate["symbol"]), history_start, today
                 )
-                valuation_manifest = snapshots.write(
-                    identity=candidate_id,
-                    snapshot_type="VALUATION",
+                valuation_audit = _source_audit(
+                    source_store,
+                    source_type="VALUATION",
+                    symbol=str(candidate["symbol"]),
                     retrieved_at=str(valuation["retrieved_at"]),
                     source_identifier=str(valuation["source_identifier"]),
                     raw=valuation_raw,
-                    normalized=valuation["normalized"],
                 )
+                audit_source(valuation_audit)
                 candidate["valuation_source_retrieved_at"] = valuation["retrieved_at"]
-                candidate["valuation_source_hash"] = valuation_manifest["source_sha256"]
+                candidate["valuation_source_hash"] = valuation_audit["source_sha256"]
                 if not _valuation_complete(valuation["normalized"]):
                     candidate["status"] = "PENDING_VALUATION_DATA"
                     continue
@@ -749,9 +939,9 @@ def run_live_collection(
                 candidate["locked_signal"] = _build_locked_signal(
                     candidate,
                     financial,
-                    str(financial_manifest["source_sha256"]),
+                    str(financial_audit["source_sha256"]),
                     valuation,
-                    str(valuation_manifest["source_sha256"]),
+                    str(valuation_audit["source_sha256"]),
                     contract,
                     model_config,
                     generated_at,
@@ -759,16 +949,21 @@ def run_live_collection(
                 candidate["first_complete_data_locked_at"] = generated_at
 
             locked = dict(candidate["locked_signal"])
-            session, session_raw = source.sessions(str(candidate["symbol"]), history_start, today)
-            snapshots.write(
-                identity=candidate_id,
-                snapshot_type="MARKET_SESSION",
+            session, session_raw = source.sessions(
+                str(candidate["symbol"]), history_start, today
+            )
+            session_audit = _source_audit(
+                source_store,
+                source_type="MARKET_SESSION",
+                symbol=str(candidate["symbol"]),
                 retrieved_at=str(session["retrieved_at"]),
                 source_identifier=str(session["source_identifier"]),
                 raw=session_raw,
-                normalized=session,
             )
-            first_trade = _next_common_session(str(locked["information_cutoff_timestamp"]), session)
+            audit_source(session_audit)
+            first_trade = _next_common_session(
+                str(locked["information_cutoff_timestamp"]), session
+            )
             if first_trade is None:
                 candidate["status"] = "PENDING_SESSION"
                 continue
@@ -776,7 +971,8 @@ def run_live_collection(
             same_period = [
                 item
                 for item in existing_signals
-                if item["symbol"] == locked["symbol"] and item["period_end"] == locked["period_end"]
+                if item["symbol"] == locked["symbol"]
+                and item["period_end"] == locked["period_end"]
             ]
             if locked["event_id"] in {item["event_id"] for item in existing_signals}:
                 candidate["status"] = "SIGNAL_EMITTED"
@@ -785,7 +981,9 @@ def run_live_collection(
             if same_period:
                 locked["status"] = "SUPERSEDING_EVENT"
                 locked["supersedes_event_id"] = same_period[-1]["event_id"]
-                locked["reason_codes"] = list(locked["reason_codes"]) + ["SOURCE_CORRECTION"]
+                locked["reason_codes"] = list(locked["reason_codes"]) + [
+                    "SOURCE_CORRECTION"
+                ]
             candidate["status"] = "READY_FOR_SIGNAL"
             appended = append_signal_record(
                 signal_path,
@@ -799,25 +997,60 @@ def run_live_collection(
             candidate["status"] = "SIGNAL_EMITTED"
             candidate["emitted_record_hash"] = appended["record_hash"]
             report["formal_signals_appended"] += 1
+            symbol_audits[str(candidate["symbol"])]["formal_signal_result"] = "SIGNAL_EMITTED"
         except (ContractError, LedgerError) as exc:
-            candidate["status"] = "SOURCE_CONFLICT" if "conflict" in str(exc).lower() else "FAILED_CLOSED"
-            key = "source_conflicts" if candidate["status"] == "SOURCE_CONFLICT" else "failed_closed_events"
+            message = str(exc).lower()
+            if "conflict" in message or "mismatch" in message or "corrupt" in message:
+                candidate["status"] = "SOURCE_CONFLICT"
+                key = "source_conflicts"
+            elif "locked_signal" in candidate:
+                candidate["status"] = "PENDING_SESSION"
+                key = "failed_closed_events"
+            elif candidate.get("financial_source_hash"):
+                candidate["status"] = "PENDING_VALUATION_DATA"
+                key = "failed_closed_events"
+            else:
+                candidate["status"] = "PENDING_FINANCIAL_DATA"
+                key = "failed_closed_events"
             report[key] += 1
-            candidate["failure_reason"] = str(exc)
+            candidate["last_failure_reason"] = str(exc)
+            report.setdefault("run_errors", []).append(
+                f"{candidate_id}:{type(exc).__name__}:{exc}"
+            )
         except Exception as exc:
-            candidate["status"] = "FAILED_CLOSED"
-            candidate["failure_reason"] = f"{type(exc).__name__}:{exc}"
+            if "locked_signal" in candidate:
+                candidate["status"] = "PENDING_SESSION"
+            elif candidate.get("financial_source_hash"):
+                candidate["status"] = "PENDING_VALUATION_DATA"
+            else:
+                candidate["status"] = "PENDING_FINANCIAL_DATA"
+            candidate["last_failure_reason"] = f"{type(exc).__name__}:{exc}"
             report["failed_closed_events"] += 1
+            report.setdefault("run_errors", []).append(
+                f"{candidate_id}:{type(exc).__name__}:{exc}"
+            )
         finally:
             registry.save(candidates)
 
-    report["network_requests"] = dict(source.network_requests)
-    report["raw_snapshots_created"] = snapshots.validate_all() - before_manifests
-    report["signal_ledger_total_records"] = len(validate_signal_ledger(signal_path))
-    report["hash_chain_validation"] = "PASS"
+    signal_records = validate_signal_ledger(signal_path)
+    validate_outcome_ledger(outcome_path)
+    source_store.validate_all()
+    for symbol, audit in symbol_audits.items():
+        audit["candidate_statuses"] = sorted(
+            {
+                str(candidate["status"])
+                for candidate in candidates.values()
+                if str(candidate["symbol"]) == symbol
+            }
+        )
     counts = {status: 0 for status in CANDIDATE_STATUSES}
     for candidate in candidates.values():
         counts[str(candidate["status"])] += 1
+    report["network_requests"] = dict(source.network_requests)
+    report["source_blob_total"] = source_store.validate_all()
+    report["new_blobs"] = report["source_blob_total"] - before_blobs
+    report["signal_ledger_total_records"] = len(signal_records)
+    report["hash_chain_validation"] = "PASS"
     report["pending_candidates"] = {
         status: counts[status]
         for status in (
@@ -827,7 +1060,91 @@ def run_live_collection(
             "PENDING_SESSION",
         )
     }
+    registry_changed = registry.path.read_bytes() != registry_before
+    signal_changed = signal_path.read_bytes() != signal_before
+    report["commit_worthy_state_change"] = bool(
+        registry_changed or signal_changed or report["new_blobs"]
+    )
+    run_id = canonical_hash(
+        {
+            "started_at": started_at,
+            "mode": mode,
+            "symbols": requested,
+            "source_hashes": [audit["source_sha256"] for audit in source_audits],
+        }
+    )[:32]
+    run_manifest = {
+        "manifest_version": "OOS-C-1",
+        "run_id": run_id,
+        "stage": "OOS-C",
+        "mode": mode,
+        "started_at": started_at,
+        "frozen_model_hash": contract["frozen_model_hash"],
+        "frozen_universe_hash": contract["frozen_universe_hash"],
+        "oos_start_timestamp": contract["oos_start_timestamp"],
+        "collector_code_freeze_sha": contract["collector_code_freeze_sha"],
+        "outcome_calculation_enabled": False,
+        "symbols": [symbol_audits[symbol] for symbol in requested],
+        "sources": source_audits,
+        "summary": {
+            key: report[key]
+            for key in (
+                "changed_source_bodies",
+                "unchanged_source_bodies",
+                "new_blobs",
+                "duplicate_blobs_avoided",
+                "post_oos_mops_filings_discovered",
+                "formal_signals_appended",
+                "commit_worthy_state_change",
+            )
+        },
+        "failure_count": len(report.get("run_errors", [])),
+    }
+    run_path = root / str(contract["run_manifest_root"]) / f"{run_id}.json"
+    _immutable_json(run_path, run_manifest)
+    report["run_manifest_path"] = run_path.relative_to(root).as_posix()
+    if mode == "SCHEDULED" and enforce_repository_guards:
+        report["scheduled_changed_paths"] = assert_scheduled_write_allowlist(root)
+    if report.get("run_errors"):
+        raise ContractError(
+            "SCHEDULED_COLLECTION_FAILED_CLOSED"
+            if mode == "SCHEDULED"
+            else "LIVE_COLLECTION_FAILED_CLOSED"
+        )
     return report
+
+
+def run_live_collection(
+    root: Path,
+    contract: Mapping[str, Any],
+    source: LiveSource,
+    *,
+    now: Callable[[], datetime] = utc_now,
+    symbols: Iterable[str] | None = None,
+) -> dict[str, Any]:
+    return run_collection(
+        root, contract, source, mode="MANUAL", now=now, symbols=symbols
+    )
+
+
+def run_scheduled_collection(
+    root: Path,
+    contract: Mapping[str, Any],
+    source: LiveSource,
+    *,
+    now: Callable[[], datetime] = utc_now,
+    symbols: Iterable[str] | None = None,
+    enforce_repository_guards: bool = True,
+) -> dict[str, Any]:
+    return run_collection(
+        root,
+        contract,
+        source,
+        mode="SCHEDULED",
+        now=now,
+        symbols=symbols,
+        enforce_repository_guards=enforce_repository_guards,
+    )
 
 
 def validate_snapshot_tree(root: Path) -> int:
