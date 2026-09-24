@@ -168,6 +168,22 @@ python -m pytest tests/test_phase_a1_rules.py
 
 此沙盒不是正式資料管線、不是 production-ready 系統，也不是已驗證的投資策略。
 
+## 0050 Fundamental Quality & Valuation v0.1
+
+獨立的基本面 Shadow Research 模型位於
+`experiments/fundamental_quality_valuation/`。它分開輸出 Business Quality、
+Fundamental State 與 Valuation Context，不建立總分，也不修改 Frozen Technical
+v0.6。方法、PIT proxy、sector-aware 邏輯及已知限制見
+[`docs/research/0050_fundamental_quality_valuation_method_v0.1.md`](docs/research/0050_fundamental_quality_valuation_method_v0.1.md)。
+
+```bash
+python -m pytest -q tests/test_fundamental_quality_valuation.py
+python scripts/run_0050_fundamental_v0_1.py --workers 4
+```
+
+目前財報公告日使用保守代理、歷史 universe 使用目前成分、報酬採未還原日價，
+因此輸出固定屬於 `PROVISIONAL_SHADOW`，不得作為已驗證策略或投資建議。
+
 ## Status
 
 ```text

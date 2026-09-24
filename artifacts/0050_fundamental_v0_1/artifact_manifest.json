@@ -1,0 +1,584 @@
+{
+  "experiment_id": "EXP-0050-FQV-20260903-V01",
+  "experiment_type": "fundamental_quality_valuation_shadow_research",
+  "generation_timestamp": "2026-09-04T03:38:02.318656+00:00",
+  "commit_sha": "a3e27b9e670848629ea4d7f32a609a12b41a3392",
+  "generation_commit_sha": "a3e27b9e670848629ea4d7f32a609a12b41a3392",
+  "code_version": "FQV-v0.1-correction-pass-1",
+  "config_hash": "70efbaf2b3c014fba9080260083def248c77c6ab584f667550315acdfee84316",
+  "data_snapshot_identity": "6ef2d250fe783a9f1bb622913056a65cae88e15abf2946a9faec3e890e3f3703",
+  "source_hash_count": 50,
+  "data_reference": "Immutable source metadata and hashes; normalized permissible research outputs; vendor raw payloads excluded",
+  "config": {
+    "model_id": "0050-FQV-001",
+    "model_version": "0.1.1-correction-pass",
+    "status": "research-shadow",
+    "as_of_date": "2026-09-03",
+    "history_start": "2016-01-01",
+    "universe": "CURRENT_0050_CONSTITUENTS",
+    "universe_bias_flag": "CURRENT_CONSTITUENTS_ONLY",
+    "availability_rule_version": "FQV-PIT-ACTUAL-OR-EXPLICIT-PROXY-0.1.1",
+    "financial_availability_lag_days": {
+      "q1": 60,
+      "q2": 60,
+      "q3": 60,
+      "q4": 90
+    },
+    "quality_rules": {
+      "general": {
+        "median_roe_5y_min": 0.1,
+        "median_roic_5y_min": 0.08,
+        "median_cfo_net_income_min": 0.8,
+        "fcf_positive_ratio_min": 0.7,
+        "net_debt_equity_max": 1.0,
+        "interest_coverage_min": 3.0,
+        "minimum_metric_coverage": {
+          "ttm_revenue": 0.8,
+          "ttm_eps": 0.8,
+          "roe": 0.75,
+          "roic": 0.75,
+          "ttm_cfo": 0.75,
+          "ttm_fcf": 0.75,
+          "equity": 0.8
+        }
+      },
+      "financial": {
+        "median_roe_5y_min": 0.1,
+        "median_roa_5y_min": 0.006,
+        "equity_cagr_3y_min": 0.0,
+        "eps_cagr_3y_min": 0.0,
+        "roe_mapping_plausibility_max": 0.5
+      }
+    },
+    "valuation_rules": {
+      "low_percentile_max": 0.25,
+      "high_percentile_min": 0.75,
+      "minimum_history_observations": 120,
+      "normalized_pe_minimum_observations": 12,
+      "maximum_valuation_staleness_days": 10,
+      "dcf_discount_rate": 0.1,
+      "dcf_terminal_growth": 0.03,
+      "dcf_projection_years": 5,
+      "dcf_growth_floor": -0.03,
+      "dcf_growth_cap": 0.2
+    },
+    "realized_state_rules": {
+      "evaluation_quarters": 4,
+      "minimum_families": 4,
+      "directional_family_minimum": 3,
+      "directional_vote_margin": 2,
+      "level_change_threshold": 0.02,
+      "ratio_change_threshold": 0.01,
+      "balance_sheet_change_threshold": 0.05,
+      "purpose": "ex-post evaluation only; never imported into contemporaneous signal generation"
+    },
+    "backtest": {
+      "start_date": "2019-01-01",
+      "forward_horizons": [
+        20,
+        60,
+        120,
+        252,
+        504,
+        756
+      ],
+      "confidence_level": 0.95,
+      "benchmark": "0050"
+    }
+  },
+  "period": {
+    "start": "2016-01-01",
+    "end": "2026-09-03"
+  },
+  "universe": {
+    "name": "CURRENT_0050_CONSTITUENTS",
+    "count": 50,
+    "bias": "CURRENT_CONSTITUENTS_ONLY"
+  },
+  "status": "PROVISIONAL_SHADOW",
+  "claim_boundary": "analysis quality and investment prediction are separate; prediction is not established",
+  "artifacts": [
+    {
+      "path": "0050_backtest_events_v0.1.csv",
+      "sha256": "6354275ca3574682c45e69b53310b30ab1bcd0af239e9f304138b295b10b69f9",
+      "bytes": 2190652
+    },
+    {
+      "path": "0050_baseline_comparison_v0.1.csv",
+      "sha256": "2bf09adbc83dd575842418279a9b00e90e2653f163e385923173e28a34074e19",
+      "bytes": 19533
+    },
+    {
+      "path": "0050_current_state_matrix_v0.1.csv",
+      "sha256": "967eb7983612150402953c9f750612055c4750db3db47f8f0e7ed630a7538177",
+      "bytes": 101313
+    },
+    {
+      "path": "0050_data_quality_report_v0.1.csv",
+      "sha256": "68657172d3568846bffff83b011cb4bdd8248fbe5fb6e9f73e6783fff0188325",
+      "bytes": 41594
+    },
+    {
+      "path": "0050_final_review_correction_impact_v0.1.json",
+      "sha256": "8ae5b4a9bc72c7a4854b8ab654af7bf4f60db7abb2862672728d080c55dff0b0",
+      "bytes": 7668
+    },
+    {
+      "path": "0050_financial_mapping_audit_v0.1.csv",
+      "sha256": "82596fd060ff5d714f70a9e694b9418f140ad496f774a6d29dccc9e886234c43",
+      "bytes": 5425
+    },
+    {
+      "path": "0050_fundamental_quality_valuation_backtest_v0.1.json",
+      "sha256": "6d6492dd04006b1e678f19aa45e5203451a248ac36bdfa86cb311e61a8b2e35b",
+      "bytes": 11739711
+    },
+    {
+      "path": "0050_fundamental_quality_valuation_backtest_v0.1.pdf",
+      "sha256": "0887ce28c93b0c8022eeda0b869e4ab3e379c1c82d84939a5342934c5d923d87",
+      "bytes": 3077040
+    },
+    {
+      "path": "0050_fundamental_quality_valuation_predictive_validation_v0.1.pdf",
+      "sha256": "43594f5525f18dbd969580c228aa202cbd362986310845f748e656661884b773",
+      "bytes": 82558
+    },
+    {
+      "path": "0050_mops_mapping_diagnostics_v0.1.csv",
+      "sha256": "eeab6a18127978a2b6b1bedd7d6b8a320cbc1414470444ac0aa3b2aae7271fb9",
+      "bytes": 404152
+    },
+    {
+      "path": "0050_mops_pit_coverage_v0.1.csv",
+      "sha256": "198b7b02b0c03aecf57373f074a193432852d8fd70320e1fe06f4e9f62ef732a",
+      "bytes": 271
+    },
+    {
+      "path": "0050_mops_pit_mapping_v0.1.csv",
+      "sha256": "c4644c020aed806e94f818b422895994d842e2b5c61df0bd95cf8137f320935a",
+      "bytes": 934607
+    },
+    {
+      "path": "0050_normalized_financials_pit_v0.1.csv",
+      "sha256": "5fcee7b023b5c134842c4fbf154f26f9782387774b5bd85f8d8e4bd0695d4647",
+      "bytes": 1626517
+    },
+    {
+      "path": "0050_outlier_sensitivity_v0.1.csv",
+      "sha256": "5fea9c5ef859fcbf47df1970ba1259e2dac273ec4b8ea0c6932355c9e5badcaf",
+      "bytes": 51260
+    },
+    {
+      "path": "0050_overlap_diagnostics_v0.1.csv",
+      "sha256": "42f2344283bc39b1adfddcccf55594e4d331b34042d005595b52a434a5251639",
+      "bytes": 748
+    },
+    {
+      "path": "0050_peer_context_v0.1.csv",
+      "sha256": "8aef32c7baa27f67dd4146d904a5b8f078404928cdd9823742d756b53c325cad",
+      "bytes": 12756
+    },
+    {
+      "path": "0050_pit_financial_timeline_v0.1.csv.gz",
+      "sha256": "d357f4ef61f14632907d4eeb84055d9c52e399fb0b7abdfc2216541e82c598c5",
+      "bytes": 731888
+    },
+    {
+      "path": "0050_pit_signal_timeline_v0.1.csv",
+      "sha256": "394e584bb83adc6b4a001ef605aa4dd58540fb76b48ddf1013d8d39c5bd2eeb2",
+      "bytes": 652138
+    },
+    {
+      "path": "0050_predictive_combinations_v0.1.csv",
+      "sha256": "858e54114b0c163e0d0ac36bc2b2c34b3dfc85734ad17bca8e9fe448946a1ac2",
+      "bytes": 165531
+    },
+    {
+      "path": "0050_predictive_events_v0.1.csv",
+      "sha256": "a431669e121fee36db070044f9c1276fb3852b1a33213cb5a1bd4ab98e6ce858",
+      "bytes": 1636545
+    },
+    {
+      "path": "0050_predictive_evidence_v0.1.json",
+      "sha256": "1bd8e16e0067f05711f4be4400543fd5baf4fdf9aec21ce21979187796b9b709",
+      "bytes": 24739
+    },
+    {
+      "path": "0050_predictive_price_sources_v0.1.csv",
+      "sha256": "ba833295eb1dc6e185052c4d5c065183a2e387ef92e747657f9676e115c3f7e2",
+      "bytes": 10755
+    },
+    {
+      "path": "0050_quality_persistence_v0.1.csv",
+      "sha256": "cde39c052e1291150b4a033f8abe04d91afb2c983a5a6d5a42734d67a9537db9",
+      "bytes": 1567
+    },
+    {
+      "path": "0050_quality_predictive_summary_v0.1.csv",
+      "sha256": "b5da1d4b3cd05bb8472f6babc700c9379113759fb4368ee5da649cf7e87c26f9",
+      "bytes": 12497
+    },
+    {
+      "path": "0050_regime_robustness_v0.1.csv",
+      "sha256": "974f2edfb067b2aba6096f285e0feba27499d9b949f1f75e1956fd9f3b6b5ed7",
+      "bytes": 24027
+    },
+    {
+      "path": "0050_return_diagnostics_v0.1.csv",
+      "sha256": "a50f1008fb255416d1a0eaab9973769d66b439a57670c9e3758dcd3cc76761ea",
+      "bytes": 8675
+    },
+    {
+      "path": "0050_robustness_diagnostics_v0.1.csv",
+      "sha256": "f03a0c84da461ceb5a7a51374fc322b4145abae713e1a469a7a7f7479fc02278",
+      "bytes": 11630
+    },
+    {
+      "path": "0050_stage_a_data_quality_summary_v0.1.json",
+      "sha256": "0674c6522b6eebb3a8f5b1b3a4e6d83548eb6aa43c246583114d603934183ab9",
+      "bytes": 3100
+    },
+    {
+      "path": "0050_state_accuracy_metrics_v0.1.csv",
+      "sha256": "5d795f087d9e7b7c38a4094b2290fc6067c51bc954c6557994df69d3e176c786",
+      "bytes": 681
+    },
+    {
+      "path": "0050_state_confusion_matrix_v0.1.csv",
+      "sha256": "544f9eeb040b34365d1bb25346d6906485d7c5488d6063182f25b5daf2d19397",
+      "bytes": 404
+    },
+    {
+      "path": "0050_state_detail_predictive_summary_v0.1.csv",
+      "sha256": "6bb0e0f8c65f588525ca8e1b6814650aaf553ee80b9bfa6b9db6b94a035c5da3",
+      "bytes": 21378
+    },
+    {
+      "path": "0050_state_predictive_summary_v0.1.csv",
+      "sha256": "007faefdbae7fd82fa5d34f9636b952ea7c34dfee3f58a167c550cd7ec70746f",
+      "bytes": 9791
+    },
+    {
+      "path": "0050_state_validation_v0.1.csv",
+      "sha256": "254180e67891a33b0ee4ccaed65a9a2fa9ab6e8b29f06f064c301cd762f34a77",
+      "bytes": 581
+    },
+    {
+      "path": "0050_too_late_diagnosis_v0.1.csv",
+      "sha256": "3c747826431ee459a9e43b8e54d1df98f5b6e8d3905b15273784b7f235e11ba8",
+      "bytes": 536
+    },
+    {
+      "path": "0050_too_late_return_diagnostic_v0.1.csv",
+      "sha256": "9a5093dc40ef13ab87313a372a3f4940497ca3f19ef06e119fb6d2b4918523ff",
+      "bytes": 12782
+    },
+    {
+      "path": "0050_valuation_predictive_summary_v0.1.csv",
+      "sha256": "1dd28359bd9cc00cd44b96082406d0fa87102a7be37388f510472b343d83bfae",
+      "bytes": 36161
+    }
+  ],
+  "stage_a": {
+    "stage": "Fundamental Model v0.1 — Stage A: MOPS PIT Integration",
+    "status": "PASS",
+    "starting_head": "e369d88f6c5ddb116ec3990e99ea876c4d3039b6",
+    "generation_head": "dc94919a7bffba7912e3a4768582e162720450c2",
+    "reviewed_head": "dc94919a7bffba7912e3a4768582e162720450c2",
+    "generated_at": "2026-09-10T05:19:27.801220+00:00",
+    "mops_network_requests": 0,
+    "session_contract": "FROZEN_0050_BENCHMARK_TRADING_SESSIONS",
+    "session_calendar_sha256": "151a7905b6983c422b3c7780d3f0e4ef559cd80ec5d0c91486f4ed457a0d7a34",
+    "session_calendar_expected_sha256": "151a7905b6983c422b3c7780d3f0e4ef559cd80ec5d0c91486f4ed457a0d7a34",
+    "session_calendar_rows": 2594,
+    "invalid_first_trade_date_before": 5,
+    "invalid_first_trade_date_after": 0,
+    "checkpoint_verification": "PASS",
+    "checkpoint_archive_sha256": "c904a167202e2cf7d067f9eae392085e771c209235ded41742b46c428c895fa3",
+    "restored_cache_files": 1186,
+    "financial_observations": 2067,
+    "mops_exact": 2053,
+    "proxy": 14,
+    "unmatched": 14,
+    "exact_duplicate_rows": 0,
+    "multiple_vintage_cases": 341,
+    "multiple_document_kind_cases": 341,
+    "correction_candidate_cases": 0,
+    "duplicate_candidate_count": 341,
+    "duplicate_candidate_count_semantic": "DEPRECATED_LEGACY_CANDIDATES_BEYOND_FIRST_NOT_BAD_DATA",
+    "conflict_observations": 0,
+    "fixed_cohort": 50,
+    "eligible_non_financial": 38,
+    "excluded_financial": 12,
+    "pit_signal_observations": 1563,
+    "predictive_returns_computed": false,
+    "frozen_rules_modified": false,
+    "frozen_rules_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+    "config_sha256": "f5a3889c183a9c137b8779310e2c8c0c7822fd1eff9f4f13adbd62a7ae30e366",
+    "normalized_input_sha256": "5fcee7b023b5c134842c4fbf154f26f9782387774b5bd85f8d8e4bd0695d4647",
+    "universe_sha256": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+    "fixed_cohort_hash_verified": true,
+    "selected_filing_hash": "549cac3184edcc6472cd2133454914a211567d2500dcd3800d89d444e9accf3a",
+    "filing_selection_results_unchanged": true,
+    "market_snapshot_hash": "00aa6bfb8ab4556fc6c9c0d4ff464838fd4890ec47f5c4075db0ff1faf5e021b",
+    "targeted_tests": {
+      "original_stage_a": 22,
+      "original_stage_b": 16,
+      "original_targeted_tests": 38,
+      "correction_regression_tests": 15,
+      "current_total_targeted_tests": 53
+    },
+    "artifact_change_reason": "Final Review Correction Pass: first_trade_date is derived from the frozen Stage B benchmark session calendar; model classifications and thresholds are unchanged.",
+    "artifact_hashes": {
+      "0050_pit_financial_timeline_v0.1.csv.gz": "d357f4ef61f14632907d4eeb84055d9c52e399fb0b7abdfc2216541e82c598c5",
+      "0050_mops_pit_mapping_v0.1.csv": "c4644c020aed806e94f818b422895994d842e2b5c61df0bd95cf8137f320935a",
+      "0050_pit_signal_timeline_v0.1.csv": "394e584bb83adc6b4a001ef605aa4dd58540fb76b48ddf1013d8d39c5bd2eeb2",
+      "0050_mops_mapping_diagnostics_v0.1.csv": "eeab6a18127978a2b6b1bedd7d6b8a320cbc1414470444ac0aa3b2aae7271fb9",
+      "0050_mops_pit_coverage_v0.1.csv": "198b7b02b0c03aecf57373f074a193432852d8fd70320e1fe06f4e9f62ef732a"
+    }
+  },
+  "stage_a_hardening": {
+    "stage": "Fundamental Model v0.1 — Stage A Hardening Pass",
+    "status": "PASS",
+    "stage_a_starting_head": "e369d88f6c5ddb116ec3990e99ea876c4d3039b6",
+    "stage_a_head": "f2060e6243ec59bb859e61c2f96e48f84b01dd95",
+    "starting_head": "f2060e6243ec59bb859e61c2f96e48f84b01dd95",
+    "generation_head": "ecb23374b0c9f8e0a63f7776bdbcd39fcd2257bd",
+    "generated_at": "2026-09-09T09:00:03.444880+00:00",
+    "mops_network_requests": 0,
+    "checkpoint_verification": "PASS",
+    "checkpoint_archive_sha256": "c904a167202e2cf7d067f9eae392085e771c209235ded41742b46c428c895fa3",
+    "restored_cache_files": 1186,
+    "financial_observations": 2067,
+    "mops_exact": 2053,
+    "proxy": 14,
+    "unmatched": 14,
+    "conflict_observations": 0,
+    "fixed_cohort": 50,
+    "eligible_non_financial": 38,
+    "excluded_financial": 12,
+    "pit_signal_observations": 1563,
+    "exact_duplicate_rows": 0,
+    "multiple_vintage_cases": 341,
+    "multiple_document_kind_cases": 341,
+    "correction_candidate_cases": 0,
+    "conflict_cases": 0,
+    "duplicate_candidate_count": 341,
+    "duplicate_candidate_count_semantic": "DEPRECATED_LEGACY_CANDIDATES_BEYOND_FIRST_NOT_BAD_DATA",
+    "predictive_returns_computed": false,
+    "frozen_rules_modified": false,
+    "frozen_rules_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+    "config_sha256": "f5a3889c183a9c137b8779310e2c8c0c7822fd1eff9f4f13adbd62a7ae30e366",
+    "normalized_input_sha256": "5fcee7b023b5c134842c4fbf154f26f9782387774b5bd85f8d8e4bd0695d4647",
+    "universe_sha256": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+    "fixed_cohort_hash_verified": true,
+    "selected_filing_hash": "549cac3184edcc6472cd2133454914a211567d2500dcd3800d89d444e9accf3a",
+    "filing_selection_results_unchanged": true,
+    "artifact_change_reason": "Mapping diagnostic fields were split by semantic category; filing selection, financial timeline, signal timeline, coverage, and model rules are unchanged.",
+    "artifact_hashes": {
+      "0050_pit_financial_timeline_v0.1.csv.gz": "13e7a281390032e86760604e5a5a938bbf2b5136b28ebffd99897523291b571a",
+      "0050_mops_pit_mapping_v0.1.csv": "ec583670a352d3eaf53b6aebc6b5595108b1adfcdf33569700e45f458383f192",
+      "0050_pit_signal_timeline_v0.1.csv": "9c13f87abe8ca25efeb869482724eb49f89c1c234df240d72472641e6bd81241",
+      "0050_mops_mapping_diagnostics_v0.1.csv": "02ac469bae6ffc1298c3a9d8ca7ae1c8280e70c762c05ddc7ef12f8560b57058",
+      "0050_mops_pit_coverage_v0.1.csv": "198b7b02b0c03aecf57373f074a193432852d8fd70320e1fe06f4e9f62ef732a"
+    }
+  },
+  "stage_b": {
+    "stage": "Fundamental Model v0.1 — Stage B: Predictive Validation",
+    "status": "PASS",
+    "starting_head": "9a5f2ed69c960b1993b144caee1308c7f8a8046d",
+    "generation_head": "dc94919a7bffba7912e3a4768582e162720450c2",
+    "generated_at": "2026-09-10T05:22:02.749323+00:00",
+    "mops_network_requests": 0,
+    "frozen_universe_verified": true,
+    "frozen_stage_a_signal_verified": true,
+    "frozen_model_rules_verified": true,
+    "stage_a_manifest_identity_verified": true,
+    "frozen_identity": {
+      "universe_sha256": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+      "signal_sha256": "394e584bb83adc6b4a001ef605aa4dd58540fb76b48ddf1013d8d39c5bd2eeb2",
+      "frozen_rules_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+      "stage_a_manifest_identity": "776f7b9d02c95db69e0c37cca96bf38333e8b582ac83a191af559f3bea0c7a55",
+      "session_calendar_sha256": "151a7905b6983c422b3c7780d3f0e4ef559cd80ec5d0c91486f4ed457a0d7a34"
+    },
+    "eligible_observations_by_horizon": {
+      "60d": 1507,
+      "120d": 1462,
+      "252d": 1395,
+      "504d": 1224
+    },
+    "mechanical_rubric_grade": "STRONG",
+    "independent_reviewer_evidence_assessment": "MODERATE",
+    "primary_research_evidence_assessment": "MODERATE",
+    "pre_registration_status": "NOT_VERIFIABLE",
+    "evidence_label": "EXPLORATORY_PREDICTIVE_ASSOCIATION",
+    "support_gate": {
+      "minimum_observations": 30,
+      "minimum_unique_issuers": 5
+    },
+    "survivorship_bias": "CURRENT_CONSTITUENTS_ONLY",
+    "financial_issuers_excluded": 12,
+    "frozen_rules_modified": false,
+    "clustered_inference_status": "LIMITED",
+    "overlap_handling_status": "LIMITED",
+    "targeted_tests": {
+      "original_stage_a": 22,
+      "original_stage_b": 16,
+      "original_targeted_tests": 38,
+      "correction_regression_tests": 15,
+      "current_total_targeted_tests": 53
+    },
+    "artifact_hashes": {
+      "0050_predictive_events_v0.1.csv": "a431669e121fee36db070044f9c1276fb3852b1a33213cb5a1bd4ab98e6ce858",
+      "0050_state_predictive_summary_v0.1.csv": "007faefdbae7fd82fa5d34f9636b952ea7c34dfee3f58a167c550cd7ec70746f",
+      "0050_state_detail_predictive_summary_v0.1.csv": "6bb0e0f8c65f588525ca8e1b6814650aaf553ee80b9bfa6b9db6b94a035c5da3",
+      "0050_quality_predictive_summary_v0.1.csv": "b5da1d4b3cd05bb8472f6babc700c9379113759fb4368ee5da649cf7e87c26f9",
+      "0050_valuation_predictive_summary_v0.1.csv": "1dd28359bd9cc00cd44b96082406d0fa87102a7be37388f510472b343d83bfae",
+      "0050_predictive_combinations_v0.1.csv": "858e54114b0c163e0d0ac36bc2b2c34b3dfc85734ad17bca8e9fe448946a1ac2",
+      "0050_too_late_return_diagnostic_v0.1.csv": "9a5093dc40ef13ab87313a372a3f4940497ca3f19ef06e119fb6d2b4918523ff",
+      "0050_regime_robustness_v0.1.csv": "974f2edfb067b2aba6096f285e0feba27499d9b949f1f75e1956fd9f3b6b5ed7",
+      "0050_outlier_sensitivity_v0.1.csv": "5fea9c5ef859fcbf47df1970ba1259e2dac273ec4b8ea0c6932355c9e5badcaf",
+      "0050_overlap_diagnostics_v0.1.csv": "42f2344283bc39b1adfddcccf55594e4d331b34042d005595b52a434a5251639",
+      "0050_predictive_price_sources_v0.1.csv": "ba833295eb1dc6e185052c4d5c065183a2e387ef92e747657f9676e115c3f7e2",
+      "0050_predictive_evidence_v0.1.json": "1bd8e16e0067f05711f4be4400543fd5baf4fdf9aec21ce21979187796b9b709",
+      "0050_final_review_correction_impact_v0.1.json": "8ae5b4a9bc72c7a4854b8ab654af7bf4f60db7abb2862672728d080c55dff0b0",
+      "0050_fundamental_quality_valuation_predictive_validation_v0.1.pdf": "43594f5525f18dbd969580c228aa202cbd362986310845f748e656661884b773"
+    }
+  },
+  "audit_history": {
+    "before_final_review_correction": {
+      "reviewed_head": "dc94919a7bffba7912e3a4768582e162720450c2",
+      "stage_a": {
+        "stage": "Fundamental Model v0.1 — Stage A: MOPS PIT Integration",
+        "status": "PASS",
+        "starting_head": "e369d88f6c5ddb116ec3990e99ea876c4d3039b6",
+        "generation_head": "3584b884db6a4fc332f071333bd64fd29dc5d84d",
+        "generated_at": "2026-09-09T04:54:43.690198+00:00",
+        "mops_network_requests": 0,
+        "checkpoint_verification": "PASS",
+        "checkpoint_archive_sha256": "c904a167202e2cf7d067f9eae392085e771c209235ded41742b46c428c895fa3",
+        "restored_cache_files": 1186,
+        "financial_observations": 2067,
+        "mops_exact": 2053,
+        "proxy": 14,
+        "unmatched": 14,
+        "duplicate_observations": 341,
+        "duplicate_candidates": 341,
+        "conflict_observations": 0,
+        "corrected_filing_cases": 0,
+        "fixed_cohort": 50,
+        "eligible_non_financial": 38,
+        "excluded_financial": 12,
+        "pit_signal_observations": 1563,
+        "predictive_returns_computed": false,
+        "frozen_rules_modified": false,
+        "frozen_rules_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+        "config_sha256": "f5a3889c183a9c137b8779310e2c8c0c7822fd1eff9f4f13adbd62a7ae30e366",
+        "normalized_input_sha256": "5fcee7b023b5c134842c4fbf154f26f9782387774b5bd85f8d8e4bd0695d4647",
+        "universe_sha256": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+        "market_snapshot_hash": "00aa6bfb8ab4556fc6c9c0d4ff464838fd4890ec47f5c4075db0ff1faf5e021b",
+        "artifact_hashes": {
+          "0050_pit_financial_timeline_v0.1.csv.gz": "13e7a281390032e86760604e5a5a938bbf2b5136b28ebffd99897523291b571a",
+          "0050_mops_pit_mapping_v0.1.csv": "ec583670a352d3eaf53b6aebc6b5595108b1adfcdf33569700e45f458383f192",
+          "0050_pit_signal_timeline_v0.1.csv": "9c13f87abe8ca25efeb869482724eb49f89c1c234df240d72472641e6bd81241",
+          "0050_mops_mapping_diagnostics_v0.1.csv": "1bea4e0c379fcd7167869b8c4050c9dc254ce14ee1c547ebb00b77133f12a441",
+          "0050_mops_pit_coverage_v0.1.csv": "198b7b02b0c03aecf57373f074a193432852d8fd70320e1fe06f4e9f62ef732a"
+        }
+      },
+      "stage_a_hardening": {
+        "stage": "Fundamental Model v0.1 — Stage A Hardening Pass",
+        "status": "PASS",
+        "stage_a_starting_head": "e369d88f6c5ddb116ec3990e99ea876c4d3039b6",
+        "stage_a_head": "f2060e6243ec59bb859e61c2f96e48f84b01dd95",
+        "starting_head": "f2060e6243ec59bb859e61c2f96e48f84b01dd95",
+        "generation_head": "ecb23374b0c9f8e0a63f7776bdbcd39fcd2257bd",
+        "generated_at": "2026-09-09T09:00:03.444880+00:00",
+        "mops_network_requests": 0,
+        "checkpoint_verification": "PASS",
+        "checkpoint_archive_sha256": "c904a167202e2cf7d067f9eae392085e771c209235ded41742b46c428c895fa3",
+        "restored_cache_files": 1186,
+        "financial_observations": 2067,
+        "mops_exact": 2053,
+        "proxy": 14,
+        "unmatched": 14,
+        "conflict_observations": 0,
+        "fixed_cohort": 50,
+        "eligible_non_financial": 38,
+        "excluded_financial": 12,
+        "pit_signal_observations": 1563,
+        "exact_duplicate_rows": 0,
+        "multiple_vintage_cases": 341,
+        "multiple_document_kind_cases": 341,
+        "correction_candidate_cases": 0,
+        "conflict_cases": 0,
+        "duplicate_candidate_count": 341,
+        "duplicate_candidate_count_semantic": "DEPRECATED_LEGACY_CANDIDATES_BEYOND_FIRST_NOT_BAD_DATA",
+        "predictive_returns_computed": false,
+        "frozen_rules_modified": false,
+        "frozen_rules_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+        "config_sha256": "f5a3889c183a9c137b8779310e2c8c0c7822fd1eff9f4f13adbd62a7ae30e366",
+        "normalized_input_sha256": "5fcee7b023b5c134842c4fbf154f26f9782387774b5bd85f8d8e4bd0695d4647",
+        "universe_sha256": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+        "fixed_cohort_hash_verified": true,
+        "selected_filing_hash": "549cac3184edcc6472cd2133454914a211567d2500dcd3800d89d444e9accf3a",
+        "filing_selection_results_unchanged": true,
+        "artifact_change_reason": "Mapping diagnostic fields were split by semantic category; filing selection, financial timeline, signal timeline, coverage, and model rules are unchanged.",
+        "artifact_hashes": {
+          "0050_pit_financial_timeline_v0.1.csv.gz": "13e7a281390032e86760604e5a5a938bbf2b5136b28ebffd99897523291b571a",
+          "0050_mops_pit_mapping_v0.1.csv": "ec583670a352d3eaf53b6aebc6b5595108b1adfcdf33569700e45f458383f192",
+          "0050_pit_signal_timeline_v0.1.csv": "9c13f87abe8ca25efeb869482724eb49f89c1c234df240d72472641e6bd81241",
+          "0050_mops_mapping_diagnostics_v0.1.csv": "02ac469bae6ffc1298c3a9d8ca7ae1c8280e70c762c05ddc7ef12f8560b57058",
+          "0050_mops_pit_coverage_v0.1.csv": "198b7b02b0c03aecf57373f074a193432852d8fd70320e1fe06f4e9f62ef732a"
+        }
+      },
+      "stage_b": {
+        "stage": "Fundamental Model v0.1 — Stage B: Predictive Validation",
+        "status": "PASS",
+        "starting_head": "9a5f2ed69c960b1993b144caee1308c7f8a8046d",
+        "generation_head": "5b6bdc9ce23895a30e09452211d5e2e2b9ddcbce",
+        "generated_at": "2026-09-09T10:14:23.136984+00:00",
+        "mops_network_requests": 0,
+        "frozen_universe_verified": true,
+        "frozen_stage_a_signal_verified": true,
+        "frozen_model_rules_verified": true,
+        "stage_a_manifest_identity_verified": true,
+        "frozen_identity": {
+          "universe_sha256": "aac840ff8018358d5f317b5424f300ff02dc39e5d0e62f075f10a41632079f46",
+          "signal_sha256": "9c13f87abe8ca25efeb869482724eb49f89c1c234df240d72472641e6bd81241",
+          "frozen_rules_hash": "8c83caa292899b89bc5cf1e56180e867c9fec2999809b19f47f9529d9d3b3a5f",
+          "stage_a_manifest_identity": "fbc45f41048d9af30a2e9c04ae53d91715cee42087c89c08f818b23bbed1fcf9"
+        },
+        "eligible_observations_by_horizon": {
+          "60d": 1502,
+          "120d": 1457,
+          "252d": 1390,
+          "504d": 1219
+        },
+        "predictive_evidence_grade": "STRONG",
+        "evidence_label": "EXPLORATORY_PREDICTIVE_ASSOCIATION",
+        "support_gate": {
+          "minimum_observations": 30,
+          "minimum_unique_issuers": 5
+        },
+        "survivorship_bias": "CURRENT_CONSTITUENTS_ONLY",
+        "financial_issuers_excluded": 12,
+        "frozen_rules_modified": false,
+        "artifact_hashes": {
+          "0050_predictive_events_v0.1.csv": "1bca5182a2622732510b3fba7df880c9eb880ceb30421187a63db11f1512a018",
+          "0050_state_predictive_summary_v0.1.csv": "8b20c2112d080fcf30f99e107a01e20e31fc022ca143ce5cab2605ca597d781a",
+          "0050_state_detail_predictive_summary_v0.1.csv": "b7e188071624df0ba94d472261ee42a8828e30cef5495f87baea548f96e339f3",
+          "0050_quality_predictive_summary_v0.1.csv": "56c652cdad6442fb3754b036bac1f9cc4b993c5f49c4be17244c359ba325dd2c",
+          "0050_valuation_predictive_summary_v0.1.csv": "81ba02ee1e8194eac23e6a3dad273f944b7272bbb2a7c6c668f9fb81c9beab1a",
+          "0050_predictive_combinations_v0.1.csv": "ca7108410d1c0a7d73878c5eaec43559ec756cad7db6db676e5ccf6f473cca24",
+          "0050_too_late_return_diagnostic_v0.1.csv": "b60da07a9ecbcdd0707d34187d15464800291ec64ff9f10fa5bae994f33f35aa",
+          "0050_regime_robustness_v0.1.csv": "2ca0365cf7fd26973b20ce82e884e8b7e17f7dcfec38e6e6b0b3debcf9db200c",
+          "0050_outlier_sensitivity_v0.1.csv": "600ad95287cafe9c7fb092ce079f53cd32ad1bd20f280d1b5a7d4e5481ffcea3",
+          "0050_overlap_diagnostics_v0.1.csv": "774b18080d275656a9252c14183f32433508f4b27dc04f1a3b2557b219f607a9",
+          "0050_predictive_price_sources_v0.1.csv": "ba833295eb1dc6e185052c4d5c065183a2e387ef92e747657f9676e115c3f7e2",
+          "0050_predictive_evidence_v0.1.json": "638c65f0385fd706b6cf1059eb7b9d59b77b907ad1f942097fbac2b924c643cd",
+          "0050_fundamental_quality_valuation_predictive_validation_v0.1.pdf": "553151df4d08adc4035b7f2b43249f5692d45cd179f8f869f2e5593fae1f2bd4"
+        }
+      }
+    }
+  }
+}

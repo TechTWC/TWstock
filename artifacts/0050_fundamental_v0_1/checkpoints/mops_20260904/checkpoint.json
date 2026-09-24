@@ -1,0 +1,65 @@
+{
+  "checkpoint_version": "MOPS-CACHE-CHECKPOINT-v0.1",
+  "created_at": "2026-09-04T09:04:37.534211+00:00",
+  "network_requests_performed": false,
+  "source_starting_head": "5abbf53dfc26a55e78d6628ce9087fe17f2cd9f2",
+  "workspace_head_at_checkpoint": "5abbf53dfc26a55e78d6628ce9087fe17f2cd9f2",
+  "as_of_date": "2026-09-03",
+  "cache": {
+    "workspace_location": "outputs/raw_fundamental_predictive_v0_1/mops",
+    "portable_archive": "artifacts/0050_fundamental_v0_1/checkpoints/mops_20260904/mops_cache_and_metadata.tar.gz",
+    "portable_archive_sha256": "c904a167202e2cf7d067f9eae392085e771c209235ded41742b46c428c895fa3",
+    "files": 1186,
+    "bytes": 6234015,
+    "active_all_year_html": 50,
+    "active_all_year_metadata": 50,
+    "legacy_per_year_html": 543,
+    "legacy_per_year_metadata": 543
+  },
+  "completion": {
+    "requested_company_years": 543,
+    "completed_company_years": 543,
+    "remaining_company_years": 0,
+    "successful_company_archives": 50,
+    "failed_active_company_archives": 0,
+    "requested_financial_observations": 2067,
+    "mops_exact_observations": 2053,
+    "proxy_observations": 14,
+    "legacy_rate_limit_failures_superseded": 275
+  },
+  "resume": {
+    "can_resume": true,
+    "remaining_list": "artifacts/0050_fundamental_v0_1/checkpoints/mops_20260904/remaining_company_years.csv",
+    "failure_list": "artifacts/0050_fundamental_v0_1/checkpoints/mops_20260904/failures.csv",
+    "legacy_failure_list": "artifacts/0050_fundamental_v0_1/checkpoints/mops_20260904/legacy_cache_failures.csv",
+    "restore_command": "python scripts/checkpoint_0050_mops_cache_v0_1.py --restore-to outputs/raw_fundamental_predictive_v0_1/mops",
+    "request_contract": "Only company-year rows in remaining_company_years.csv may be requested next.",
+    "next_network_requests_required": 0
+  },
+  "checkpoint_files": {
+    "completed_company_years.csv": {
+      "bytes": 226619,
+      "sha256": "b573065414127bf2013e3da44b41a11abc9274501a16b5d6340432b4cd843628"
+    },
+    "remaining_company_years.csv": {
+      "bytes": 46,
+      "sha256": "d188316ede38cb7cc19ddfdbf353f274e1189cca99da83cdf2bd53544fba8e7e"
+    },
+    "failures.csv": {
+      "bytes": 68,
+      "sha256": "1d3c0b7bf61924d5d21538b86583902f04608ab4c067d81f6a370bc4740eb94a"
+    },
+    "legacy_cache_failures.csv": {
+      "bytes": 20448,
+      "sha256": "a0a74e5add94fdb611027d509c5e1f469e1f7169650805ad1f4f9ef5fc30312c"
+    },
+    "mops_cache_inventory.csv": {
+      "bytes": 203282,
+      "sha256": "5d5712fc944bc74e35a154f34f7324deadd062880e7d97e3281d1535eb330e25"
+    },
+    "mops_cache_and_metadata.tar.gz": {
+      "bytes": 453361,
+      "sha256": "c904a167202e2cf7d067f9eae392085e771c209235ded41742b46c428c895fa3"
+    }
+  }
+}

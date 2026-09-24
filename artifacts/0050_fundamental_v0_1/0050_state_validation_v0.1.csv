@@ -1,0 +1,5 @@
+﻿label,count,share,before_reviewed_head_count,before_reviewed_head_share,definition
+CORRECT,68,0.2463768115942029,74,0.23125,next two reported quarters improve/confirm revenue and EPS without a fourth-quarter reversal
+TOO_EARLY,14,0.050724637681159424,18,0.05625,confirmation appears only after the first future quarter
+TOO_LATE,142,0.5144927536231884,153,0.478125,revenue and EPS were already positive in both prior observations when TURNING_UP fired
+FALSE_RECOVERY,52,0.18840579710144928,75,0.234375,"future revenue/EPS do not confirm, or reverse by the fourth future quarter"

@@ -1,0 +1,5 @@
+﻿factor,count,share_of_too_late,interpretation
+STATE_RULE_REQUIRES_MULTI_PERIOD_CONFIRMATION,142,1.0,diagnostic contributor; not causal attribution and not used to tune thresholds
+TTM_ROLLING_WINDOW_LAG,142,1.0,diagnostic contributor; not causal attribution and not used to tune thresholds
+QUARTERLY_REPORTING_FREQUENCY,142,1.0,diagnostic contributor; not causal attribution and not used to tune thresholds
+AVAILABLE_DATE_PROXY_TIMING_UNCERTAINTY,142,1.0,diagnostic contributor; not causal attribution and not used to tune thresholds
