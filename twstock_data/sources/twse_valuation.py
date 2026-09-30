@@ -125,7 +125,8 @@ def _rows(payload: dict, month: date, required: tuple[str, ...], *, average=Fals
             if summary_seen:
                 raise MalformedSourceError("duplicate monthly average")
             summary_seen = True
-            _number(values["收盤價"], "monthly average")
+            if str(values["收盤價"]).strip() not in ("", "-", "--"):
+                _number(values["收盤價"], "monthly average")
             continue
         if summary_seen:
             raise MalformedSourceError("observation after monthly summary")
@@ -149,9 +150,13 @@ def parse_close_payload(body: bytes, symbol: str, month: date):
     name = match.group(2).strip()
     closes = {}
     for day, values in _rows(payload, month, ("日期", "收盤價"), average=True):
-        close = _number(values["收盤價"], "official close")
-        if close <= 0:
-            raise DataValidationError("official close must be positive")
+        raw_close = values["收盤價"]
+        if isinstance(raw_close, str) and raw_close.strip() in ("", "-", "--"):
+            close = None
+        else:
+            close = _number(raw_close, "official close")
+            if close <= 0:
+                raise DataValidationError("official close must be positive")
         closes[day] = close
     if not closes:
         raise MalformedSourceError("no daily close observations")
@@ -238,7 +243,9 @@ def fetch_history(symbol: str, start: date, end: date, cache_dir: Path, *,
                 raise DataValidationError("valuation date has no same-day official close")
             if pes and first_pe is None:
                 first_pe = min(pes)
-            missing = sorted(set(closes) - set(pes))
+            unavailable_close = sorted(day for day, close in closes.items() if close is None)
+            numeric_close_dates = {day for day, close in closes.items() if close is not None}
+            missing = sorted(numeric_close_dates - set(pes))
             if missing:
                 incomplete.append(month.strftime("%Y-%m"))
             # Cache only fully parsed, identity-validated pairs. Namespace keeps
@@ -252,9 +259,12 @@ def fetch_history(symbol: str, start: date, end: date, cache_dir: Path, *,
                         canonical_symbol=f"{symbol}.TW", month_identifier=month.strftime("%Y%m%d"),
                         source_url=url, retrieved_at=retrieved, http_status=200, body=body)
             records.extend(ValuationObservation(symbol, day, close, pes.get(day), close_url, pe_url)
-                           for day, close in closes.items() if start <= day <= end)
+                           for day, close in closes.items()
+                           if close is not None and start <= day <= end)
             results.append({"month": month.strftime("%Y-%m"), "close_status": close_status,
-                "pe_status": pe_status, "close_count": len(closes), "pe_count": len(pes),
+                "pe_status": pe_status, "close_count": len(numeric_close_dates),
+                "source_close_row_count": len(closes), "pe_count": len(pes),
+                "unavailable_close_dates": [d.isoformat() for d in unavailable_close],
                 "missing_pe_dates": [d.isoformat() for d in missing],
                 "close_source_url": close_url, "pe_source_url": pe_url,
                 "close_sha256": raw_hash(close_body), "pe_sha256": raw_hash(pe_body),

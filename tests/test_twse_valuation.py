@@ -144,11 +144,20 @@ def test_contradictory_no_data_fails_closed(payload):
 
 def test_invalid_close():
     p = json.loads((FIXTURES / "twse_close_avg_2330_200509.json").read_bytes())
-    for raw in ("--", "0", "-1", "1,23.45"):
+    for raw in ("0", "-1", "1,23.45"):
         bad = deepcopy(p)
         bad["data"][0][1] = raw
         with pytest.raises((DataValidationError, MalformedSourceError)):
             parse_close_payload(encode(bad), "2330", MONTH)
+
+
+@pytest.mark.parametrize("raw", ["--", "-", ""])
+def test_official_unavailable_close_is_preserved_without_fabrication(raw):
+    p = json.loads((FIXTURES / "twse_close_avg_2330_200509.json").read_bytes())
+    p["data"][0][1] = raw
+    _, closes = parse_close_payload(encode(p), "2330", MONTH)
+    assert date(2005, 9, 2) in closes
+    assert closes[date(2005, 9, 2)] is None
 
 
 @pytest.mark.parametrize("symbol", ["0050", "2330.TW", "123456", "../2330", "abcd"])
@@ -218,6 +227,26 @@ def test_missing_pe_date_preserved(tmp_path):
     assert len(result.observations) == 21
     assert result.observations[1].official_pe is None
     assert result.incomplete_months == ("2005-09",)
+
+
+def test_unavailable_close_date_is_skipped_without_losing_other_rows(tmp_path):
+    class UnavailableClose(FakeTransport):
+        def get(self, url, timeout):
+            r = super().get(url, timeout)
+            if "/STOCK_DAY_AVG?" in url:
+                p = json.loads(r.body)
+                p["data"][0][1] = "--"
+                return HttpResponse(url, 200, encode(p))
+            return r
+    result = fetch_history("2330", MONTH, date(2005, 9, 30), tmp_path,
+                           transport=UnavailableClose(), request_interval=0)
+    assert len(result.observations) == 20
+    assert all(row.trade_date != date(2005, 9, 2) for row in result.observations)
+    month = result.month_results[0]
+    assert month["source_close_row_count"] == 21
+    assert month["close_count"] == 20
+    assert month["unavailable_close_dates"] == ["2005-09-02"]
+    assert month["missing_pe_dates"] == []
 
 
 def test_completed_session_excludes_intraday():
