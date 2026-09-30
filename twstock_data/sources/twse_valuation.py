@@ -90,8 +90,12 @@ def _payload(body: bytes, month: date) -> dict:
         raise MalformedSourceError("invalid TWSE JSON") from exc
     if not isinstance(payload, dict):
         raise MalformedSourceError("TWSE payload must be an object")
-    if payload.get("stat") == NO_DATA and payload.get("total") == 0:
-        if payload.get("data") not in (None, []):
+    if payload.get("stat") == NO_DATA:
+        # TWSE's no-data schemas differ by endpoint: BWIBBU includes
+        # ``total: 0`` while STOCK_DAY_AVG omits ``total`` entirely.
+        if (payload.get("total", 0) != 0
+                or payload.get("data") not in (None, [])
+                or payload.get("fields") not in (None, [])):
             raise MalformedSourceError("contradictory no-data response")
         return payload
     if payload.get("stat") != "OK" or payload.get("date") != month.strftime("%Y%m%d"):

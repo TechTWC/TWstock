@@ -121,6 +121,27 @@ def test_bad_json(raw):
         parse_valuation_payload(raw, "2330", "台積電", MONTH)
 
 
+@pytest.mark.parametrize("payload", [
+    {"stat": NO_DATA},
+    {"stat": NO_DATA, "total": 0},
+    {"stat": NO_DATA, "total": 0, "data": []},
+])
+def test_official_no_data_schema_variants(payload):
+    body = encode(payload)
+    assert parse_close_payload(body, "6669", MONTH) == (None, {})
+    assert parse_valuation_payload(body, "6669", None, MONTH) == {}
+
+
+@pytest.mark.parametrize("payload", [
+    {"stat": NO_DATA, "total": 1},
+    {"stat": NO_DATA, "data": [["unexpected"]]},
+    {"stat": NO_DATA, "fields": ["unexpected"]},
+])
+def test_contradictory_no_data_fails_closed(payload):
+    with pytest.raises(MalformedSourceError, match="contradictory"):
+        parse_close_payload(encode(payload), "6669", MONTH)
+
+
 def test_invalid_close():
     p = json.loads((FIXTURES / "twse_close_avg_2330_200509.json").read_bytes())
     for raw in ("--", "0", "-1", "1,23.45"):
