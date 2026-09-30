@@ -2,3 +2,5 @@
 data/runtime/raw/
 __pycache__/
 *.py[cod]
+outputs/pe_river/
+.venv/
