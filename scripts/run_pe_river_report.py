@@ -1,0 +1,61 @@
+from __future__ import annotations
+
+import argparse
+import math
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in (None, ""):
+    sys.path.insert(0, str(ROOT))
+
+from twstock_data.errors import MarketDataError
+from twstock_data.sources.twse_valuation import HISTORY_START, completed_session_cutoff, fetch_history
+from twstock_valuation.pe_river import DEFAULT_MULTIPLES, build_metadata, calculate_rivers, select_coverage, years_before
+from twstock_valuation.pe_river_pdf import write_report
+
+
+def run(argv=None, *, transport=None, now=None) -> int:
+    parser = argparse.ArgumentParser(description="Official TWSE historical PE river PDF (ordinary shares only)")
+    parser.add_argument("--symbol", required=True)
+    window = parser.add_mutually_exclusive_group()
+    window.add_argument("--max", action="store_true", help="All available official history (default)")
+    window.add_argument("--years", type=int, choices=(5, 10, 20))
+    parser.add_argument("--multiples", type=float, nargs="+", default=DEFAULT_MULTIPLES)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--cache-dir", type=Path)
+    parser.add_argument("--timeout", type=float, default=30)
+    parser.add_argument("--retries", type=int, default=2)
+    parser.add_argument("--request-interval", type=float, default=1,
+                        help="Minimum seconds between official requests (default: 1)")
+    args = parser.parse_args(argv)
+    if (not math.isfinite(args.timeout) or args.timeout <= 0 or args.retries < 0
+            or not math.isfinite(args.request_interval) or args.request_interval < 0):
+        parser.error("timeout must be positive; retries and request interval must be nonnegative")
+    try:
+        calculate_rivers((), args.multiples)
+        cutoff = completed_session_cutoff(now)
+        start = max(HISTORY_START, years_before(cutoff, args.years).replace(day=1)) if args.years else HISTORY_START
+        output = args.output_dir or ROOT / "outputs" / "pe_river" / args.symbol
+        cache = args.cache_dir or ROOT / "data" / "runtime" / "raw" / "pe_river" / args.symbol
+        history = fetch_history(args.symbol, start, cutoff, cache, transport=transport,
+            timeout=args.timeout, retries=args.retries, request_interval=args.request_interval,
+            refresh_date=now.date() if now else None,
+            progress=lambda result: print(f"{result['month']}: close={result['close_status']} PE={result['pe_status']}", flush=True))
+        observations, requested_start = select_coverage(history.observations, args.years)
+        rows = calculate_rivers(observations, args.multiples)
+        metadata = build_metadata(rows, requested_coverage=f"{args.years}Y" if args.years else "MAX",
+            requested_start=requested_start, multiples=args.multiples, cutoff=cutoff,
+            month_results=history.month_results)
+        saved = write_report(rows, metadata, output)
+        print(f"PDF: {saved['outputs']['pdf']}")
+        print(f"Coverage: {saved['actual_start_date']} -> {saved['actual_end_date']}; "
+              f"{saved['valid_pe_observation_count']} valid PE / {saved['observation_count']} observations")
+        return 0
+    except (MarketDataError, ValueError, OSError) as exc:
+        print(f"PE river report failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(run())
