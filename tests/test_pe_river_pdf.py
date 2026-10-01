@@ -6,7 +6,13 @@ from zoneinfo import ZoneInfo
 
 from scripts.run_pe_river_report import run
 from twstock_data.http import HttpResponse
+from twstock_data.sources.twse_corporate_actions import (
+    NORMALIZATION_READY, STOCK_DIVIDEND, CorporateActionEvent,
+)
 from twstock_data.sources.twse_valuation import ValuationObservation
+from twstock_valuation.corporate_actions import (
+    build_corporate_action_metadata, normalize_for_corporate_actions,
+)
 from twstock_valuation.pe_river import build_metadata, calculate_rivers
 from twstock_valuation.pe_river_pdf import write_report
 
@@ -33,13 +39,65 @@ def test_pdf_csv_metadata(tmp_path):
 def test_cli_offline_end_to_end(tmp_path):
     class FixtureTransport:
         def get(self, url, timeout):
-            name = "twse_valuation_2330_200509.json" if "/BWIBBU?" in url else "twse_close_avg_2330_200509.json"
-            body = (Path(__file__).parent / "fixtures" / name).read_bytes()
+            if "/BWIBBU?" in url:
+                body = (Path(__file__).parent / "fixtures" / "twse_valuation_2330_200509.json").read_bytes()
+            elif "/STOCK_DAY_AVG?" in url:
+                body = (Path(__file__).parent / "fixtures" / "twse_close_avg_2330_200509.json").read_bytes()
+            elif "/TWT49U?" in url:
+                body = json.dumps({"stat": "OK", "fields": [
+                    "資料日期", "股票代號", "除權息前收盤價", "除權息參考價",
+                    "權/息", "詳細資料"],
+                                   "data": []}).encode()
+            else:
+                raise AssertionError(url)
             return HttpResponse(url, 200, body)
     assert run(["--symbol", "2330", "--max", "--output-dir", str(tmp_path / "output"),
                 "--cache-dir", str(tmp_path / "cache"), "--request-interval", "0"],
                transport=FixtureTransport(), now=datetime(2005, 9, 30, 12, tzinfo=ZoneInfo("Asia/Taipei"))) == 0
     assert (tmp_path / "output" / "2330_pe_river.pdf").exists()
+
+
+def test_adjusted_pdf_csv_metadata(tmp_path):
+    observations = (
+        ValuationObservation("6669", date(2026, 9, 1), 7800, 20,
+                             financial_report_period_raw="115/2",
+                             reference_period_end=date(2026, 6, 30)),
+        ValuationObservation("6669", date(2026, 9, 3), 2615, 6.7,
+                             financial_report_period_raw="115/2",
+                             reference_period_end=date(2026, 6, 30)),
+        ValuationObservation("6669", date(2026, 9, 4), 2620, None,
+                             financial_report_period_raw="115/2",
+                             reference_period_end=date(2026, 6, 30)),
+    )
+    action = CorporateActionEvent(
+        symbol="6669", effective_date=date(2026, 9, 2), action_type=STOCK_DIVIDEND,
+        share_factor=2.9828, cash_return_per_share=None, pre_event_close=7800,
+        official_reference_price=2614.99,
+        source_url="https://www.twse.com.tw/summary",
+        detail_source_url="https://www.twse.com.tw/detail",
+        retrieved_at="2026-10-01T00:00:00Z", raw_hash="0" * 64,
+        status=NORMALIZATION_READY, bonus_share_rate=1.9828,
+    )
+    raw = calculate_rivers(observations)
+    normalized = normalize_for_corporate_actions(
+        observations, (action,), analysis_end_date=date(2026, 9, 30))
+    metadata = build_metadata(
+        raw, requested_coverage="MAX", requested_start=date(2005, 9, 1))
+    metadata = build_corporate_action_metadata(normalized, (action,), metadata)
+    result = write_report(
+        raw, metadata, tmp_path, normalized_rows=normalized, events=(action,))
+    saved = json.loads((tmp_path / "report_metadata.json").read_text())
+    assert saved["report_title"] == "6669 | Corporate-Action Adjusted PE River"
+    assert saved["pdf_event_marker_count"] == 1
+    assert saved["unavailable_pe_invariant"]["passed"] is True
+    assert Path(result["outputs"]["pdf"]).stat().st_size > 1000
+    with (tmp_path / "historical_pe_river.csv").open() as handle:
+        data = list(csv.DictReader(handle))
+    assert float(data[0]["adjusted_close"]) == 7800 / 2.9828
+    assert float(data[1]["normalized_pe"]) == 6.7 * 2.9828
+    assert data[2]["official_pe"] == data[2]["normalized_pe"] == ""
+    assert data[2]["raw_implied_reference_eps"] == ""
+    assert data[2]["adjusted_reference_eps"] == data[2]["adjusted_river_15x"] == ""
 
 
 def test_cli_rejects_etf_before_fetch(tmp_path):

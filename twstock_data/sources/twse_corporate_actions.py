@@ -7,15 +7,19 @@ events are retained as review-required evidence and are never normalized.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import date
+from datetime import date, datetime
 import json
 import math
+from pathlib import Path
 import re
+import time
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo
 
 from ..errors import DataValidationError, MalformedSourceError
 from ..http import HttpTransport, get_with_retry
 from ..normalization import raw_hash, utc_now_iso
+from ..twse_incremental_cache import load_cached_month, store_cached_month
 from .twse_valuation import parse_date, validate_symbol
 
 BASE_URL = "https://www.twse.com.tw/rwd/zh/"
@@ -84,6 +88,12 @@ class CorporateActionEvent:
                              (self.official_reference_price, "official reference price")):
             if value is not None and (not math.isfinite(value) or value <= 0):
                 raise DataValidationError(f"corporate-action {field} must be positive and finite")
+
+
+@dataclass(frozen=True)
+class CorporateActionHistory:
+    events: tuple[CorporateActionEvent, ...]
+    request_results: tuple[dict, ...]
 
 
 def build_ex_right_url(start: date, end: date) -> str:
@@ -364,3 +374,130 @@ def fetch_reduction_events(symbol: str, start: date, end: date, *,
         details[(symbol, file_date)] = get_with_retry(
             detail_url, transport, timeout, retries, backoff=2).body
     return parse_reduction_events(summary, details, symbol, source_url, utc_now_iso())
+
+
+def fetch_corporate_action_history(
+        symbol: str, start: date, end: date, cache_dir: Path, *,
+        transport: HttpTransport | None = None, timeout=30.0, retries=2,
+        request_interval=1.0, refresh_date: date | None = None,
+        progress=None) -> CorporateActionHistory:
+    """Fetch integrity-checked annual TWSE action summaries and event details.
+
+    Annual summaries keep requests bounded while covering the full report
+    history.  Completed years and immutable detail responses are reused from
+    the same SHA-256-verified cache contract as valuation history.  Only the
+    current year is refreshed.
+    """
+    validate_symbol(symbol)
+    if start > end:
+        raise DataValidationError("invalid corporate-action history window")
+    if (not math.isfinite(timeout) or timeout <= 0 or retries < 0
+            or not math.isfinite(request_interval) or request_interval < 0):
+        raise DataValidationError("invalid corporate-action request controls")
+    root = Path(cache_dir)
+    current_year = (refresh_date or datetime.now(ZoneInfo("Asia/Taipei")).date()).year
+    events: list[CorporateActionEvent] = []
+    results: list[dict] = []
+    last_request: float | None = None
+
+    def request(namespace: str, identifier: str, url: str, *, refresh=False):
+        nonlocal last_request
+        cached = None
+        if not refresh:
+            cached = load_cached_month(
+                root / namespace,
+                source_symbol=symbol,
+                canonical_symbol=f"{symbol}.TW",
+                month_identifier=identifier,
+                expected_source_url=url,
+            )
+        if cached is not None:
+            return cached.body, cached.retrieved_at, "CACHE_HIT", cached.sha256
+        if last_request is not None:
+            time.sleep(max(0, request_interval - (time.monotonic() - last_request)))
+        response = get_with_retry(url, transport, timeout, retries, backoff=2)
+        last_request = time.monotonic()
+        retrieved = utc_now_iso()
+        store_cached_month(
+            root / namespace,
+            source_symbol=symbol,
+            canonical_symbol=f"{symbol}.TW",
+            month_identifier=identifier,
+            source_url=url,
+            retrieved_at=retrieved,
+            http_status=response.status,
+            body=response.body,
+        )
+        return response.body, retrieved, "FETCHED", raw_hash(response.body)
+
+    def record(source: str, year: int, status: str, digest: str,
+               event_count: int, source_url: str):
+        result = {
+            "source": source,
+            "year": year,
+            "status": status,
+            "sha256": digest,
+            "event_count": event_count,
+            "source_url": source_url,
+        }
+        results.append(result)
+        if progress:
+            progress(result)
+
+    for year in range(max(start.year, EX_RIGHT_HISTORY_START.year), end.year + 1):
+        window_start = max(start, EX_RIGHT_HISTORY_START, date(year, 1, 1))
+        window_end = min(end, date(year, 12, 31))
+        if window_start > window_end:
+            continue
+        source_url = build_ex_right_url(window_start, window_end)
+        summary, retrieved, status, digest = request(
+            "corporate_actions/ex_right/summary",
+            f"{window_start:%Y%m%d}_{window_end:%Y%m%d}", source_url,
+            refresh=year == current_year,
+        )
+        payload = _payload(summary)
+        details = {}
+        for values in _rows(payload, ("資料日期", "股票代號")):
+            if str(values["股票代號"]).strip() != symbol:
+                continue
+            effective = parse_date(values["資料日期"])
+            detail_url = build_ex_right_detail_url(symbol, effective)
+            body, _, _, _ = request(
+                "corporate_actions/ex_right/detail",
+                effective.strftime("%Y%m%d"), detail_url,
+            )
+            details[(symbol, effective)] = body
+        parsed = parse_ex_right_events(summary, details, symbol, source_url, retrieved)
+        events.extend(parsed)
+        record("TWT49U", year, status, digest, len(parsed), source_url)
+
+    for year in range(max(start.year, REDUCTION_HISTORY_START.year), end.year + 1):
+        window_start = max(start, REDUCTION_HISTORY_START, date(year, 1, 1))
+        window_end = min(end, date(year, 12, 31))
+        if window_start > window_end:
+            continue
+        source_url = build_reduction_url(window_start, window_end)
+        summary, retrieved, status, digest = request(
+            "corporate_actions/reduction/summary",
+            f"{window_start:%Y%m%d}_{window_end:%Y%m%d}", source_url,
+            refresh=year == current_year,
+        )
+        payload = _payload(summary)
+        details = {}
+        for values in _rows(payload, ("股票代號", "詳細資料")):
+            if str(values["股票代號"]).strip() != symbol:
+                continue
+            token = re.fullmatch(r"\s*(\d{4})\s*,\s*(\d{8})\s*", str(values["詳細資料"]))
+            if not token or token.group(1) != symbol:
+                raise DataValidationError("TWSE reduction detail identity mismatch")
+            file_date = token.group(2)
+            detail_url = build_reduction_detail_url(symbol, file_date)
+            body, _, _, _ = request(
+                "corporate_actions/reduction/detail", file_date, detail_url,
+            )
+            details[(symbol, file_date)] = body
+        parsed = parse_reduction_events(summary, details, symbol, source_url, retrieved)
+        events.extend(parsed)
+        record("TWTAUU", year, status, digest, len(parsed), source_url)
+
+    return CorporateActionHistory(mark_conflicting_duplicates(events), tuple(results))

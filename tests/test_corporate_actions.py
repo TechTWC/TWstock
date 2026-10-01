@@ -1,15 +1,17 @@
 from dataclasses import replace
 from datetime import date
+import json
 from pathlib import Path
 
 import pytest
 
 from twstock_data.errors import DataValidationError
+from twstock_data.http import HttpResponse
 from twstock_data.sources.twse_corporate_actions import (
     CAPITAL_REDUCTION_CASH_RETURN, CORPORATE_ACTION_REVIEW_REQUIRED,
     NORMALIZATION_READY, STOCK_DIVIDEND, CorporateActionEvent,
-    build_ex_right_url, build_reduction_url, mark_conflicting_duplicates,
-    parse_ex_right_events, parse_reduction_events,
+    build_ex_right_url, build_reduction_url, fetch_corporate_action_history,
+    mark_conflicting_duplicates, parse_ex_right_events, parse_reduction_events,
 )
 from twstock_data.sources.twse_valuation import ValuationObservation
 from twstock_valuation.corporate_actions import (
@@ -126,9 +128,10 @@ def test_multiple_action_factors_multiply_deterministically():
     assert row.normalized_pe == 30
 
 
-def test_no_event_is_identical_to_old_calculation():
+@pytest.mark.parametrize("symbol", ["2330", "2454", "2317"])
+def test_no_event_is_identical_to_old_calculation(symbol):
     row = normalize_for_corporate_actions([
-        observation("2026-09-01", 600, 20, date(2026, 6, 30), "2330")
+        observation("2026-09-01", 600, 20, date(2026, 6, 30), symbol)
     ], [])[0]
     assert row.pending_share_factor == 1
     assert row.future_share_factor == 1
@@ -148,6 +151,20 @@ def test_missing_pe_stays_unavailable():
     assert row.normalized_reference_eps_local is None
     assert row.adjusted_reference_eps is None
     assert row.adjusted_band_prices == (None,) * 5
+
+
+def test_missing_pe_and_period_do_not_block_prior_normalized_distribution():
+    rows = normalize_for_corporate_actions([
+        observation("2026-09-30", 2090, 6.7, date(2026, 6, 30)),
+        observation("2026-10-01", 2110, None, None),
+    ], [event(factor=2.9828)], analysis_end_date=date(2026, 10, 1))
+    assert rows[-1].normalization_status == PE_UNAVAILABLE
+    assert rows[-1].normalized_pe is None
+    assert rows[-1].adjusted_reference_eps is None
+    assert rows[-1].adjusted_band_prices == (None,) * 5
+    result = normalized_distributions(rows)
+    assert result["normalization_status"] == NORMALIZED_PERCENTILE_COMPLETE
+    assert result["normalized_pe_distribution"]["current_percentile"] == 100
 
 
 def test_review_required_event_blocks_normalized_percentile():
@@ -208,3 +225,49 @@ def test_explicit_cash_rights_is_review_required():
         "2026-10-01T00:00:00Z")[0]
     assert result.cash_rights_rate == .1
     assert result.status == CORPORATE_ACTION_REVIEW_REQUIRED
+
+
+def test_official_history_cache_reuses_integrity_checked_responses(tmp_path):
+    summary = (FIXTURES / "twse_ex_right_6669_20260902.json").read_bytes()
+    detail = (FIXTURES / "twse_ex_right_detail_6669_20260902.json").read_bytes()
+    empty_reduction = json.dumps({
+        "stat": "OK",
+        "fields": ["恢復買賣日期", "股票代號", "停止買賣前收盤價格",
+                   "恢復買賣參考價", "減資原因", "詳細資料"],
+        "data": [],
+    }).encode()
+
+    class FixtureTransport:
+        def __init__(self):
+            self.urls = []
+
+        def get(self, url, timeout):
+            self.urls.append(url)
+            if "/TWT49U?" in url:
+                body = summary
+            elif "/TWT49UDetail?" in url:
+                body = detail
+            elif "/TWTAUU?" in url:
+                body = empty_reduction
+            else:
+                raise AssertionError(url)
+            return HttpResponse(url, 200, body)
+
+    transport = FixtureTransport()
+    result = fetch_corporate_action_history(
+        "6669", date(2026, 9, 1), date(2026, 9, 30), tmp_path,
+        transport=transport, request_interval=0, refresh_date=date(2027, 1, 1))
+    assert len(transport.urls) == 3
+    assert len(result.events) == 1
+    assert result.events[0].share_factor == pytest.approx(2.9828)
+    assert result.events[0].derived is False
+
+    class NoNetwork:
+        def get(self, url, timeout):
+            raise AssertionError(f"unexpected refetch: {url}")
+
+    cached = fetch_corporate_action_history(
+        "6669", date(2026, 9, 1), date(2026, 9, 30), tmp_path,
+        transport=NoNetwork(), request_interval=0, refresh_date=date(2027, 1, 1))
+    assert cached.events[0].share_factor == pytest.approx(2.9828)
+    assert {row["status"] for row in cached.request_results} == {"CACHE_HIT"}

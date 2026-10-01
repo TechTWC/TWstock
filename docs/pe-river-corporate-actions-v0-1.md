@@ -1,10 +1,10 @@
 # PE River Corporate Action Normalization v0.1 — Source Contract
 
 This bounded module normalizes share-count changes for the historical PE river.
-It is not a general corporate-action platform. Session 1 supplies the official
-TWSE adapters, canonical event model, reference-period parser, normalization
-engine and deterministic tests. PDF/CSV/metadata integration and long-history
-live acceptance remain Session 2 work.
+It is not a general corporate-action platform. The official TWSE adapters,
+canonical event model, reference-period parser and normalization engine feed
+the production PE-river CLI, PDF, CSV and metadata outputs. Long-history live
+acceptance remains symbol-specific evidence rather than a market-wide claim.
 
 ## Official source contracts
 
@@ -57,6 +57,10 @@ format and positive finite factor are validated. Conflicting same-date events
 are marked review required. Unsupported or ambiguous events never enter the
 normalization product.
 
+Annual action summaries and immutable detail responses use the repository's
+SHA-256-verified raw cache contract. Completed years are reused; the current
+year is refreshed. A partial or hash-mismatched cache entry fails closed.
+
 ## Reference financial period
 
 BWIBBU's optional `財報年/季` value is preserved verbatim. For example,
@@ -76,6 +80,22 @@ Cash capital reduction adjusts only the share basis. Returned cash remains an
 economic gap; the result is not a total-return series. Missing official PE
 remains missing throughout. Any relevant unresolved event or unavailable
 reference period blocks a seemingly complete normalized percentile.
+
+## Report outputs
+
+`scripts/run_pe_river_report.py` performs this path:
+
+`official PE/close history -> official actions -> normalization -> PDF/CSV/JSON`.
+
+The PDF title is `SYMBOL | Corporate-Action Adjusted PE River`. Its primary
+series are adjusted close and adjusted multiple bands, with vertical action
+markers. The footer states: `Cash distributions are not total-return adjusted.`
+
+The CSV retains official close and PE, raw implied EPS and raw rivers alongside
+pending/future factors, normalized PE/EPS, adjusted close and adjusted rivers.
+An unavailable official PE leaves every dependent raw and normalized field
+blank. Metadata contains both raw and normalized distributions, complete event
+evidence, action-request hashes, and an explicit unavailable-PE invariant.
 
 ## Session 1 source spot-checks
 

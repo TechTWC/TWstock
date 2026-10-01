@@ -117,9 +117,11 @@ def normalize_for_corporate_actions(
                         if local_eps is not None and future_factor is not None else None)
         bands = tuple(adjusted_eps * multiple if adjusted_eps is not None else None
                       for multiple in multiples)
-        if not valid_pe and status not in (
-                REFERENCE_PERIOD_UNAVAILABLE, CORPORATE_ACTION_REVIEW_REQUIRED,
-                NORMALIZATION_REVIEW_REQUIRED):
+        # A row without official PE has no EPS or normalized PE to resolve.
+        # Keep it explicitly unavailable rather than allowing a missing
+        # reference-period field on that same row to block the distribution.
+        # Relevant unresolved events still mark every affected valid-PE row.
+        if not valid_pe:
             status = PE_UNAVAILABLE
         output.append(NormalizedRiverObservation(
             observation=observation, raw_implied_reference_eps=raw_eps,
@@ -142,9 +144,12 @@ def normalized_distributions(rows: Sequence[NormalizedRiverObservation]) -> dict
     normalized_values = [row.normalized_pe for row in rows]
     latest_normalized = next((value for value in reversed(normalized_values)
                               if value is not None and math.isfinite(value) and value > 0), None)
-    incomplete = any(row.normalization_status in (
-        CORPORATE_ACTION_REVIEW_REQUIRED, NORMALIZATION_REVIEW_REQUIRED,
-        REFERENCE_PERIOD_UNAVAILABLE) for row in rows)
+    incomplete = any(
+        row.observation.official_pe is not None
+        and row.normalization_status in (
+            CORPORATE_ACTION_REVIEW_REQUIRED, NORMALIZATION_REVIEW_REQUIRED,
+            REFERENCE_PERIOD_UNAVAILABLE)
+        for row in rows)
     return {
         "raw_pe_distribution": distribution(raw_values, latest_raw),
         "normalized_pe_distribution": (
@@ -152,4 +157,88 @@ def normalized_distributions(rows: Sequence[NormalizedRiverObservation]) -> dict
         "normalization_status": (
             NORMALIZED_PERCENTILE_INCOMPLETE if incomplete
             else NORMALIZED_PERCENTILE_COMPLETE),
+    }
+
+
+def build_corporate_action_metadata(
+        rows: Sequence[NormalizedRiverObservation],
+        events: Sequence[CorporateActionEvent], base_metadata: dict,
+        request_results=()) -> dict:
+    """Attach serializable raw/normalized audit evidence to report metadata."""
+    if not rows:
+        raise ValueError("empty normalized report")
+    distributions = normalized_distributions(rows)
+    latest = next((row for row in reversed(rows) if row.normalized_pe is not None), None)
+    unavailable = [row for row in rows if row.observation.official_pe is None]
+    unavailable_preserved = all(
+        row.raw_implied_reference_eps is None
+        and row.normalized_pe is None
+        and row.normalized_reference_eps_local is None
+        and row.adjusted_reference_eps is None
+        and all(value is None for value in row.adjusted_band_prices)
+        for row in unavailable
+    )
+
+    def event_payload(event: CorporateActionEvent) -> dict:
+        return {
+            "symbol": event.symbol,
+            "effective_date": event.effective_date.isoformat(),
+            "resume_date": event.resume_date.isoformat() if event.resume_date else None,
+            "action_type": event.action_type,
+            "reduction_type": event.reduction_type,
+            "share_factor": event.share_factor,
+            "cash_return_per_share": event.cash_return_per_share,
+            "bonus_share_rate": event.bonus_share_rate,
+            "cash_rights_rate": event.cash_rights_rate,
+            "pre_event_close": event.pre_event_close,
+            "official_reference_price": event.official_reference_price,
+            "status": event.status,
+            "derived": event.derived,
+            "derivation_formula": event.derivation_formula,
+            "source_url": event.source_url,
+            "detail_source_url": event.detail_source_url,
+            "retrieved_at": event.retrieved_at,
+            "raw_hash": event.raw_hash,
+            "source_fields": dict(event.source_fields),
+        }
+
+    return {
+        **base_metadata,
+        "schema_version": "TWSTOCK-PE-RIVER-PDF-002",
+        "report_title": (
+            f"{base_metadata['symbol']} | Corporate-Action Adjusted PE River"),
+        "raw_pe_distribution": distributions["raw_pe_distribution"],
+        "normalized_pe_distribution": distributions["normalized_pe_distribution"],
+        "normalization_status": distributions["normalization_status"],
+        "latest_normalized_pe_date": (
+            latest.observation.trade_date.isoformat() if latest else None),
+        "latest_normalized_pe": latest.normalized_pe if latest else None,
+        "latest_financial_report_period": (
+            latest.observation.financial_report_period_raw if latest else None),
+        "latest_pending_share_factor": latest.pending_share_factor if latest else None,
+        "latest_future_share_factor": latest.future_share_factor if latest else None,
+        "latest_adjusted_close": rows[-1].adjusted_close,
+        "normalized_valid_pe_observation_count": sum(
+            row.normalized_pe is not None for row in rows),
+        "normalized_missing_pe_count": sum(
+            row.normalized_pe is None for row in rows),
+        "unavailable_pe_invariant": {
+            "official_unavailable_count": len(unavailable),
+            "preserved_blank_count": sum(
+                row.raw_implied_reference_eps is None
+                and row.normalized_pe is None
+                and row.normalized_reference_eps_local is None
+                and row.adjusted_reference_eps is None
+                and all(value is None for value in row.adjusted_band_prices)
+                for row in unavailable),
+            "passed": unavailable_preserved,
+            "policy": "No forward fill, backward fill, interpolation, or fabricated PE.",
+        },
+        "corporate_action_events": [event_payload(event) for event in events],
+        "corporate_action_request_results": list(request_results),
+        "normalization_semantics": (
+            "Share-count changes are normalized to the latest share basis. "
+            "Official PE and raw implied EPS remain retained for audit."),
+        "cash_distribution_semantics": (
+            "Cash distributions are not total-return adjusted."),
     }
