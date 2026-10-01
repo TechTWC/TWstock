@@ -1,0 +1,155 @@
+"""Corporate-action normalization on a latest-share-count basis."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date
+import math
+from typing import Sequence
+
+from twstock_data.errors import DataValidationError
+from twstock_data.sources.twse_corporate_actions import (
+    CORPORATE_ACTION_REVIEW_REQUIRED, NORMALIZATION_READY,
+    NORMALIZATION_REVIEW_REQUIRED,
+    CorporateActionEvent, mark_conflicting_duplicates,
+)
+from twstock_data.sources.twse_valuation import ValuationObservation
+from .pe_river import DEFAULT_MULTIPLES, distribution
+
+NO_ACTION = "NO_ACTION"
+NORMALIZED = "NORMALIZED"
+PE_UNAVAILABLE = "PE_UNAVAILABLE"
+REFERENCE_PERIOD_UNAVAILABLE = "REFERENCE_PERIOD_UNAVAILABLE"
+NORMALIZED_PERCENTILE_COMPLETE = "NORMALIZED_PERCENTILE_COMPLETE"
+NORMALIZED_PERCENTILE_INCOMPLETE = "NORMALIZED_PERCENTILE_INCOMPLETE"
+
+
+@dataclass(frozen=True)
+class NormalizedRiverObservation:
+    observation: ValuationObservation
+    raw_implied_reference_eps: float | None
+    pending_share_factor: float | None
+    normalized_pe: float | None
+    normalized_reference_eps_local: float | None
+    future_share_factor: float | None
+    adjusted_close: float | None
+    adjusted_reference_eps: float | None
+    adjusted_band_prices: tuple[float | None, ...]
+    normalization_status: str
+    applied_pending_events: tuple[date, ...] = ()
+    applied_future_events: tuple[date, ...] = ()
+
+
+def _product(events: Sequence[CorporateActionEvent]) -> float:
+    result = 1.0
+    for event in events:
+        if event.share_factor is None or event.status != NORMALIZATION_READY:
+            raise DataValidationError("unresolved event cannot enter normalization")
+        result *= event.share_factor
+    if not math.isfinite(result) or result <= 0:
+        raise DataValidationError("invalid combined corporate-action factor")
+    return result
+
+
+def normalize_for_corporate_actions(
+        observations: Sequence[ValuationObservation],
+        events: Sequence[CorporateActionEvent], multiples=DEFAULT_MULTIPLES,
+        analysis_end_date: date | None = None):
+    if not observations:
+        raise ValueError("no historical observations")
+    multiples = tuple(float(value) for value in multiples)
+    if (not multiples or any(not math.isfinite(value) or value <= 0 for value in multiples)
+            or tuple(sorted(set(multiples))) != multiples):
+        raise ValueError("multiples must be distinct, increasing, positive finite numbers")
+    symbol = observations[0].symbol
+    previous = None
+    for observation in observations:
+        if observation.symbol != symbol:
+            raise ValueError("mixed symbols")
+        if previous is not None and observation.trade_date <= previous:
+            raise ValueError("observations must have unique chronological dates")
+        if not math.isfinite(observation.official_close) or observation.official_close <= 0:
+            raise ValueError("invalid official close")
+        previous = observation.trade_date
+    events = mark_conflicting_duplicates(events)
+    if any(event.symbol != symbol for event in events):
+        raise DataValidationError("corporate-action symbol mismatch")
+    end = analysis_end_date or observations[-1].trade_date
+    if end < observations[-1].trade_date:
+        raise ValueError("analysis end precedes latest observation")
+
+    output = []
+    for observation in observations:
+        official_pe = observation.official_pe
+        valid_pe = (official_pe is not None and math.isfinite(official_pe)
+                    and official_pe > 0)
+        raw_eps = observation.official_close / official_pe if valid_pe else None
+        past_events = [event for event in events if event.effective_date <= observation.trade_date]
+        future_events = [event for event in events
+                         if observation.trade_date < event.effective_date <= end]
+        unresolved_future = [event for event in future_events if event.status != NORMALIZATION_READY]
+        pending = []
+        unresolved_pending = []
+        reference_end = observation.reference_period_end
+        if past_events and reference_end is None:
+            status = REFERENCE_PERIOD_UNAVAILABLE
+        else:
+            pending = [event for event in past_events
+                       if reference_end is not None and reference_end < event.effective_date]
+            unresolved_pending = [event for event in pending if event.status != NORMALIZATION_READY]
+            status = NORMALIZED if pending or future_events else NO_ACTION
+        unresolved = unresolved_pending + unresolved_future
+        if unresolved:
+            status = (NORMALIZATION_REVIEW_REQUIRED
+                      if any(event.status == NORMALIZATION_REVIEW_REQUIRED
+                             for event in unresolved)
+                      else CORPORATE_ACTION_REVIEW_REQUIRED)
+
+        pending_factor = None if status in (
+            REFERENCE_PERIOD_UNAVAILABLE, CORPORATE_ACTION_REVIEW_REQUIRED,
+            NORMALIZATION_REVIEW_REQUIRED) else _product(pending)
+        future_factor = None if unresolved_future else _product(future_events)
+        normalized_pe = official_pe * pending_factor if valid_pe and pending_factor is not None else None
+        local_eps = (observation.official_close / normalized_pe
+                     if normalized_pe is not None else None)
+        adjusted_close = (observation.official_close / future_factor
+                          if future_factor is not None else None)
+        adjusted_eps = (local_eps / future_factor
+                        if local_eps is not None and future_factor is not None else None)
+        bands = tuple(adjusted_eps * multiple if adjusted_eps is not None else None
+                      for multiple in multiples)
+        if not valid_pe and status not in (
+                REFERENCE_PERIOD_UNAVAILABLE, CORPORATE_ACTION_REVIEW_REQUIRED,
+                NORMALIZATION_REVIEW_REQUIRED):
+            status = PE_UNAVAILABLE
+        output.append(NormalizedRiverObservation(
+            observation=observation, raw_implied_reference_eps=raw_eps,
+            pending_share_factor=pending_factor, normalized_pe=normalized_pe,
+            normalized_reference_eps_local=local_eps, future_share_factor=future_factor,
+            adjusted_close=adjusted_close, adjusted_reference_eps=adjusted_eps,
+            adjusted_band_prices=bands, normalization_status=status,
+            applied_pending_events=tuple(event.effective_date for event in pending),
+            applied_future_events=tuple(event.effective_date for event in future_events),
+        ))
+    return tuple(output)
+
+
+def normalized_distributions(rows: Sequence[NormalizedRiverObservation]) -> dict:
+    if not rows:
+        raise ValueError("empty normalized report")
+    raw_values = [row.observation.official_pe for row in rows]
+    latest_raw = next((value for value in reversed(raw_values)
+                       if value is not None and math.isfinite(value) and value > 0), None)
+    normalized_values = [row.normalized_pe for row in rows]
+    latest_normalized = next((value for value in reversed(normalized_values)
+                              if value is not None and math.isfinite(value) and value > 0), None)
+    incomplete = any(row.normalization_status in (
+        CORPORATE_ACTION_REVIEW_REQUIRED, NORMALIZATION_REVIEW_REQUIRED,
+        REFERENCE_PERIOD_UNAVAILABLE) for row in rows)
+    return {
+        "raw_pe_distribution": distribution(raw_values, latest_raw),
+        "normalized_pe_distribution": (
+            None if incomplete else distribution(normalized_values, latest_normalized)),
+        "normalization_status": (
+            NORMALIZED_PERCENTILE_INCOMPLETE if incomplete
+            else NORMALIZED_PERCENTILE_COMPLETE),
+    }

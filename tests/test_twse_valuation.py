@@ -10,7 +10,8 @@ from twstock_data.errors import DataValidationError, MalformedSourceError
 from twstock_data.http import HttpResponse
 from twstock_data.sources.twse_valuation import (
     NO_DATA, build_url, completed_session_cutoff, fetch_history,
-    parse_close_payload, parse_valuation_payload, validate_symbol,
+    parse_close_payload, parse_financial_report_period, parse_valuation_payload,
+    parse_valuation_payload_with_period, validate_symbol,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -43,6 +44,22 @@ def test_current_schema_with_optional_financial_fields():
     values = parse_valuation_payload(body, "2330", "台積電", date(2026, 9, 1))
     assert values[date(2026, 9, 1)] == 28.28
     assert len(values) == 19
+
+
+def test_current_schema_preserves_reference_financial_period():
+    body = (FIXTURES / "twse_valuation_2330_202609.json").read_bytes()
+    values = parse_valuation_payload_with_period(body, "2330", "台積電", date(2026, 9, 1))
+    point = values[date(2026, 9, 1)]
+    assert point.official_pe == 28.28
+    assert point.financial_report_period_raw == "115/2"
+    assert point.reference_period_end == date(2026, 6, 30)
+
+
+def test_reference_financial_period_parser():
+    assert parse_financial_report_period("115/2") == ("115/2", date(2026, 6, 30))
+    assert parse_financial_report_period(None) == (None, None)
+    with pytest.raises(MalformedSourceError):
+        parse_financial_report_period("115-Q2")
 
 
 def test_unmatched_valuation_date_fails_closed(tmp_path):

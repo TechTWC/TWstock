@@ -36,6 +36,15 @@ class ValuationObservation:
     official_pe: float | None
     close_source_url: str = ""
     pe_source_url: str = ""
+    financial_report_period_raw: str | None = None
+    reference_period_end: date | None = None
+
+
+@dataclass(frozen=True)
+class ValuationPoint:
+    official_pe: float | None
+    financial_report_period_raw: str | None
+    reference_period_end: date | None
 
 
 @dataclass(frozen=True)
@@ -163,7 +172,22 @@ def parse_close_payload(body: bytes, symbol: str, month: date):
     return name, closes
 
 
-def parse_valuation_payload(body: bytes, symbol: str, name: str | None, month: date):
+def parse_financial_report_period(value: object) -> tuple[str | None, date | None]:
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None, None
+    if not isinstance(value, str):
+        raise MalformedSourceError("TWSE financial report period must be text")
+    raw = value.strip()
+    match = re.fullmatch(r"(\d{2,3})/([1-4])", raw)
+    if not match:
+        raise MalformedSourceError(f"malformed TWSE financial report period: {value!r}")
+    year, quarter = int(match.group(1)) + 1911, int(match.group(2))
+    period_end = (date(year, 3, 31), date(year, 6, 30),
+                  date(year, 9, 30), date(year, 12, 31))[quarter - 1]
+    return raw, period_end
+
+
+def parse_valuation_payload_with_period(body: bytes, symbol: str, name: str | None, month: date):
     validate_symbol(symbol)
     payload = _payload(body, month)
     if payload["stat"] == NO_DATA:
@@ -174,16 +198,25 @@ def parse_valuation_payload(body: bytes, symbol: str, name: str | None, month: d
     for key in ("stockNo", "stockCode"):
         if key in payload and str(payload[key]) != symbol:
             raise DataValidationError("TWSE valuation explicit symbol mismatch")
+    required = ["日期", "本益比", "殖利率(%)", "股價淨值比"]
+    if "財報年/季" in payload["fields"]:
+        required.append("財報年/季")
     result = {}
-    for day, values in _rows(payload, month, ("日期", "本益比", "殖利率(%)", "股價淨值比")):
+    for day, values in _rows(payload, month, tuple(required)):
         raw = values["本益比"]
         if isinstance(raw, str) and raw.strip() in ("", "-", "--"):
             pe = None
         else:
             parsed = _number(raw, "official PE")
             pe = parsed if parsed > 0 else None
-        result[day] = pe
+        period_raw, period_end = parse_financial_report_period(values.get("財報年/季"))
+        result[day] = ValuationPoint(pe, period_raw, period_end)
     return result
+
+
+def parse_valuation_payload(body: bytes, symbol: str, name: str | None, month: date):
+    return {day: point.official_pe for day, point in
+            parse_valuation_payload_with_period(body, symbol, name, month).items()}
 
 
 def completed_session_cutoff(now: datetime | None = None) -> date:
@@ -238,7 +271,7 @@ def fetch_history(symbol: str, start: date, end: date, cache_dir: Path, *,
             close_body, close_url, close_time, close_status = request("STOCK_DAY_AVG", month)
             name, closes = parse_close_payload(close_body, symbol, month)
             pe_body, pe_url, pe_time, pe_status = request("BWIBBU", month)
-            pes = parse_valuation_payload(pe_body, symbol, name, month)
+            pes = parse_valuation_payload_with_period(pe_body, symbol, name, month)
             if set(pes) - set(closes):
                 raise DataValidationError("valuation date has no same-day official close")
             if pes and first_pe is None:
@@ -258,9 +291,14 @@ def fetch_history(symbol: str, start: date, end: date, cache_dir: Path, *,
                     store_cached_month(root / endpoint, source_symbol=symbol,
                         canonical_symbol=f"{symbol}.TW", month_identifier=month.strftime("%Y%m%d"),
                         source_url=url, retrieved_at=retrieved, http_status=200, body=body)
-            records.extend(ValuationObservation(symbol, day, close, pes.get(day), close_url, pe_url)
-                           for day, close in closes.items()
-                           if close is not None and start <= day <= end)
+            records.extend(ValuationObservation(
+                symbol, day, close,
+                pes[day].official_pe if day in pes else None,
+                close_url, pe_url,
+                pes[day].financial_report_period_raw if day in pes else None,
+                pes[day].reference_period_end if day in pes else None,
+            ) for day, close in closes.items()
+                if close is not None and start <= day <= end)
             results.append({"month": month.strftime("%Y-%m"), "close_status": close_status,
                 "pe_status": pe_status, "close_count": len(numeric_close_dates),
                 "source_close_row_count": len(closes), "pe_count": len(pes),
