@@ -4,9 +4,15 @@ import json
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from scripts.run_pe_river_report import run
 from twstock_data.http import HttpResponse
+from twstock_data.sources.mops_face_value_change import (
+    FACE_VALUE_COVERAGE_PROVEN, FaceValueCoverageProof,
+)
 from twstock_data.sources.twse_corporate_actions import (
+    FACE_VALUE_CHANGE_REVERSE_SPLIT, FACE_VALUE_CHANGE_SPLIT,
     NORMALIZATION_READY, STOCK_DIVIDEND, CorporateActionEvent,
 )
 from twstock_data.sources.twse_valuation import ValuationObservation
@@ -15,7 +21,17 @@ from twstock_valuation.corporate_actions import (
     normalize_for_corporate_actions,
 )
 from twstock_valuation.pe_river import build_metadata, calculate_rivers
-from twstock_valuation.pe_river_pdf import _summary_lines, write_report
+from twstock_valuation.pe_river_pdf import _event_marker_label, _summary_lines, write_report
+
+
+def face_proof(symbol, start, end):
+    return FaceValueCoverageProof(
+        symbol=symbol, query_start=start, query_end=end,
+        result_count=0, detail_count=0, rowset_hash="1" * 64,
+        detail_manifest_hash="2" * 64,
+        retrieved_at="2026-10-02T03:00:00Z",
+        status=FACE_VALUE_COVERAGE_PROVEN,
+    )
 
 
 def test_pdf_csv_metadata(tmp_path):
@@ -84,7 +100,9 @@ def test_adjusted_pdf_csv_metadata(tmp_path):
         observations, (action,), analysis_end_date=date(2026, 9, 30))
     metadata = build_metadata(
         raw, requested_coverage="MAX", requested_start=date(2005, 9, 1))
-    metadata = build_corporate_action_metadata(normalized, (action,), metadata)
+    metadata = build_corporate_action_metadata(
+        normalized, (action,), metadata,
+        face_value_proof=face_proof("6669", date(2019, 3, 27), date(2026, 9, 30)))
     result = write_report(
         raw, metadata, tmp_path, normalized_rows=normalized, events=(action,))
     saved = json.loads((tmp_path / "report_metadata.json").read_text())
@@ -115,7 +133,9 @@ def test_incomplete_normalized_distribution_never_falls_back_to_raw_in_pdf():
     normalized = normalize_for_corporate_actions(observations, ())
     metadata = build_metadata(
         raw, requested_coverage="MAX", requested_start=date(2005, 9, 1))
-    metadata = build_corporate_action_metadata(normalized, (), metadata)
+    metadata = build_corporate_action_metadata(
+        normalized, (), metadata,
+        face_value_proof=face_proof("2603", date(2013, 12, 30), date(2022, 9, 19)))
     assert metadata["normalized_pe_distribution"] is None
     assert metadata["normalization_status"] == NORMALIZED_PERCENTILE_INCOMPLETE
     assert metadata["normalization_coverage_start"] == "2011-01-01"
@@ -140,3 +160,20 @@ def test_cli_rejects_etf_before_fetch(tmp_path):
         def get(self, *args):
             raise AssertionError("must not fetch")
     assert run(["--symbol", "0050", "--cache-dir", str(tmp_path)], transport=NoNetwork()) == 1
+
+
+@pytest.mark.parametrize(("action_type", "factor", "expected"), [
+    (FACE_VALUE_CHANGE_SPLIT, 20, "Face Value Split\n20x"),
+    (FACE_VALUE_CHANGE_REVERSE_SPLIT, .4, "Face Value Reverse Split\n0.4x"),
+])
+def test_face_value_pdf_marker_labels(action_type, factor, expected):
+    action = CorporateActionEvent(
+        symbol="6949", effective_date=date(2026, 9, 7), action_type=action_type,
+        share_factor=factor, cash_return_per_share=None, pre_event_close=None,
+        official_reference_price=None,
+        source_url="https://mopsov.twse.com.tw/mops/web/ajax_t146sb10",
+        detail_source_url="https://mopsov.twse.com.tw/mops/web/ajax_t59sb09",
+        retrieved_at="2026-10-02T03:00:00Z", raw_hash="0" * 64,
+        status=NORMALIZATION_READY,
+    )
+    assert _event_marker_label(action) == expected

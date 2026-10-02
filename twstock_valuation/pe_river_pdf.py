@@ -7,11 +7,26 @@ from pathlib import Path
 import tempfile
 
 from twstock_data.sources.twse_corporate_actions import (
-    CAPITAL_REDUCTION_CASH_RETURN, CAPITAL_REDUCTION_LOSS, STOCK_DIVIDEND,
+    CAPITAL_REDUCTION_CASH_RETURN, CAPITAL_REDUCTION_LOSS,
+    FACE_VALUE_CHANGE_REVERSE_SPLIT, FACE_VALUE_CHANGE_SPLIT, STOCK_DIVIDEND,
     CorporateActionEvent,
 )
 from .corporate_actions import NORMALIZED, NormalizedRiverObservation
 from .pe_river import RiverObservation
+
+
+def _event_marker_label(event: CorporateActionEvent) -> str:
+    label = {
+        STOCK_DIVIDEND: "Stock Dividend",
+        CAPITAL_REDUCTION_CASH_RETURN: "Cash Capital Reduction",
+        CAPITAL_REDUCTION_LOSS: "Loss Capital Reduction",
+        FACE_VALUE_CHANGE_SPLIT: "Face Value Split",
+        FACE_VALUE_CHANGE_REVERSE_SPLIT: "Face Value Reverse Split",
+    }.get(event.action_type, event.action_type.replace("_", " ").title())
+    if event.action_type in (
+            FACE_VALUE_CHANGE_SPLIT, FACE_VALUE_CHANGE_REVERSE_SPLIT):
+        label += f"\n{event.share_factor:g}x"
+    return label
 
 
 def _summary_lines(metadata: dict, event_count: int, *, adjusted: bool) -> list[str]:
@@ -178,11 +193,7 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
     for event in events if adjusted else ():
         if dates[0] <= event.effective_date <= dates[-1]:
             marker_count += 1
-            label = {
-                STOCK_DIVIDEND: "Stock Dividend",
-                CAPITAL_REDUCTION_CASH_RETURN: "Cash Capital Reduction",
-                CAPITAL_REDUCTION_LOSS: "Loss Capital Reduction",
-            }.get(event.action_type, event.action_type.replace("_", " ").title())
+            label = _event_marker_label(event)
             ax.axvline(event.effective_date, color="#8c5b42", lw=1, ls="--", alpha=.8)
             ax.annotate(label, (event.effective_date, 1), xycoords=("data", "axes fraction"),
                         xytext=(3, -4), textcoords="offset points", rotation=90,
@@ -207,7 +218,8 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
     panel.text(0, 1, "\n".join(lines), va="top", fontfamily="monospace", fontsize=9.3,
                linespacing=1.3, color="#243b50")
     notes = ([
-        "Source: TWSE BWIBBU + STOCK_DAY_AVG; corporate actions: TWSE TWT49U/TWT49UDetail and TWTAUU/TWTAVUDetail.",
+        "Source: TWSE BWIBBU + STOCK_DAY_AVG; TWSE TWT49U/TWT49UDetail and TWTAUU/TWTAVUDetail.",
+        "Face-value-change coverage: MOPS Company Act category 11, proven per symbol and date interval.",
         "Primary chart is on the latest share-count basis; official close, official PE, raw EPS and raw rivers remain in CSV for audit.",
         "Missing PE leaves raw implied EPS, normalized EPS and both river series blank; no fill or interpolation.",
         "Cash distributions are not total-return adjusted.",

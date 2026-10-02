@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 import time
 from urllib.parse import urlencode
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from ..errors import DataValidationError, MalformedSourceError
@@ -34,11 +35,15 @@ CAPITAL_REDUCTION_CASH_RETURN = "CAPITAL_REDUCTION_CASH_RETURN"
 CAPITAL_REDUCTION_LOSS = "CAPITAL_REDUCTION_LOSS"
 COMPLEX_RIGHTS_ISSUE = "COMPLEX_RIGHTS_ISSUE"
 UNSUPPORTED_ACTION = "UNSUPPORTED_ACTION"
+FACE_VALUE_CHANGE_SPLIT = "FACE_VALUE_CHANGE_SPLIT"
+FACE_VALUE_CHANGE_REVERSE_SPLIT = "FACE_VALUE_CHANGE_REVERSE_SPLIT"
 
 SUPPORTED_NORMALIZATION_ACTION_TYPES = frozenset({
     STOCK_DIVIDEND,
     CAPITAL_REDUCTION_CASH_RETURN,
     CAPITAL_REDUCTION_LOSS,
+    FACE_VALUE_CHANGE_SPLIT,
+    FACE_VALUE_CHANGE_REVERSE_SPLIT,
 })
 
 NORMALIZATION_READY = "NORMALIZATION_READY"
@@ -67,6 +72,11 @@ class CorporateActionEvent:
     derived: bool = False
     derivation_formula: str | None = None
     source_fields: tuple[tuple[str, str], ...] = ()
+    old_par_value: float | None = None
+    new_par_value: float | None = None
+    mops_date1: str | None = None
+    mops_skey: str | None = None
+    coverage_proof_status: str | None = None
 
     def __post_init__(self):
         validate_symbol(self.symbol)
@@ -87,9 +97,9 @@ class CorporateActionEvent:
                 "normalization-ready event has unsupported corporate-action type")
         if not re.fullmatch(r"[0-9a-f]{64}", self.raw_hash):
             raise DataValidationError("corporate-action raw hash is invalid")
-        if not self.source_url.startswith("https://www.twse.com.tw/"):
+        if not _is_official_twse_url(self.source_url):
             raise DataValidationError("corporate-action source must be official TWSE HTTPS")
-        if not self.detail_source_url.startswith("https://www.twse.com.tw/"):
+        if not _is_official_twse_url(self.detail_source_url):
             raise DataValidationError("corporate-action detail source must be official TWSE HTTPS")
         for value, field in (
                 (self.cash_return_per_share, "cash return"),
@@ -101,12 +111,31 @@ class CorporateActionEvent:
                              (self.official_reference_price, "official reference price")):
             if value is not None and (not math.isfinite(value) or value <= 0):
                 raise DataValidationError(f"corporate-action {field} must be positive and finite")
+        for value, field in ((self.old_par_value, "old par value"),
+                             (self.new_par_value, "new par value")):
+            if value is not None and (not math.isfinite(value) or value <= 0):
+                raise DataValidationError(
+                    f"corporate-action {field} must be positive and finite")
+        if self.mops_date1 is not None and not re.fullmatch(r"\d{8}", self.mops_date1):
+            raise DataValidationError("invalid MOPS DATE1")
+        if self.mops_skey is not None and not re.fullmatch(r"\d+", self.mops_skey):
+            raise DataValidationError("invalid MOPS SKEY")
 
 
 @dataclass(frozen=True)
 class CorporateActionHistory:
     events: tuple[CorporateActionEvent, ...]
     request_results: tuple[dict, ...]
+
+
+def _is_official_twse_url(url: str) -> bool:
+    parts = urlsplit(url)
+    return (
+        parts.scheme == "https"
+        and parts.hostname in {
+            "www.twse.com.tw", "mops.twse.com.tw", "mopsov.twse.com.tw"
+        }
+    )
 
 
 def build_ex_right_url(start: date, end: date) -> str:

@@ -7,9 +7,14 @@ import pytest
 
 from twstock_data.errors import DataValidationError
 from twstock_data.http import HttpResponse
+from twstock_data.sources.mops_face_value_change import (
+    FACE_VALUE_COVERAGE_INCOMPLETE, FACE_VALUE_COVERAGE_PROVEN,
+    FaceValueCoverageProof,
+)
 from twstock_data.sources.twse_corporate_actions import (
     CAPITAL_REDUCTION_CASH_RETURN, CAPITAL_REDUCTION_LOSS,
-    CORPORATE_ACTION_REVIEW_REQUIRED, NORMALIZATION_READY, STOCK_DIVIDEND,
+    CORPORATE_ACTION_REVIEW_REQUIRED, FACE_VALUE_CHANGE_REVERSE_SPLIT,
+    FACE_VALUE_CHANGE_SPLIT, NORMALIZATION_READY, STOCK_DIVIDEND,
     UNSUPPORTED_ACTION, CorporateActionEvent,
     build_ex_right_url, build_reduction_url, fetch_corporate_action_history,
     mark_conflicting_duplicates, parse_ex_right_events, parse_reduction_events,
@@ -44,6 +49,19 @@ def observation(day, close, pe, period_end, symbol="6669"):
     return ValuationObservation(symbol, date.fromisoformat(day), close, pe,
                                 financial_report_period_raw=raw,
                                 reference_period_end=period_end)
+
+
+def face_proof(symbol="6669", start=date(2019, 3, 27),
+               end=date(2026, 10, 1), status=FACE_VALUE_COVERAGE_PROVEN,
+               result_count=0, detail_count=0):
+    return FaceValueCoverageProof(
+        symbol=symbol, query_start=start, query_end=end,
+        result_count=result_count, detail_count=detail_count,
+        rowset_hash="1" * 64 if status == FACE_VALUE_COVERAGE_PROVEN else None,
+        detail_manifest_hash="2" * 64 if status == FACE_VALUE_COVERAGE_PROVEN else None,
+        retrieved_at="2026-10-02T03:00:00Z", status=status,
+        failure_reason=None if status == FACE_VALUE_COVERAGE_PROVEN else "network",
+    )
 
 
 def test_official_6669_ex_right_contract():
@@ -151,6 +169,31 @@ def test_sixty_percent_reduction_normalizes_stale_pe():
     assert row.pending_share_factor == .4
     assert row.normalized_pe == 8
     assert row.normalized_reference_eps_local == pytest.approx(23.375)
+
+
+def test_face_value_split_uses_existing_pending_and_future_factor_engine():
+    split = event("2026-09-07", 20, FACE_VALUE_CHANGE_SPLIT, symbol="6949")
+    before, after = normalize_for_corporate_actions([
+        observation("2026-08-26", 1490, 20, date(2026, 6, 30), "6949"),
+        observation("2026-09-07", 74.5, 1, date(2026, 6, 30), "6949"),
+    ], [split], analysis_end_date=date(2026, 9, 7))
+    assert before.future_share_factor == 20
+    assert before.adjusted_close == pytest.approx(74.5)
+    assert after.pending_share_factor == 20
+    assert after.normalized_pe == 20
+
+
+def test_face_value_reverse_split_direction():
+    reverse = event(
+        "2026-09-07", .4, FACE_VALUE_CHANGE_REVERSE_SPLIT, symbol="6949")
+    before, after = normalize_for_corporate_actions([
+        observation("2026-08-26", 12, 20, date(2026, 6, 30), "6949"),
+        observation("2026-09-07", 30, 20, date(2026, 6, 30), "6949"),
+    ], [reverse], analysis_end_date=date(2026, 9, 7))
+    assert before.future_share_factor == .4
+    assert before.adjusted_close == 30
+    assert after.pending_share_factor == .4
+    assert after.normalized_pe == 8
 
 
 def test_latest_share_basis_adjusts_pre_event_price_and_river():
@@ -274,10 +317,17 @@ def test_post_2019_6669_coverage_remains_fully_normalized():
     raw = calculate_rivers(observations)
     base = build_metadata(
         raw, requested_coverage="MAX", requested_start=date(2019, 3, 27))
-    metadata = build_corporate_action_metadata(rows, [action], base)
+    metadata = build_corporate_action_metadata(
+        rows, [action], base,
+        face_value_proof=face_proof(
+            end=date(2026, 10, 1), result_count=18, detail_count=18))
     assert rows[-1].normalized_pe == pytest.approx(19.98476)
+    assert rows[-1].observation.official_pe == 6.7
     assert metadata["normalization_status"] == NORMALIZED
     assert metadata["normalized_pe_distribution"] is not None
+    assert metadata["face_value_change_coverage_status"] == FACE_VALUE_COVERAGE_PROVEN
+    assert metadata["face_value_change_result_count"] == 18
+    assert metadata["face_value_change_detail_count"] == 18
 
 
 def test_metadata_canonical_contract_and_compatibility_aliases():
@@ -287,7 +337,8 @@ def test_metadata_canonical_contract_and_compatibility_aliases():
     base = build_metadata(
         calculate_rivers(observations), requested_coverage="MAX",
         requested_start=date(2019, 3, 27))
-    metadata = build_corporate_action_metadata(rows, [action], base)
+    metadata = build_corporate_action_metadata(
+        rows, [action], base, face_value_proof=face_proof())
     assert metadata["corporate_action_mode"] == "LATEST_SHARE_COUNT"
     assert metadata["corporate_actions"] == metadata["corporate_action_events"]
     assert metadata["supported_action_count"] == 1
@@ -298,6 +349,38 @@ def test_metadata_canonical_contract_and_compatibility_aliases():
     assert metadata["normalized_pe_percentile"] == 100
     assert metadata["normalization_coverage_start"] == "2011-01-01"
     assert metadata["normalization_status"] == NORMALIZED
+
+
+def test_face_value_network_failure_blocks_distribution_and_percentile():
+    observations = [observation("2026-09-03", 2090, 6.7, date(2026, 6, 30))]
+    rows = normalize_for_corporate_actions(observations, [])
+    base = build_metadata(
+        calculate_rivers(observations), requested_coverage="MAX",
+        requested_start=date(2019, 3, 27))
+    metadata = build_corporate_action_metadata(
+        rows, [], base,
+        face_value_proof=face_proof(status=FACE_VALUE_COVERAGE_INCOMPLETE))
+    assert metadata["normalization_status"] == NORMALIZED_PERCENTILE_INCOMPLETE
+    assert metadata["normalized_pe_distribution"] is None
+    assert metadata["normalized_pe_percentile"] is None
+    assert metadata["face_value_change_coverage_status"] == (
+        FACE_VALUE_COVERAGE_INCOMPLETE)
+
+
+def test_face_value_proof_symbol_or_interval_mismatch_fails_closed():
+    observations = [observation("2026-09-03", 2090, 6.7, date(2026, 6, 30))]
+    rows = normalize_for_corporate_actions(observations, [])
+    base = build_metadata(
+        calculate_rivers(observations), requested_coverage="MAX",
+        requested_start=date(2019, 3, 27), cutoff=date(2026, 10, 1))
+    with pytest.raises(DataValidationError, match="symbol mismatch"):
+        build_corporate_action_metadata(
+            rows, [], base, face_value_proof=face_proof(symbol="2330"))
+    with pytest.raises(DataValidationError, match="interval"):
+        build_corporate_action_metadata(
+            rows, [], base,
+            face_value_proof=face_proof(
+                start=date(2026, 9, 1), end=date(2026, 9, 30)))
 
 
 def test_conflicting_duplicate_events_are_fail_closed():

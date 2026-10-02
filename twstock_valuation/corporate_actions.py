@@ -7,6 +7,9 @@ import math
 from typing import Sequence
 
 from twstock_data.errors import DataValidationError
+from twstock_data.sources.mops_face_value_change import (
+    FACE_VALUE_COVERAGE_PROVEN, FACE_VALUE_LEGAL_START, FaceValueCoverageProof,
+)
 from twstock_data.sources.twse_corporate_actions import (
     CAPITAL_REDUCTION_HISTORY_START,
     CORPORATE_ACTION_REVIEW_REQUIRED, NORMALIZATION_READY,
@@ -185,10 +188,19 @@ def normalized_distributions(rows: Sequence[NormalizedRiverObservation]) -> dict
 def build_corporate_action_metadata(
         rows: Sequence[NormalizedRiverObservation],
         events: Sequence[CorporateActionEvent], base_metadata: dict,
-        request_results=()) -> dict:
+        request_results=(), *, face_value_proof: FaceValueCoverageProof) -> dict:
     """Attach serializable raw/normalized audit evidence to report metadata."""
     if not rows:
         raise ValueError("empty normalized report")
+    proof_end_required = date.fromisoformat(base_metadata["requested_end_cutoff"])
+    proof_start_required = max(
+        rows[0].observation.trade_date, FACE_VALUE_LEGAL_START)
+    if face_value_proof.symbol != rows[0].observation.symbol:
+        raise DataValidationError("face-value proof symbol mismatch")
+    if proof_end_required >= FACE_VALUE_LEGAL_START and (
+            face_value_proof.query_start > proof_start_required
+            or face_value_proof.query_end < proof_end_required):
+        raise DataValidationError("face-value proof interval does not cover report")
     distributions = normalized_distributions(rows)
     latest = next((row for row in reversed(rows) if row.normalized_pe is not None), None)
     unavailable = [row for row in rows if row.observation.official_pe is None]
@@ -221,26 +233,48 @@ def build_corporate_action_metadata(
             "detail_source_url": event.detail_source_url,
             "retrieved_at": event.retrieved_at,
             "raw_hash": event.raw_hash,
+            "old_par_value": event.old_par_value,
+            "new_par_value": event.new_par_value,
+            "mops_DATE1": event.mops_date1,
+            "mops_SKEY": event.mops_skey,
+            "coverage_proof_status": event.coverage_proof_status,
             "source_fields": dict(event.source_fields),
         }
 
     action_payloads = [event_payload(event) for event in events]
-    normalized_distribution = distributions["normalized_pe_distribution"]
+    face_value_complete = face_value_proof.status == FACE_VALUE_COVERAGE_PROVEN
+    normalized_distribution = (
+        distributions["normalized_pe_distribution"] if face_value_complete else None)
     has_uncertified_rows = any(
         row.normalization_status == SOURCE_COVERAGE_INCOMPLETE for row in rows)
+    incomplete_reasons = []
+    if has_uncertified_rows:
+        incomplete_reasons.append(CAPITAL_REDUCTION_COVERAGE_REASON)
+    if not face_value_complete:
+        incomplete_reasons.append(
+            f"face-value-change per-symbol coverage is {face_value_proof.status}")
     return {
         **base_metadata,
         "schema_version": "TWSTOCK-PE-RIVER-PDF-002",
         "report_title": (
             f"{base_metadata['symbol']} | Corporate-Action Adjusted PE River"),
         "raw_pe_distribution": distributions["raw_pe_distribution"],
-        "normalized_pe_distribution": distributions["normalized_pe_distribution"],
+        "normalized_pe_distribution": normalized_distribution,
         "normalization_status": (
             NORMALIZED_PERCENTILE_INCOMPLETE
-            if distributions["normalized_pe_distribution"] is None else NORMALIZED),
+            if normalized_distribution is None else NORMALIZED),
         "normalization_coverage_start": NORMALIZATION_COVERAGE_START.isoformat(),
         "normalization_incomplete_reason": (
-            CAPITAL_REDUCTION_COVERAGE_REASON if has_uncertified_rows else None),
+            "; ".join(incomplete_reasons) if incomplete_reasons else None),
+        "face_value_change_coverage_status": face_value_proof.status,
+        "face_value_change_coverage_start": face_value_proof.query_start.isoformat(),
+        "face_value_change_coverage_end": face_value_proof.query_end.isoformat(),
+        "face_value_change_result_count": face_value_proof.result_count,
+        "face_value_change_detail_count": face_value_proof.detail_count,
+        "face_value_change_rowset_hash": face_value_proof.rowset_hash,
+        "face_value_change_detail_manifest_hash": face_value_proof.detail_manifest_hash,
+        "face_value_change_retrieved_at": face_value_proof.retrieved_at,
+        "face_value_change_failure_reason": face_value_proof.failure_reason,
         "latest_normalized_pe_date": (
             latest.observation.trade_date.isoformat() if latest else None),
         "latest_normalized_pe": latest.normalized_pe if latest else None,
