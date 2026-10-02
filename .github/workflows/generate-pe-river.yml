@@ -17,17 +17,12 @@ on:
           - 5Y
           - 10Y
           - 20Y
-  # Temporary branch-only smoke trigger for Stage A5 acceptance.
-  # Remove before merge; production use is workflow_dispatch only.
-  push:
-    branches:
-      - feat/pe-river-github-actions-v0-1
 
 permissions:
   contents: read
 
 concurrency:
-  group: pe-river-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.symbol || '6669-smoke' }}-${{ github.event_name == 'workflow_dispatch' && inputs.coverage || '5Y' }}
+  group: pe-river-${{ github.ref }}-${{ inputs.symbol }}-${{ inputs.coverage }}
   cancel-in-progress: false
 
 jobs:
@@ -36,8 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      SYMBOL: ${{ github.event_name == 'workflow_dispatch' && inputs.symbol || '6669' }}
-      COVERAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.coverage || '5Y' }}
+      SYMBOL: ${{ inputs.symbol }}
+      COVERAGE: ${{ inputs.coverage }}
 
     steps:
       - name: Check out repository
@@ -79,7 +74,7 @@ jobs:
           set -euo pipefail
           OUTPUT_DIR="outputs/pe_river/$SYMBOL"
           CACHE_DIR="$RUNNER_TEMP/pe_river_cache/$SYMBOL"
-          python scripts/run_pe_river_report.py             --symbol "$SYMBOL"             ${{ steps.config.outputs.cli_args }}             --output-dir "$OUTPUT_DIR"             --cache-dir "$CACHE_DIR"             --timeout 30             --retries 2             --request-interval 1
+          python scripts/run_pe_river_report.py --symbol "$SYMBOL" ${{ steps.config.outputs.cli_args }} --output-dir "$OUTPUT_DIR" --cache-dir "$CACHE_DIR" --timeout 30 --retries 2 --request-interval 1
 
       - name: Validate report outputs
         shell: bash
