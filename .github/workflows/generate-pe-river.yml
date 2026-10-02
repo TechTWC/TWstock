@@ -17,12 +17,15 @@ on:
           - 5Y
           - 10Y
           - 20Y
+  push:
+    branches:
+      - test/pe-river-8103-6488
 
 permissions:
   contents: read
 
 concurrency:
-  group: pe-river-${{ github.ref }}-${{ inputs.symbol }}-${{ inputs.coverage }}
+  group: pe-river-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.symbol || '8103-smoke' }}-${{ github.event_name == 'workflow_dispatch' && inputs.coverage || 'MAX' }}
   cancel-in-progress: false
 
 jobs:
@@ -31,8 +34,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      SYMBOL: ${{ inputs.symbol }}
-      COVERAGE: ${{ inputs.coverage }}
+      SYMBOL: ${{ github.event_name == 'workflow_dispatch' && inputs.symbol || '8103' }}
+      COVERAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.coverage || 'MAX' }}
 
     steps:
       - name: Check out repository
@@ -53,19 +56,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$SYMBOL" =~ ^[0-9]{4}$ ]] || {
-            echo "SYMBOL_MUST_BE_FOUR_DIGITS"
-            exit 2
-          }
+          [[ "$SYMBOL" =~ ^[0-9]{4}$ ]] || { echo "SYMBOL_MUST_BE_FOUR_DIGITS"; exit 2; }
           case "$COVERAGE" in
             MAX) echo "cli_args=--max" >> "$GITHUB_OUTPUT" ;;
             5Y) echo "cli_args=--years 5" >> "$GITHUB_OUTPUT" ;;
             10Y) echo "cli_args=--years 10" >> "$GITHUB_OUTPUT" ;;
             20Y) echo "cli_args=--years 20" >> "$GITHUB_OUTPUT" ;;
-            *)
-              echo "UNSUPPORTED_COVERAGE:$COVERAGE"
-              exit 2
-              ;;
+            *) echo "UNSUPPORTED_COVERAGE:$COVERAGE"; exit 2 ;;
           esac
 
       - name: Generate report
@@ -85,59 +82,26 @@ jobs:
           test -s "$OUTPUT_DIR/historical_pe_river.csv"
           test -s "$OUTPUT_DIR/report_metadata.json"
           python - <<'PY'
-          import csv
-          import json
-          import os
+          import csv, json, os
           from pathlib import Path
-
           symbol = os.environ["SYMBOL"]
           coverage = os.environ["COVERAGE"]
           root = Path("outputs") / "pe_river" / symbol
           pdf = root / f"{symbol}_pe_river.pdf"
           csv_path = root / "historical_pe_river.csv"
           metadata_path = root / "report_metadata.json"
-
           if pdf.read_bytes()[:4] != b"%PDF":
               raise SystemExit("PDF_HEADER_INVALID")
-
           metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
           if metadata.get("symbol") != symbol:
               raise SystemExit("METADATA_SYMBOL_MISMATCH")
           if metadata.get("requested_coverage") != coverage:
               raise SystemExit("METADATA_COVERAGE_MISMATCH")
-
           with csv_path.open(newline="", encoding="utf-8") as handle:
               header = next(csv.reader(handle), None)
-          required = {"symbol", "date", "official_close", "official_pe", "normalized_pe", "adjusted_close"}
+          required = {"symbol","date","official_close","official_pe","normalized_pe","adjusted_close"}
           if not header or not required.issubset(set(header)):
               raise SystemExit("CSV_SCHEMA_INVALID")
-          PY
-
-      - name: Write run summary
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import json
-          import os
-          from pathlib import Path
-
-          symbol = os.environ["SYMBOL"]
-          coverage = os.environ["COVERAGE"]
-          metadata = json.loads(
-              (Path("outputs") / "pe_river" / symbol / "report_metadata.json").read_text(
-                  encoding="utf-8"
-              )
-          )
-          print(f"## PE River — {symbol} / {coverage}")
-          print()
-          print(f"- Actual coverage: {metadata['actual_start_date']} → {metadata['actual_end_date']}")
-          print(f"- Observations: {metadata['observation_count']:,}")
-          print(f"- Valid PE: {metadata['valid_pe_observation_count']:,}")
-          print(f"- Official PE: {metadata.get('latest_official_pe')}")
-          print(f"- Normalized PE: {metadata.get('latest_normalized_pe')}")
-          print(f"- Normalization: {metadata.get('normalization_status')}")
-          print(f"- Face-value coverage: {metadata.get('face_value_change_coverage_status')}")
           PY
 
       - name: Upload report artifact
