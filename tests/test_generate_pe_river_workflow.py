@@ -12,6 +12,7 @@ def test_generate_pe_river_workflow_manual_contract():
     text = _workflow_text()
     assert "name: Generate PE River" in text
     assert "workflow_dispatch:" in text
+    assert "\n  push:" not in text
     assert "symbol:" in text
     assert "coverage:" in text
     for value in ("MAX", "5Y", "10Y", "20Y"):
