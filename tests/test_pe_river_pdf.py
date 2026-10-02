@@ -11,10 +11,11 @@ from twstock_data.sources.twse_corporate_actions import (
 )
 from twstock_data.sources.twse_valuation import ValuationObservation
 from twstock_valuation.corporate_actions import (
-    build_corporate_action_metadata, normalize_for_corporate_actions,
+    NORMALIZED_PERCENTILE_INCOMPLETE, build_corporate_action_metadata,
+    normalize_for_corporate_actions,
 )
 from twstock_valuation.pe_river import build_metadata, calculate_rivers
-from twstock_valuation.pe_river_pdf import write_report
+from twstock_valuation.pe_river_pdf import _summary_lines, write_report
 
 
 def test_pdf_csv_metadata(tmp_path):
@@ -95,9 +96,43 @@ def test_adjusted_pdf_csv_metadata(tmp_path):
         data = list(csv.DictReader(handle))
     assert float(data[0]["adjusted_close"]) == 7800 / 2.9828
     assert float(data[1]["normalized_pe"]) == 6.7 * 2.9828
+    assert data[0]["reference_eps_twd"] == data[0]["raw_implied_reference_eps"]
     assert data[2]["official_pe"] == data[2]["normalized_pe"] == ""
     assert data[2]["raw_implied_reference_eps"] == ""
     assert data[2]["adjusted_reference_eps"] == data[2]["adjusted_river_15x"] == ""
+
+
+def test_incomplete_normalized_distribution_never_falls_back_to_raw_in_pdf():
+    observations = (
+        ValuationObservation("2603", date(2005, 9, 2), 20, 10,
+                             financial_report_period_raw="94/2",
+                             reference_period_end=date(2005, 6, 30)),
+        ValuationObservation("2603", date(2022, 9, 19), 169, 2.45,
+                             financial_report_period_raw="111/2",
+                             reference_period_end=date(2022, 6, 30)),
+    )
+    raw = calculate_rivers(observations)
+    normalized = normalize_for_corporate_actions(observations, ())
+    metadata = build_metadata(
+        raw, requested_coverage="MAX", requested_start=date(2005, 9, 1))
+    metadata = build_corporate_action_metadata(normalized, (), metadata)
+    assert metadata["normalized_pe_distribution"] is None
+    assert metadata["normalization_status"] == NORMALIZED_PERCENTILE_INCOMPLETE
+    assert metadata["normalization_coverage_start"] == "2011-01-01"
+    assert metadata["normalization_incomplete_reason"] == (
+        "capital reduction official source coverage begins 2011-01-01")
+
+    lines = _summary_lines(metadata, 0, adjusted=True)
+    rendered = "\n".join(lines)
+    assert "Official PE     2.45x" in rendered
+    assert "Raw PE percentile 50.00%" in rendered
+    assert "Normalized PE   Unavailable" in rendered
+    assert "Norm percentile Incomplete" in rendered
+    assert "Norm P10        Unavailable" in rendered
+    assert "Norm P90        Unavailable" in rendered
+    assert "Coverage:\n  AVAILABLE_HISTORY" in rendered
+    assert "Normalization coverage:\n  2011-01-01 onward" in rendered
+    assert "Normalization:\n  NORMALIZED_PERCENTILE_INCOMPLETE" in rendered
 
 
 def test_cli_rejects_etf_before_fetch(tmp_path):

@@ -81,6 +81,12 @@ economic gap; the result is not a total-return series. Missing official PE
 remains missing throughout. Any relevant unresolved event or unavailable
 reference period blocks a seemingly complete normalized percentile.
 
+Because the authoritative capital-reduction table begins on 2011-01-01,
+complete v0.1 corporate-action normalization also begins on that date. Raw
+official observations before 2011 remain available, but their adjusted fields
+are blank. A report window spanning that uncertified period does not publish a
+normalized distribution for the full window.
+
 ## Report outputs
 
 `scripts/run_pe_river_report.py` performs this path:

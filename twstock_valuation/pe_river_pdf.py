@@ -10,8 +10,71 @@ from twstock_data.sources.twse_corporate_actions import (
     CAPITAL_REDUCTION_CASH_RETURN, CAPITAL_REDUCTION_LOSS, STOCK_DIVIDEND,
     CorporateActionEvent,
 )
-from .corporate_actions import NormalizedRiverObservation
+from .corporate_actions import NORMALIZED, NormalizedRiverObservation
 from .pe_river import RiverObservation
+
+
+def _summary_lines(metadata: dict, event_count: int, *, adjusted: bool) -> list[str]:
+    """Build the PDF summary without conflating raw and normalized metrics."""
+    def number(value, suffix=""):
+        return f"{value:,.2f}{suffix}" if value is not None else "Unavailable"
+
+    raw_stats = metadata.get("raw_pe_distribution", metadata["percentiles"])
+    normalized_stats = metadata.get("normalized_pe_distribution")
+    normalization_status = metadata.get("normalization_status")
+    normalized_complete = (
+        adjusted
+        and normalization_status == NORMALIZED
+        and normalized_stats is not None
+    )
+    normalized_pe = metadata.get("latest_normalized_pe") if normalized_complete else None
+    normalized_percentile = (
+        number(normalized_stats["current_percentile"], "%")
+        if normalized_complete else "Incomplete")
+
+    lines = ["LATEST & DISTRIBUTION", "",
+        f"Market date     {metadata['latest_market_date']}",
+        f"Latest close    {number(metadata.get('latest_adjusted_close', metadata['latest_close']))} TWD",
+        f"Valid PE date   {metadata['latest_valid_pe_date'] or 'Unavailable'}",
+        f"PE-date close   {number(metadata['latest_valid_pe_close'])} TWD",
+        f"Official PE     {number(metadata['latest_pe'], 'x')}"]
+    if adjusted:
+        lines.extend([
+            f"Normalized PE   {number(normalized_pe, 'x')}",
+            f"Raw PE percentile {number(raw_stats['current_percentile'], '%')}",
+            f"Norm percentile {normalized_percentile}", "",
+            f"Norm P10        {number(normalized_stats['p10'], 'x') if normalized_complete else 'Unavailable'}",
+            f"Norm P25        {number(normalized_stats['p25'], 'x') if normalized_complete else 'Unavailable'}",
+            f"Norm median     {number(normalized_stats['p50'], 'x') if normalized_complete else 'Unavailable'}",
+            f"Norm P75        {number(normalized_stats['p75'], 'x') if normalized_complete else 'Unavailable'}",
+            f"Norm P90        {number(normalized_stats['p90'], 'x') if normalized_complete else 'Unavailable'}",
+        ])
+    else:
+        lines.extend([
+            f"Raw PE percentile {number(raw_stats['current_percentile'], '%')}", "",
+            f"P10             {number(raw_stats['p10'], 'x')}",
+            f"P25             {number(raw_stats['p25'], 'x')}",
+            f"Median          {number(raw_stats['p50'], 'x')}",
+            f"P75             {number(raw_stats['p75'], 'x')}",
+            f"P90             {number(raw_stats['p90'], 'x')}",
+        ])
+    lines.extend(["", "ACTUAL COVERAGE", "",
+        f"Start           {metadata['actual_start_date']}",
+        f"End             {metadata['actual_end_date']}",
+        f"Observations    {metadata['observation_count']:,}",
+        f"Valid PE        {metadata['valid_pe_observation_count']:,}",
+        f"Missing PE      {metadata['missing_pe_count']:,}",
+        f"Actions         {event_count if adjusted else 0:,}", "",
+        "Coverage:",
+        f"  {metadata['coverage_status']}"])
+    if adjusted:
+        lines.extend([
+            "Normalization coverage:",
+            f"  {metadata.get('normalization_coverage_start', 'Unavailable')} onward",
+            "Normalization:",
+            f"  {normalization_status or 'Unavailable'}",
+        ])
+    return lines
 
 
 def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Path, *,
@@ -44,7 +107,8 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
                 "symbol", "date", "official_close", "adjusted_close", "official_pe",
                 "normalized_pe", "pe_status", "normalization_status",
                 "financial_report_period", "reference_period_end",
-                "raw_implied_reference_eps", "pending_share_factor",
+                "raw_implied_reference_eps", "reference_eps_twd",
+                "pending_share_factor",
                 "normalized_reference_eps_local", "future_share_factor",
                 "adjusted_reference_eps",
             ] + [f"raw_river_{m:g}x" for m in multiples]
@@ -63,6 +127,8 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
                     normalized.normalization_status,
                     obs.financial_report_period_raw or "",
                     obs.reference_period_end.isoformat() if obs.reference_period_end else "",
+                    normalized.raw_implied_reference_eps
+                    if normalized.raw_implied_reference_eps is not None else "",
                     normalized.raw_implied_reference_eps
                     if normalized.raw_implied_reference_eps is not None else "",
                     normalized.pending_share_factor
@@ -137,31 +203,7 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
              fontsize=11, color="#617080")
     panel = fig.add_axes((.75, .21, .23, .65))
     panel.axis("off")
-    def number(value, suffix=""):
-        return f"{value:,.2f}{suffix}" if value is not None else "Unavailable"
-    stats = metadata.get("normalized_pe_distribution") or metadata["percentiles"]
-    raw_stats = metadata.get("raw_pe_distribution", metadata["percentiles"])
-    lines = ["LATEST & DISTRIBUTION", "",
-        f"Market date     {metadata['latest_market_date']}",
-        f"Latest close    {number(metadata.get('latest_adjusted_close', metadata['latest_close']))} TWD",
-        f"Valid PE date   {metadata['latest_valid_pe_date'] or 'Unavailable'}",
-        f"PE-date close   {number(metadata['latest_valid_pe_close'])} TWD",
-        f"Raw PE          {number(metadata['latest_pe'], 'x')}",
-        f"Normalized PE   {number(metadata.get('latest_normalized_pe'), 'x')}",
-        f"Raw percentile  {number(raw_stats['current_percentile'], '%')}",
-        f"Norm percentile {number(stats['current_percentile'], '%')}", "",
-        f"P10             {number(stats['p10'], 'x')}",
-        f"P25             {number(stats['p25'], 'x')}",
-        f"Median          {number(stats['p50'], 'x')}",
-        f"P75             {number(stats['p75'], 'x')}",
-        f"P90             {number(stats['p90'], 'x')}", "", "ACTUAL COVERAGE", "",
-        f"Start           {metadata['actual_start_date']}",
-        f"End             {metadata['actual_end_date']}",
-        f"Observations    {metadata['observation_count']:,}",
-        f"Valid PE        {metadata['valid_pe_observation_count']:,}",
-        f"Missing PE      {metadata['missing_pe_count']:,}",
-        f"Actions         {len(events) if adjusted else 0:,}", "",
-        f"Status: {metadata['coverage_status']}"]
+    lines = _summary_lines(metadata, len(events), adjusted=adjusted)
     panel.text(0, 1, "\n".join(lines), va="top", fontfamily="monospace", fontsize=9.3,
                linespacing=1.3, color="#243b50")
     notes = ([

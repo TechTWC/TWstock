@@ -8,16 +8,21 @@ import pytest
 from twstock_data.errors import DataValidationError
 from twstock_data.http import HttpResponse
 from twstock_data.sources.twse_corporate_actions import (
-    CAPITAL_REDUCTION_CASH_RETURN, CORPORATE_ACTION_REVIEW_REQUIRED,
-    NORMALIZATION_READY, STOCK_DIVIDEND, CorporateActionEvent,
+    CAPITAL_REDUCTION_CASH_RETURN, CAPITAL_REDUCTION_LOSS,
+    CORPORATE_ACTION_REVIEW_REQUIRED, NORMALIZATION_READY, STOCK_DIVIDEND,
+    UNSUPPORTED_ACTION, CorporateActionEvent,
     build_ex_right_url, build_reduction_url, fetch_corporate_action_history,
     mark_conflicting_duplicates, parse_ex_right_events, parse_reduction_events,
 )
 from twstock_data.sources.twse_valuation import ValuationObservation
 from twstock_valuation.corporate_actions import (
+    NORMALIZED, NORMALIZATION_COVERAGE_START,
     NORMALIZED_PERCENTILE_COMPLETE, NORMALIZED_PERCENTILE_INCOMPLETE,
-    PE_UNAVAILABLE, normalize_for_corporate_actions, normalized_distributions,
+    PE_UNAVAILABLE, SOURCE_COVERAGE_INCOMPLETE,
+    build_corporate_action_metadata, normalize_for_corporate_actions,
+    normalized_distributions,
 )
+from twstock_valuation.pe_river import build_metadata, calculate_rivers
 
 FIXTURES = Path(__file__).parent / "fixtures"
 OFFICIAL = "https://www.twse.com.tw/rwd/zh/"
@@ -79,6 +84,47 @@ def test_official_2603_reduction_contract():
     assert result.official_reference_price == 187
     assert result.status == NORMALIZATION_READY
     assert result.derived is False
+
+
+def test_capital_reduction_loss_parser_is_normalization_ready():
+    summary = json.loads((FIXTURES / "twse_reduction_2603_2022.json").read_text())
+    summary["data"][0][summary["fields"].index("減資原因")] = "彌補虧損"
+    detail = (FIXTURES / "twse_reduction_detail_2603_20220906.json").read_bytes()
+    source = build_reduction_url(date(2022, 1, 1), date(2022, 12, 31))
+    result = parse_reduction_events(
+        json.dumps(summary, ensure_ascii=False).encode(),
+        {("2603", "20220906"): detail}, "2603", source,
+        "2026-10-01T00:00:00Z")[0]
+    assert result.action_type == CAPITAL_REDUCTION_LOSS
+    assert result.share_factor == pytest.approx(.4)
+    assert result.status == NORMALIZATION_READY
+
+
+def test_unknown_reduction_reason_is_review_required_and_never_enters_factors():
+    summary = json.loads((FIXTURES / "twse_reduction_2603_2022.json").read_text())
+    summary["data"][0][summary["fields"].index("減資原因")] = "合併換股"
+    detail = (FIXTURES / "twse_reduction_detail_2603_20220906.json").read_bytes()
+    source = build_reduction_url(date(2022, 1, 1), date(2022, 12, 31))
+    result = parse_reduction_events(
+        json.dumps(summary, ensure_ascii=False).encode(),
+        {("2603", "20220906"): detail}, "2603", source,
+        "2026-10-01T00:00:00Z")[0]
+    assert result.action_type == UNSUPPORTED_ACTION
+    assert result.status == CORPORATE_ACTION_REVIEW_REQUIRED
+
+    before, after = normalize_for_corporate_actions([
+        observation("2022-09-06", 80.8, 1.17, date(2022, 6, 30), "2603"),
+        observation("2022-09-19", 169, 2.45, date(2022, 6, 30), "2603"),
+    ], [result], analysis_end_date=date(2022, 9, 19))
+    assert before.future_share_factor is None
+    assert before.adjusted_close is None
+    assert after.pending_share_factor is None
+    assert after.normalized_pe is None
+
+
+def test_unknown_action_cannot_be_constructed_as_normalization_ready():
+    with pytest.raises(DataValidationError, match="unsupported corporate-action type"):
+        event(action="MERGER_SHARE_EXCHANGE", factor=.5)
 
 
 def test_three_for_one_pending_until_reference_quarter_catches_up():
@@ -191,6 +237,69 @@ def test_complete_normalized_percentile_uses_normalized_pe():
     assert result["normalized_pe_distribution"]["p50"] == 22.5
 
 
+def test_pre_2011_rows_fail_closed_but_keep_raw_evidence():
+    row = normalize_for_corporate_actions([
+        observation("2010-12-31", 100, 10, date(2010, 9, 30))
+    ], [])[0]
+    assert NORMALIZATION_COVERAGE_START == date(2011, 1, 1)
+    assert row.normalization_status == SOURCE_COVERAGE_INCOMPLETE
+    assert row.raw_implied_reference_eps == 10
+    assert row.pending_share_factor is None
+    assert row.future_share_factor is None
+    assert row.normalized_pe is None
+    assert row.normalized_reference_eps_local is None
+    assert row.adjusted_close is None
+    assert row.adjusted_reference_eps is None
+    assert row.adjusted_band_prices == (None,) * 5
+
+
+def test_max_spanning_pre_2011_has_no_normalized_distribution():
+    rows = normalize_for_corporate_actions([
+        observation("2010-12-31", 100, 10, date(2010, 9, 30)),
+        observation("2011-01-03", 110, 11, date(2010, 12, 31)),
+    ], [])
+    result = normalized_distributions(rows)
+    assert result["normalization_status"] == NORMALIZED_PERCENTILE_INCOMPLETE
+    assert result["normalized_pe_distribution"] is None
+    assert result["raw_pe_distribution"]["p50"] == 10.5
+
+
+def test_post_2019_6669_coverage_remains_fully_normalized():
+    observations = [
+        observation("2026-09-01", 7800, 20, date(2026, 6, 30)),
+        observation("2026-09-03", 2090, 6.7, date(2026, 6, 30)),
+    ]
+    action = event(factor=2.9828)
+    rows = normalize_for_corporate_actions(observations, [action])
+    raw = calculate_rivers(observations)
+    base = build_metadata(
+        raw, requested_coverage="MAX", requested_start=date(2019, 3, 27))
+    metadata = build_corporate_action_metadata(rows, [action], base)
+    assert rows[-1].normalized_pe == pytest.approx(19.98476)
+    assert metadata["normalization_status"] == NORMALIZED
+    assert metadata["normalized_pe_distribution"] is not None
+
+
+def test_metadata_canonical_contract_and_compatibility_aliases():
+    observations = [observation("2026-09-03", 2090, 6.7, date(2026, 6, 30))]
+    action = event(factor=2.9828)
+    rows = normalize_for_corporate_actions(observations, [action])
+    base = build_metadata(
+        calculate_rivers(observations), requested_coverage="MAX",
+        requested_start=date(2019, 3, 27))
+    metadata = build_corporate_action_metadata(rows, [action], base)
+    assert metadata["corporate_action_mode"] == "LATEST_SHARE_COUNT"
+    assert metadata["corporate_actions"] == metadata["corporate_action_events"]
+    assert metadata["supported_action_count"] == 1
+    assert metadata["unsupported_action_count"] == 0
+    assert metadata["latest_official_pe"] == metadata["latest_pe"] == 6.7
+    assert metadata["latest_normalized_pe"] == pytest.approx(19.98476)
+    assert metadata["raw_pe_percentile"] == 100
+    assert metadata["normalized_pe_percentile"] == 100
+    assert metadata["normalization_coverage_start"] == "2011-01-01"
+    assert metadata["normalization_status"] == NORMALIZED
+
+
 def test_conflicting_duplicate_events_are_fail_closed():
     events = mark_conflicting_duplicates([event(factor=2), event(factor=3)])
     assert len(events) == 2
@@ -213,6 +322,22 @@ def test_cash_return_gap_is_not_forced_to_total_return_continuity():
     assert rows[0].adjusted_close == pytest.approx(202)
     assert rows[1].adjusted_close == 187
     assert rows[0].adjusted_close - rows[1].adjusted_close == pytest.approx(15)
+
+
+def test_2603_2022_acceptance_regression():
+    reduction = event("2022-09-19", .4, CAPITAL_REDUCTION_CASH_RETURN,
+                      symbol="2603", cash=6)
+    before, event_day, rollover = normalize_for_corporate_actions([
+        observation("2022-09-06", 80.8, 1.17, date(2022, 6, 30), "2603"),
+        observation("2022-09-19", 169, 2.45, date(2022, 6, 30), "2603"),
+        observation("2022-11-07", 143.5, .79, date(2022, 9, 30), "2603"),
+    ], [reduction])
+    assert before.future_share_factor == pytest.approx(.4)
+    assert before.adjusted_close == pytest.approx(202)
+    assert event_day.pending_share_factor == pytest.approx(.4)
+    assert event_day.normalized_pe == pytest.approx(.98)
+    assert rollover.pending_share_factor == 1
+    assert rollover.normalized_pe == pytest.approx(.79)
 
 
 def test_explicit_cash_rights_is_review_required():

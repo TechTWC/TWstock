@@ -24,13 +24,22 @@ from .twse_valuation import parse_date, validate_symbol
 
 BASE_URL = "https://www.twse.com.tw/rwd/zh/"
 EX_RIGHT_HISTORY_START = date(2003, 5, 5)
-REDUCTION_HISTORY_START = date(2011, 1, 1)
+CAPITAL_REDUCTION_HISTORY_START = date(2011, 1, 1)
+# Backward-compatible name retained for callers that imported the original
+# v0.1 constant.
+REDUCTION_HISTORY_START = CAPITAL_REDUCTION_HISTORY_START
 
 STOCK_DIVIDEND = "STOCK_DIVIDEND"
 CAPITAL_REDUCTION_CASH_RETURN = "CAPITAL_REDUCTION_CASH_RETURN"
 CAPITAL_REDUCTION_LOSS = "CAPITAL_REDUCTION_LOSS"
 COMPLEX_RIGHTS_ISSUE = "COMPLEX_RIGHTS_ISSUE"
 UNSUPPORTED_ACTION = "UNSUPPORTED_ACTION"
+
+SUPPORTED_NORMALIZATION_ACTION_TYPES = frozenset({
+    STOCK_DIVIDEND,
+    CAPITAL_REDUCTION_CASH_RETURN,
+    CAPITAL_REDUCTION_LOSS,
+})
 
 NORMALIZATION_READY = "NORMALIZATION_READY"
 CORPORATE_ACTION_REVIEW_REQUIRED = "CORPORATE_ACTION_REVIEW_REQUIRED"
@@ -72,6 +81,10 @@ class CorporateActionEvent:
             raise DataValidationError("corporate-action share factor must be positive and finite")
         if self.status == NORMALIZATION_READY and self.share_factor is None:
             raise DataValidationError("normalization-ready event requires a share factor")
+        if (self.status == NORMALIZATION_READY
+                and self.action_type not in SUPPORTED_NORMALIZATION_ACTION_TYPES):
+            raise DataValidationError(
+                "normalization-ready event has unsupported corporate-action type")
         if not re.fullmatch(r"[0-9a-f]{64}", self.raw_hash):
             raise DataValidationError("corporate-action raw hash is invalid")
         if not self.source_url.startswith("https://www.twse.com.tw/"):
@@ -296,7 +309,7 @@ def parse_reduction_events(summary_body: bytes, detail_bodies: dict[tuple[str, s
         else:
             action_type = UNSUPPORTED_ACTION
         if action_type == UNSUPPORTED_ACTION:
-            status = NORMALIZATION_REVIEW_REQUIRED
+            status = CORPORATE_ACTION_REVIEW_REQUIRED
         elif cash_issue != 0 or cash_rights != 0:
             status = CORPORATE_ACTION_REVIEW_REQUIRED
         else:
@@ -357,7 +370,7 @@ def fetch_ex_right_events(symbol: str, start: date, end: date, *,
 def fetch_reduction_events(symbol: str, start: date, end: date, *,
                            transport: HttpTransport | None = None, timeout=30, retries=2):
     validate_symbol(symbol)
-    if start < REDUCTION_HISTORY_START or start > end:
+    if start < CAPITAL_REDUCTION_HISTORY_START or start > end:
         raise DataValidationError("invalid TWSE reduction history window")
     source_url = build_reduction_url(start, end)
     summary = get_with_retry(source_url, transport, timeout, retries, backoff=2).body
@@ -471,8 +484,8 @@ def fetch_corporate_action_history(
         events.extend(parsed)
         record("TWT49U", year, status, digest, len(parsed), source_url)
 
-    for year in range(max(start.year, REDUCTION_HISTORY_START.year), end.year + 1):
-        window_start = max(start, REDUCTION_HISTORY_START, date(year, 1, 1))
+    for year in range(max(start.year, CAPITAL_REDUCTION_HISTORY_START.year), end.year + 1):
+        window_start = max(start, CAPITAL_REDUCTION_HISTORY_START, date(year, 1, 1))
         window_end = min(end, date(year, 12, 31))
         if window_start > window_end:
             continue

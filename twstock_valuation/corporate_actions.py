@@ -8,8 +8,10 @@ from typing import Sequence
 
 from twstock_data.errors import DataValidationError
 from twstock_data.sources.twse_corporate_actions import (
+    CAPITAL_REDUCTION_HISTORY_START,
     CORPORATE_ACTION_REVIEW_REQUIRED, NORMALIZATION_READY,
     NORMALIZATION_REVIEW_REQUIRED,
+    SUPPORTED_NORMALIZATION_ACTION_TYPES,
     CorporateActionEvent, mark_conflicting_duplicates,
 )
 from twstock_data.sources.twse_valuation import ValuationObservation
@@ -21,6 +23,10 @@ PE_UNAVAILABLE = "PE_UNAVAILABLE"
 REFERENCE_PERIOD_UNAVAILABLE = "REFERENCE_PERIOD_UNAVAILABLE"
 NORMALIZED_PERCENTILE_COMPLETE = "NORMALIZED_PERCENTILE_COMPLETE"
 NORMALIZED_PERCENTILE_INCOMPLETE = "NORMALIZED_PERCENTILE_INCOMPLETE"
+SOURCE_COVERAGE_INCOMPLETE = "SOURCE_COVERAGE_INCOMPLETE"
+NORMALIZATION_COVERAGE_START = CAPITAL_REDUCTION_HISTORY_START
+CAPITAL_REDUCTION_COVERAGE_REASON = (
+    "capital reduction official source coverage begins 2011-01-01")
 
 
 @dataclass(frozen=True)
@@ -42,7 +48,8 @@ class NormalizedRiverObservation:
 def _product(events: Sequence[CorporateActionEvent]) -> float:
     result = 1.0
     for event in events:
-        if event.share_factor is None or event.status != NORMALIZATION_READY:
+        if (event.share_factor is None or event.status != NORMALIZATION_READY
+                or event.action_type not in SUPPORTED_NORMALIZATION_ACTION_TYPES):
             raise DataValidationError("unresolved event cannot enter normalization")
         result *= event.share_factor
     if not math.isfinite(result) or result <= 0:
@@ -83,6 +90,20 @@ def normalize_for_corporate_actions(
         valid_pe = (official_pe is not None and math.isfinite(official_pe)
                     and official_pe > 0)
         raw_eps = observation.official_close / official_pe if valid_pe else None
+        if observation.trade_date < NORMALIZATION_COVERAGE_START:
+            output.append(NormalizedRiverObservation(
+                observation=observation,
+                raw_implied_reference_eps=raw_eps,
+                pending_share_factor=None,
+                normalized_pe=None,
+                normalized_reference_eps_local=None,
+                future_share_factor=None,
+                adjusted_close=None,
+                adjusted_reference_eps=None,
+                adjusted_band_prices=(None,) * len(multiples),
+                normalization_status=SOURCE_COVERAGE_INCOMPLETE,
+            ))
+            continue
         past_events = [event for event in events if event.effective_date <= observation.trade_date]
         future_events = [event for event in events
                          if observation.trade_date < event.effective_date <= end]
@@ -145,10 +166,11 @@ def normalized_distributions(rows: Sequence[NormalizedRiverObservation]) -> dict
     latest_normalized = next((value for value in reversed(normalized_values)
                               if value is not None and math.isfinite(value) and value > 0), None)
     incomplete = any(
-        row.observation.official_pe is not None
-        and row.normalization_status in (
-            CORPORATE_ACTION_REVIEW_REQUIRED, NORMALIZATION_REVIEW_REQUIRED,
-            REFERENCE_PERIOD_UNAVAILABLE)
+        row.normalization_status == SOURCE_COVERAGE_INCOMPLETE
+        or (row.observation.official_pe is not None
+            and row.normalization_status in (
+                CORPORATE_ACTION_REVIEW_REQUIRED, NORMALIZATION_REVIEW_REQUIRED,
+                REFERENCE_PERIOD_UNAVAILABLE))
         for row in rows)
     return {
         "raw_pe_distribution": distribution(raw_values, latest_raw),
@@ -202,6 +224,10 @@ def build_corporate_action_metadata(
             "source_fields": dict(event.source_fields),
         }
 
+    action_payloads = [event_payload(event) for event in events]
+    normalized_distribution = distributions["normalized_pe_distribution"]
+    has_uncertified_rows = any(
+        row.normalization_status == SOURCE_COVERAGE_INCOMPLETE for row in rows)
     return {
         **base_metadata,
         "schema_version": "TWSTOCK-PE-RIVER-PDF-002",
@@ -209,7 +235,12 @@ def build_corporate_action_metadata(
             f"{base_metadata['symbol']} | Corporate-Action Adjusted PE River"),
         "raw_pe_distribution": distributions["raw_pe_distribution"],
         "normalized_pe_distribution": distributions["normalized_pe_distribution"],
-        "normalization_status": distributions["normalization_status"],
+        "normalization_status": (
+            NORMALIZED_PERCENTILE_INCOMPLETE
+            if distributions["normalized_pe_distribution"] is None else NORMALIZED),
+        "normalization_coverage_start": NORMALIZATION_COVERAGE_START.isoformat(),
+        "normalization_incomplete_reason": (
+            CAPITAL_REDUCTION_COVERAGE_REASON if has_uncertified_rows else None),
         "latest_normalized_pe_date": (
             latest.observation.trade_date.isoformat() if latest else None),
         "latest_normalized_pe": latest.normalized_pe if latest else None,
@@ -234,7 +265,22 @@ def build_corporate_action_metadata(
             "passed": unavailable_preserved,
             "policy": "No forward fill, backward fill, interpolation, or fabricated PE.",
         },
-        "corporate_action_events": [event_payload(event) for event in events],
+        "corporate_action_mode": "LATEST_SHARE_COUNT",
+        "corporate_actions": action_payloads,
+        "corporate_action_events": action_payloads,
+        "supported_action_count": sum(
+            event.status == NORMALIZATION_READY
+            and event.action_type in SUPPORTED_NORMALIZATION_ACTION_TYPES
+            for event in events),
+        "unsupported_action_count": sum(
+            event.status != NORMALIZATION_READY
+            or event.action_type not in SUPPORTED_NORMALIZATION_ACTION_TYPES
+            for event in events),
+        "latest_official_pe": base_metadata.get("latest_pe"),
+        "raw_pe_percentile": distributions["raw_pe_distribution"]["current_percentile"],
+        "normalized_pe_percentile": (
+            normalized_distribution["current_percentile"]
+            if normalized_distribution is not None else None),
         "corporate_action_request_results": list(request_results),
         "normalization_semantics": (
             "Share-count changes are normalized to the latest share basis. "
