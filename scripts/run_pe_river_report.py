@@ -10,8 +10,13 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(ROOT))
 
 from twstock_data.errors import MarketDataError
+from twstock_data.sources.mops_face_value_change import fetch_face_value_change_history
+from twstock_data.sources.twse_corporate_actions import fetch_corporate_action_history
 from twstock_data.sources.twse_valuation import HISTORY_START, completed_session_cutoff, fetch_history
 from twstock_valuation.pe_river import DEFAULT_MULTIPLES, build_metadata, calculate_rivers, select_coverage, years_before
+from twstock_valuation.corporate_actions import (
+    build_corporate_action_metadata, normalize_for_corporate_actions,
+)
 from twstock_valuation.pe_river_pdf import write_report
 
 
@@ -44,13 +49,46 @@ def run(argv=None, *, transport=None, now=None) -> int:
             progress=lambda result: print(f"{result['month']}: close={result['close_status']} PE={result['pe_status']}", flush=True))
         observations, requested_start = select_coverage(history.observations, args.years)
         rows = calculate_rivers(observations, args.multiples)
+        actions = fetch_corporate_action_history(
+            args.symbol, observations[0].trade_date, cutoff, cache,
+            transport=transport, timeout=args.timeout, retries=args.retries,
+            request_interval=args.request_interval,
+            refresh_date=now.date() if now else None,
+            progress=lambda result: print(
+                f"action {result['source']} {result['year']}: "
+                f"{result['status']} events={result['event_count']}", flush=True),
+        )
+        face_value = fetch_face_value_change_history(
+            args.symbol, observations[0].trade_date, cutoff, cache,
+            transport=transport, timeout=args.timeout, retries=args.retries,
+            request_interval=args.request_interval,
+            refresh_date=now.date() if now else None,
+        )
+        all_events = actions.events + face_value.events
+        print(
+            "action MOPS face value: "
+            f"{face_value.proof.status} rows={face_value.proof.result_count} "
+            f"details={face_value.proof.detail_count} events={len(face_value.events)}",
+            flush=True,
+        )
+        normalized = normalize_for_corporate_actions(
+            observations, all_events, args.multiples,
+            analysis_end_date=cutoff,
+        )
         metadata = build_metadata(rows, requested_coverage=f"{args.years}Y" if args.years else "MAX",
             requested_start=requested_start, multiples=args.multiples, cutoff=cutoff,
             month_results=history.month_results)
-        saved = write_report(rows, metadata, output)
+        metadata = build_corporate_action_metadata(
+            normalized, all_events, metadata,
+            actions.request_results + face_value.request_results,
+            face_value_proof=face_value.proof)
+        saved = write_report(
+            rows, metadata, output, normalized_rows=normalized, events=all_events)
         print(f"PDF: {saved['outputs']['pdf']}")
         print(f"Coverage: {saved['actual_start_date']} -> {saved['actual_end_date']}; "
               f"{saved['valid_pe_observation_count']} valid PE / {saved['observation_count']} observations")
+        print(f"Latest PE: raw={saved['latest_pe']} normalized={saved['latest_normalized_pe']}; "
+              f"corporate actions={len(saved['corporate_action_events'])}")
         return 0
     except (MarketDataError, ValueError, OSError) as exc:
         print(f"PE river report failed: {type(exc).__name__}: {exc}", file=sys.stderr)
