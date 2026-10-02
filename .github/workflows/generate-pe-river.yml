@@ -1,0 +1,158 @@
+name: Generate PE River
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: "TWSE ordinary-share symbol (4 digits)"
+        required: true
+        type: string
+      coverage:
+        description: "History window"
+        required: true
+        default: "MAX"
+        type: choice
+        options:
+          - MAX
+          - 5Y
+          - 10Y
+          - 20Y
+  # Temporary branch-only smoke trigger for Stage A5 acceptance.
+  # Remove before merge; production use is workflow_dispatch only.
+  push:
+    branches:
+      - feat/pe-river-github-actions-v0-1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pe-river-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.symbol || '6669-smoke' }}-${{ github.event_name == 'workflow_dispatch' && inputs.coverage || '5Y' }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    name: Generate PE River report
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SYMBOL: ${{ github.event_name == 'workflow_dispatch' && inputs.symbol || '6669' }}
+      COVERAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.coverage || '5Y' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install fixed dependencies
+        run: python -m pip install --disable-pip-version-check --requirement requirements-dev.txt
+
+      - name: Validate inputs and select coverage
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SYMBOL" =~ ^[0-9]{4}$ ]] || {
+            echo "SYMBOL_MUST_BE_FOUR_DIGITS"
+            exit 2
+          }
+          case "$COVERAGE" in
+            MAX) echo "cli_args=--max" >> "$GITHUB_OUTPUT" ;;
+            5Y) echo "cli_args=--years 5" >> "$GITHUB_OUTPUT" ;;
+            10Y) echo "cli_args=--years 10" >> "$GITHUB_OUTPUT" ;;
+            20Y) echo "cli_args=--years 20" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "UNSUPPORTED_COVERAGE:$COVERAGE"
+              exit 2
+              ;;
+          esac
+
+      - name: Generate report
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUTPUT_DIR="outputs/pe_river/$SYMBOL"
+          CACHE_DIR="$RUNNER_TEMP/pe_river_cache/$SYMBOL"
+          python scripts/run_pe_river_report.py             --symbol "$SYMBOL"             ${{ steps.config.outputs.cli_args }}             --output-dir "$OUTPUT_DIR"             --cache-dir "$CACHE_DIR"             --timeout 30             --retries 2             --request-interval 1
+
+      - name: Validate report outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUTPUT_DIR="outputs/pe_river/$SYMBOL"
+          test -s "$OUTPUT_DIR/${SYMBOL}_pe_river.pdf"
+          test -s "$OUTPUT_DIR/historical_pe_river.csv"
+          test -s "$OUTPUT_DIR/report_metadata.json"
+          python - <<'PY'
+          import csv
+          import json
+          import os
+          from pathlib import Path
+
+          symbol = os.environ["SYMBOL"]
+          coverage = os.environ["COVERAGE"]
+          root = Path("outputs") / "pe_river" / symbol
+          pdf = root / f"{symbol}_pe_river.pdf"
+          csv_path = root / "historical_pe_river.csv"
+          metadata_path = root / "report_metadata.json"
+
+          if pdf.read_bytes()[:4] != b"%PDF":
+              raise SystemExit("PDF_HEADER_INVALID")
+
+          metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+          if metadata.get("symbol") != symbol:
+              raise SystemExit("METADATA_SYMBOL_MISMATCH")
+          if metadata.get("requested_coverage") != coverage:
+              raise SystemExit("METADATA_COVERAGE_MISMATCH")
+
+          with csv_path.open(newline="", encoding="utf-8") as handle:
+              header = next(csv.reader(handle), None)
+          required = {"symbol", "date", "official_close", "official_pe", "normalized_pe", "adjusted_close"}
+          if not header or not required.issubset(set(header)):
+              raise SystemExit("CSV_SCHEMA_INVALID")
+          PY
+
+      - name: Write run summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          import os
+          from pathlib import Path
+
+          symbol = os.environ["SYMBOL"]
+          coverage = os.environ["COVERAGE"]
+          metadata = json.loads(
+              (Path("outputs") / "pe_river" / symbol / "report_metadata.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          print(f"## PE River — {symbol} / {coverage}")
+          print()
+          print(f"- Actual coverage: {metadata['actual_start_date']} → {metadata['actual_end_date']}")
+          print(f"- Observations: {metadata['observation_count']:,}")
+          print(f"- Valid PE: {metadata['valid_pe_observation_count']:,}")
+          print(f"- Official PE: {metadata.get('latest_official_pe')}")
+          print(f"- Normalized PE: {metadata.get('latest_normalized_pe')}")
+          print(f"- Normalization: {metadata.get('normalization_status')}")
+          print(f"- Face-value coverage: {metadata.get('face_value_change_coverage_status')}")
+          PY
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pe-river-${{ env.SYMBOL }}-${{ env.COVERAGE }}-${{ github.run_id }}
+          path: |
+            outputs/pe_river/${{ env.SYMBOL }}/${{ env.SYMBOL }}_pe_river.pdf
+            outputs/pe_river/${{ env.SYMBOL }}/historical_pe_river.csv
+            outputs/pe_river/${{ env.SYMBOL }}/report_metadata.json
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
