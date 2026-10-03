@@ -1,0 +1,20 @@
+{
+  "chart": {
+    "result": [
+      {
+        "meta": {
+          "currency": "TWD",
+          "symbol": "2330.TW",
+          "exchangeName": "TAI",
+          "regularMarketPrice": 2390.0,
+          "regularMarketTime": 1784251320,
+          "previousClose": 2470.0,
+          "marketState": "REGULAR"
+        },
+        "timestamp": [1784251260, 1784251320],
+        "indicators": {"quote": [{"close": [2385.0, 2390.0]}]}
+      }
+    ],
+    "error": null
+  }
+}

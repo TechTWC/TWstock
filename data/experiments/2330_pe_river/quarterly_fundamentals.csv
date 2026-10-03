@@ -1,0 +1,15 @@
+period,period_end,publication_date,research_available_date,gross_margin_pct,operating_margin_pct,diluted_eps_twd,data_status,source_note,source_url
+2023Q1,2023-03-31,2023-04-20,2023-04-21,56.3,45.5,7.98,OFFICIAL_ACTUAL,TSMC 1Q23 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2023/q1
+2023Q2,2023-06-30,2023-07-20,2023-07-21,54.1,42.0,7.01,OFFICIAL_ACTUAL,TSMC 2Q23 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2023/q2
+2023Q3,2023-09-30,2023-10-19,2023-10-20,54.3,41.7,8.14,OFFICIAL_ACTUAL,TSMC 3Q23 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2023/q3
+2023Q4,2023-12-31,2024-01-18,2024-01-19,53.0,41.6,9.21,OFFICIAL_ACTUAL,TSMC 4Q23 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2023/q4
+2024Q1,2024-03-31,2024-04-18,2024-04-19,53.1,42.0,8.70,OFFICIAL_ACTUAL,TSMC 1Q24 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2024/q1
+2024Q2,2024-06-30,2024-07-18,2024-07-19,53.2,42.5,9.56,OFFICIAL_ACTUAL,TSMC 2Q24 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2024/q2
+2024Q3,2024-09-30,2024-10-17,2024-10-18,57.8,47.5,12.54,OFFICIAL_ACTUAL,TSMC 3Q24 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2024/q3
+2024Q4,2024-12-31,2025-01-16,2025-01-17,59.0,49.0,14.45,OFFICIAL_ACTUAL,TSMC 4Q24 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2024/q4
+2025Q1,2025-03-31,2025-04-17,2025-04-18,58.8,48.5,13.94,OFFICIAL_ACTUAL,TSMC 1Q25 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2025/q1
+2025Q2,2025-06-30,2025-07-17,2025-07-18,58.6,49.6,15.36,OFFICIAL_ACTUAL,TSMC 2Q25 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2025/q2
+2025Q3,2025-09-30,2025-10-16,2025-10-17,59.5,50.6,17.44,OFFICIAL_ACTUAL,TSMC 3Q25 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2025/q3
+2025Q4,2025-12-31,2026-01-15,2026-01-16,62.3,54.0,19.50,OFFICIAL_ACTUAL,TSMC 4Q25 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2025/q4
+2026Q1,2026-03-31,2026-04-16,2026-04-17,66.2,58.1,22.08,OFFICIAL_ACTUAL,TSMC 1Q26 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2026/q1
+2026Q2,2026-06-30,2026-07-16,2026-07-17,67.7,60.3,27.25,OFFICIAL_ACTUAL,TSMC 2Q26 Earnings Release,https://investor.tsmc.com/english/quarterly-results/2026/q2
