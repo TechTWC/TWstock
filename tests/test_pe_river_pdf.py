@@ -61,7 +61,7 @@ def test_cli_offline_end_to_end(tmp_path):
                     "公司代號": "2330", "公司名稱": "台灣積體電路製造股份有限公司",
                     "公司簡稱": "台積電", "出表日期": "0940930",
                     "上市日期": "19940905", "普通股每股面額": "新台幣10元",
-                    "特別股": "0",
+                    "特別股": "0", "產業別": "24",
                 }], ensure_ascii=False).encode()
             elif "/BWIBBU?" in url:
                 body = (Path(__file__).parent / "fixtures" / "twse_valuation_2330_200509.json").read_bytes()

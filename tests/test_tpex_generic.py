@@ -161,7 +161,15 @@ def test_auto_routing_requires_positive_unambiguous_official_identity():
     twse = json.dumps([{
         "公司代號": "2330", "公司名稱": "台灣積體電路製造股份有限公司",
         "公司簡稱": "台積電", "出表日期": "1151002", "上市日期": "19940905",
-        "普通股每股面額": "新台幣10元", "特別股": "0",
+        "普通股每股面額": "新台幣10元", "特別股": "0", "產業別": "24",
+    }, {
+        "公司代號": "9103", "公司名稱": "美德向邦醫療國際股份有限公司",
+        "公司簡稱": "美德醫療-DR", "出表日期": "1151002", "上市日期": "20021213",
+        "普通股每股面額": "美金0.05元", "特別股": "0", "產業別": "91",
+    }, {
+        "公司代號": "910322", "公司名稱": "康師傅控股有限公司",
+        "公司簡稱": "康師傅-DR", "出表日期": "1151002", "上市日期": "20091216",
+        "普通股每股面額": "美金0.005元", "特別股": "0", "產業別": "91",
     }], ensure_ascii=False).encode()
 
     class Transport:
@@ -172,6 +180,9 @@ def test_auto_routing_requires_positive_unambiguous_official_identity():
     identity = resolve_security_identity("6488", AUTO, transport=Transport())
     assert identity.market == TPEX
     assert identity.company_short_name == "環球晶"
+    assert {item.symbol for item in parse_security_master(twse, TWSE)} == {"2330"}
+    with pytest.raises(DataValidationError, match="not an officially identified TWSE"):
+        resolve_security_identity("9103", TWSE, transport=Transport())
     with pytest.raises(DataValidationError, match="not an officially identified TWSE"):
         resolve_security_identity("6488", TWSE, transport=Transport())
 

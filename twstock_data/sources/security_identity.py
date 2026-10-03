@@ -67,7 +67,7 @@ def _decode(body: bytes, market: str) -> tuple[SecurityIdentity, ...]:
     mapping = ({
         "symbol": "公司代號", "name": "公司名稱", "short": "公司簡稱",
         "as_of": "出表日期", "listing": "上市日期", "par": "普通股每股面額",
-        "preferred": "特別股",
+        "preferred": "特別股", "industry": "產業別",
     } if market == TWSE else {
         "symbol": "SecuritiesCompanyCode", "name": "CompanyName",
         "short": "CompanyAbbreviation", "as_of": "Date",
@@ -83,10 +83,15 @@ def _decode(body: bytes, market: str) -> tuple[SecurityIdentity, ...]:
             raise MalformedSourceError(f"official {market} security-master schema mismatch")
         symbol = str(raw[mapping["symbol"]]).strip()
         # These MOPS company-register datasets enumerate listed companies, not
-        # ETFs, ETNs, warrants, bonds, or emerging-board instruments.  A valid
-        # common-share par-value field is required as positive type evidence.
+        # ETFs, ETNs, warrants, bonds, or emerging-board instruments.  TWSE's
+        # dataset does also contain depositary receipts: official industry 91
+        # is the TDR classification.  Exclude those before applying the
+        # ordinary-share contract.  Non-four-digit company codes are likewise
+        # outside this stage's input universe, not a malformed master row.
+        if market == TWSE and str(raw[mapping["industry"]]).strip() == "91":
+            continue
         if not re.fullmatch(r"[1-9][0-9]{3}", symbol):
-            raise MalformedSourceError(f"unexpected {market} company code at row {index}")
+            continue
         if symbol in seen:
             raise MalformedSourceError(f"duplicate {market} company identity")
         seen.add(symbol)
