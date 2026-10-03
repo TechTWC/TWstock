@@ -1,4 +1,4 @@
-name: Temporary TPEx PE River Acceptance
+name: Temporary PE River Routing Acceptance
 
 on:
   push:
@@ -9,38 +9,15 @@ permissions:
   contents: read
 
 jobs:
-  contract-samples:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Capture official TPEx schema/no-data envelopes
-        run: |
-          set -euo pipefail
-          mkdir samples
-          curl --fail --silent --show-error --retry 3 --max-time 60 \
-            'https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock?code=8069&date=2012%2F09%2F01&response=json' \
-            > samples/long-history-close.json
-          curl --fail --silent --show-error --retry 3 --max-time 60 \
-            'https://www.tpex.org.tw/www/zh-tw/afterTrading/peQryStock?code=8069&date=2012%2F09%2F01&response=json' \
-            > samples/long-history-pe.json
-          curl --fail --silent --show-error --retry 3 --max-time 60 \
-            'https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock?code=6488&date=2012%2F09%2F01&response=json' \
-            > samples/pre-listing-close.json
-          for file in samples/*.json; do
-            echo "=== $file"
-            jq '{keys: keys, stat, code, date, name, tables: [.tables[]? | {title, fields, totalCount, rows: (.data | length)}]}' "$file"
-          done
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: tpex-contract-samples
-          path: samples
-          if-no-files-found: error
-          retention-days: 3
-
-  live-symbols:
+  routing-controls:
     strategy:
       fail-fast: false
       matrix:
-        symbol: [6488, 8069, 7856, 6548, 3290]
+        include:
+          - symbol: "6488"
+            market: AUTO
+          - symbol: "8103"
+            market: TWSE
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -51,14 +28,14 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev.txt
       - run: python -m pip install --disable-pip-version-check --requirement requirements-dev.txt
-      - name: Generate generic TPEx MAX report
+      - name: Generate routed MAX report
         run: >-
           python scripts/run_pe_river_report.py
-          --symbol "${{ matrix.symbol }}" --market TPEX --max
+          --symbol "${{ matrix.symbol }}" --market "${{ matrix.market }}" --max
           --output-dir "outputs/pe_river/${{ matrix.symbol }}"
-          --cache-dir "$RUNNER_TEMP/cache/TPEX/${{ matrix.symbol }}.TWO"
+          --cache-dir "$RUNNER_TEMP/cache/${{ matrix.market }}/${{ matrix.symbol }}"
           --timeout 60 --retries 3 --request-interval 0.1
-      - name: Validate and render PDF
+      - name: Validate routed result and render PDF
         run: |
           set -euo pipefail
           python -m json.tool "outputs/pe_river/${{ matrix.symbol }}/report_metadata.json" >/dev/null
@@ -70,22 +47,29 @@ jobs:
           test -s "outputs/pe_river/${{ matrix.symbol }}/pdf_preview.png"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: tpex-pe-river-${{ matrix.symbol }}
+          name: routed-pe-river-${{ matrix.symbol }}-${{ matrix.market }}
           path: outputs/pe_river/${{ matrix.symbol }}
           if-no-files-found: error
           retention-days: 14
 
-  universe:
+  explicit-market-mismatch:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.12"
-      - run: python scripts/audit_tpex_universe.py --output outputs/pe_river/tpex_universe_audit.json --timeout 60 --retries 3
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: tpex-universe-audit
-          path: outputs/pe_river/tpex_universe_audit.json
-          if-no-files-found: error
+      - run: python -m pip install --disable-pip-version-check --requirement requirements-dev.txt
+      - name: Reject 6488 as TWSE
+        run: |
+          set -euo pipefail
+          if python scripts/run_pe_river_report.py \
+            --symbol 6488 --market TWSE --max \
+            --output-dir outputs/mismatch --cache-dir "$RUNNER_TEMP/mismatch" \
+            --timeout 60 --retries 3 --request-interval 0.1 \
+            >mismatch.log 2>&1; then
+            echo "6488_TWSE_UNEXPECTEDLY_SUCCEEDED"
+            exit 1
+          fi
+          grep -F "not an officially identified TWSE ordinary common share" mismatch.log
