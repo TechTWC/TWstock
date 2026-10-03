@@ -120,10 +120,11 @@ python scripts/run_real_market_monitor.py \
 規則、內容雜湊與明確排除項見
 [`docs/specs/real_market_data_ingestion_v0_1.md`](docs/specs/real_market_data_ingestion_v0_1.md)。
 
-多檔 Shadow Observation 可使用 `Watchlist Scanner v0.2`。這條路徑刻意只呼叫
-TWSE 官方日價，不接觸 FinMind；它會輸出候選觀察順序、原因、合併事件時間線、
-資料證據與獨立 HTML 報告。持續使用同一個 raw cache 目錄時，已驗證歷史月份
-會直接續用，只補抓缺月，實際當月則每次強制刷新：
+多檔及全市場 Shadow Observation 已整合為 `Watchlist Radar v0.4`。
+主分類為透明的七狀態均線雷達，雙斜率方法獨立並排，不合成分數；Breakout／
+Continuous High只作輔助證據，不再影響觀察順序。報告包含七狀態分布、今日重要
+轉換、完整方法並排表、每檔事件疊加股價圖、核心與長期均線圖及跨股票時間線；完全離線可開啟。持續使用同一個
+raw cache 目錄時，已驗證歷史月份會直接續用，只補抓缺月，實際當月則每次強制刷新：
 
 ```bash
 python -m unittest -v tests.test_watchlist_scanner
@@ -131,14 +132,32 @@ python -m unittest -v tests.test_watchlist_scanner
 python scripts/run_watchlist_scanner.py \
   --watchlist config/watchlist_v0_1.json \
   --start 2025-01-01 \
-  --end 2026-08-13 \
-  --output-dir outputs/watchlist_v0_2 \
-  --raw-cache-dir outputs/raw_watchlist_v0_2
+  --end 2026-08-14 \
+  --output-dir outputs/watchlist_radar_v0_4 \
+  --raw-cache-dir outputs/raw_watchlist_radar_v0_4
 ```
 
 公司行動資料未接入，因此每一列固定標示 `UNVERIFIED`，`investment_use` 固定為
-`PROHIBITED`。排序只代表觀察優先序，不是投資評分。完整契約見
-[`docs/specs/watchlist_scanner_v0_2.md`](docs/specs/watchlist_scanner_v0_2.md)。
+`PROHIBITED`。順序只代表研究優先次序，不是投資評分。
+
+全部上市普通股的每日 Shadow Observation 可改用官方全市場日資料。第一次建立
+歷史需明確放寬下載天數；完成後每日只新增／刷新當日。`--include-cb` 會加入櫃買中心
+官方「目前有 CB／近期下櫃／目前與近期未查得／未驗證」分類：
+
+```bash
+python scripts/run_watchlist_scanner.py \
+  --all-listed \
+  --start 2025-08-01 \
+  --end 2026-08-17 \
+  --output-dir outputs/watchlist_radar_v0_4/2026-08-17 \
+  --raw-cache-dir data/runtime/raw/watchlist_radar_v0_4 \
+  --include-cb \
+  --max-new-market-days 400
+```
+
+後續每日沿用相同 `--raw-cache-dir`，將 `--max-new-market-days` 恢復為預設 10。
+`NOT_FOUND_CURRENT_OR_RECENT` 不代表公司從未發行 CB。完整邊界見
+[`docs/specs/watchlist_radar_v0_4.md`](docs/specs/watchlist_radar_v0_4.md)。
 
 ## Test Infrastructure
 
