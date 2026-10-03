@@ -145,11 +145,14 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
                     normalized.normalization_status,
                     obs.financial_report_period_raw or "",
                     obs.reference_period_end.isoformat() if obs.reference_period_end else "",
-                    normalized.raw_implied_reference_eps if normalized.raw_implied_reference_eps is not None else "",
-                    normalized.raw_implied_reference_eps if normalized.raw_implied_reference_eps is not None else "",
+                    normalized.raw_implied_reference_eps
+                    if normalized.raw_implied_reference_eps is not None else "",
+                    normalized.raw_implied_reference_eps
+                    if normalized.raw_implied_reference_eps is not None else "",
                     normalized.pending_share_factor
                     if normalized.pending_share_factor is not None else "",
-                    normalized.normalized_reference_eps_local if normalized.normalized_reference_eps_local is not None else "",
+                    normalized.normalized_reference_eps_local
+                    if normalized.normalized_reference_eps_local is not None else "",
                     normalized.future_share_factor
                     if normalized.future_share_factor is not None else "",
                     normalized.adjusted_reference_eps
