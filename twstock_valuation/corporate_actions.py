@@ -33,6 +33,12 @@ CAPITAL_REDUCTION_COVERAGE_REASON = (
     "capital reduction official source coverage begins 2011-01-01")
 
 
+def _capital_reduction_coverage_reason(market: str) -> str:
+    start = (TPEX_NORMALIZATION_COVERAGE_START
+             if market == "TPEX" else NORMALIZATION_COVERAGE_START)
+    return f"capital reduction official source coverage begins {start.isoformat()}"
+
+
 @dataclass(frozen=True)
 class NormalizedRiverObservation:
     observation: ValuationObservation
@@ -256,7 +262,8 @@ def build_corporate_action_metadata(
         row.normalization_status == SOURCE_COVERAGE_INCOMPLETE for row in rows)
     incomplete_reasons = []
     if has_uncertified_rows:
-        incomplete_reasons.append(CAPITAL_REDUCTION_COVERAGE_REASON)
+        incomplete_reasons.append(
+            _capital_reduction_coverage_reason(observation_market))
     if not face_value_complete:
         incomplete_reasons.append(
             f"face-value-change per-symbol coverage is {face_value_proof.status}")
