@@ -57,13 +57,13 @@ def test_all_unavailable_adjusted_report_writes_pdf_csv_and_json_without_fake_ri
     observations = (
         ValuationObservation(
             "6488", date(2026, 9, 1), 100, None,
-            canonical_symbol="6488.TWO", market="TPEX", company_name="��球晶"),
+            canonical_symbol="6488.TWO", market="TPEX", company_name="環球晶"),
         ValuationObservation(
             "6488", date(2026, 9, 2), 102, None,
-            canonical_symbol="6488.TWO", market="TPEX", company_name="��球晶"),
+            canonical_symbol="6488.TWO", market="TPEX", company_name="環球晶"),
         ValuationObservation(
             "6488", date(2026, 9, 3), 105, None,
-            canonical_symbol="6488.TWO", market="TPEX", company_name="��球晶"),
+            canonical_symbol="6488.TWO", market="TPEX", company_name="環球晶"),
     )
     raw = calculate_rivers(observations)
     normalized = normalize_for_corporate_actions(
@@ -97,7 +97,7 @@ def test_all_unavailable_adjusted_report_writes_pdf_csv_and_json_without_fake_ri
     assert all(row["raw_river_15x"] == row["adjusted_river_15x"] == "" for row in data)
     rendered = "\n".join(_summary_lines(saved, 0, adjusted=True))
     assert "Official PE     Unavailable" in rendered
-    assert "Raw PE percentile Unavailabe" in rendered
+    assert "Raw PE percentile Unavailable" in rendered
 
 
 def test_cli_offline_end_to_end(tmp_path):
@@ -105,12 +105,12 @@ def test_cli_offline_end_to_end(tmp_path):
         def get(self, url, timeout):
             if "t187ap03_L" in url:
                 body = json.dumps([{
-                    "公司裨號": "2330", "公司名稱": "台灠積謙遻路訅逊股份有限公司",
-                    "公司簡稲": "台灣積體", "出來日期": "0940930",
-                    "上市日期": "19940905", "普通股股票面額": "新台幣10元",
+                    "公司代號": "2330", "公司名稱": "台灣積體電路製造股份有限公司",
+                    "公司簡稱": "台積電", "出表日期": "0940930",
+                    "上市日期": "19940905", "普通股每股面額": "新台幣10元",
                     "特別股": "0", "產業別": "24",
                 }], ensure_ascii=False).encode()
-            elif "/BWIBBU/?" in url:
+            elif "/BWIBBU?" in url:
                 body = (Path(__file__).parent / "fixtures" / "twse_valuation_2330_200509.json").read_bytes()
             elif "/STOCK_DAY_AVG?" in url:
                 body = (Path(__file__).parent / "fixtures" / "twse_close_avg_2330_200509.json").read_bytes()
@@ -203,7 +203,7 @@ def test_incomplete_normalized_distribution_never_falls_back_to_raw_in_pdf():
     assert "Normalized PE   Unavailable" in rendered
     assert "Norm percentile Incomplete" in rendered
     assert "Norm P10        Unavailable" in rendered
-    assert "Norm P90        Unavailabe" in rendered
+    assert "Norm P90        Unavailable" in rendered
     assert "Coverage:\n  AVAILABLE_HISTORY" in rendered
     assert "Normalization coverage:\n  2011-01-01 onward" in rendered
     assert "Normalization:\n  NORMALIZED_PERCENTILE_INCOMPLETE" in rendered
