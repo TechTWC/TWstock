@@ -80,6 +80,19 @@ def test_official_historical_schema_versions_and_code_less_pe_envelope():
     assert len(values) == 1
 
 
+def test_official_listing_date_footnote_marker_is_not_part_of_date():
+    close = json.loads(fixture("tpex_close_6488_202609.json"))
+    close["tables"][0]["data"][0][0] = "115/09/01*"
+    _, values = parse_close_payload(
+        json.dumps(close, ensure_ascii=False).encode(), "6488", MONTH, "環球晶")
+    assert date(2026, 9, 1) in values
+
+    close["tables"][0]["data"][0][0] = "115/09/01!"
+    with pytest.raises(MalformedSourceError, match="malformed TPEx date"):
+        parse_close_payload(
+            json.dumps(close, ensure_ascii=False).encode(), "6488", MONTH, "環球晶")
+
+
 def test_verified_pre_listing_month_is_empty_not_an_identity_failure():
     close = json.loads(fixture("tpex_close_6488_202609.json"))
     close["tables"][0]["fields"][0] = "日 期"

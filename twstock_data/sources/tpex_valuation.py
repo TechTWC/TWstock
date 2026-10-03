@@ -45,7 +45,9 @@ def build_url(endpoint: str, symbol: str, month: date) -> str:
 def _parse_date(value: object) -> date:
     if not isinstance(value, str):
         raise MalformedSourceError("TPEx date must be text")
-    match = re.fullmatch(r"\s*(\d{2,3})/(\d{2})/(\d{2})\s*", value)
+    # TPEx appends an official asterisk footnote marker to some listing-period
+    # dates.  It is presentation metadata, not part of the calendar identity.
+    match = re.fullmatch(r"\s*(\d{2,3})/(\d{2})/(\d{2})[*＊]?\s*", value)
     if not match:
         raise MalformedSourceError(f"malformed TPEx date: {value!r}")
     try:
