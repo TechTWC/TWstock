@@ -181,9 +181,12 @@ def parse_financial_report_period(value: object) -> tuple[str | None, date | Non
     if not isinstance(value, str):
         raise MalformedSourceError("TWSE financial report period must be text")
     raw = value.strip()
-    match = re.fullmatch(r"(\d{2,3})/([1-4])", raw)
+    # TWSE currently publishes ROC-year/quarter (115/2).  TPEx has published
+    # both that form and the older compact ROC-year quarter form (113Q3).
+    # These are explicit official schema variants, not an inferred period.
+    match = re.fullmatch(r"(\d{2,3})(?:/|Q)([1-4])", raw)
     if not match:
-        raise MalformedSourceError(f"malformed TWSE financial report period: {value!r}")
+        raise MalformedSourceError(f"malformed official financial report period: {value!r}")
     year, quarter = int(match.group(1)) + 1911, int(match.group(2))
     period_end = (date(year, 3, 31), date(year, 6, 30),
                   date(year, 9, 30), date(year, 12, 31))[quarter - 1]

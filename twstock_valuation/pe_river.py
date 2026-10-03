@@ -103,8 +103,9 @@ def build_metadata(rows: Sequence[RiverObservation], *, requested_coverage: str,
     if market == "TPEX":
         source_contract = (
             "TPEx peQryStock monthly PE and tradingStock monthly daily close; "
-            "explicit response code/month identity, declared row count, field-name parsing, "
-            "and same trading-date join.")
+            "exact per-code request plus paired tradingStock code/name identity, explicit "
+            "response month, declared observation-row count, normalized field-name parsing, "
+            "and same trading-date join. Any PE response code, when present, must match.")
         source_url = "https://www.tpex.org.tw/zh-tw/mainboard/trading/info/stock-pe.html"
         source_semantics = (
             "Official TPEx contemporaneous PE. Financial reference period is retained when "
