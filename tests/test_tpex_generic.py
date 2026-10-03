@@ -62,6 +62,33 @@ def test_tpex_unavailable_pe_and_missing_pe_date_are_distinct(tmp_path):
     assert result.source_start == date(2026, 9, 1)
 
 
+def test_official_historical_schema_versions_and_code_less_pe_envelope():
+    close = json.loads(fixture("tpex_close_8069_202609.json"))
+    close["tables"][0]["fields"][0] = "日 期"
+    name, closes = parse_close_payload(
+        json.dumps(close, ensure_ascii=False).encode(), "8069", MONTH, "元太")
+    assert name == "元太"
+    assert len(closes) == 2
+
+    pe = json.loads(fixture("tpex_pe_8069_202609.json"))
+    del pe["code"]
+    del pe["name"]
+    values = parse_valuation_payload_with_period(
+        json.dumps(pe, ensure_ascii=False).encode(), "8069", MONTH, "元太")
+    assert len(values) == 1
+
+
+def test_verified_pre_listing_month_is_empty_not_an_identity_failure():
+    close = json.loads(fixture("tpex_close_6488_202609.json"))
+    close["tables"][0]["fields"][0] = "日 期"
+    close["tables"][0]["data"] = []
+    close["tables"][0]["totalCount"] = 0
+    name, values = parse_close_payload(
+        json.dumps(close, ensure_ascii=False).encode(), "6488", MONTH, "環球晶")
+    assert name == "環球晶"
+    assert values == {}
+
+
 @pytest.mark.parametrize("mutation", ["wrong_code", "wrong_month", "truncated", "schema"])
 def test_tpex_valuation_schema_and_identity_drift_fail_closed(mutation):
     payload = json.loads(fixture("tpex_pe_6488_202609.json"))

@@ -78,15 +78,22 @@ def _declared_count(value: object, actual: int) -> None:
         raise MalformedSourceError("truncated TPEx response")
 
 
-def _payload(body: bytes, symbol: str, month: date) -> dict:
+def _payload(body: bytes, symbol: str, month: date, *, code_optional=False) -> dict:
     try:
         payload = json.loads(body.decode("utf-8-sig"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise MalformedSourceError("invalid TPEx JSON") from exc
     if not isinstance(payload, dict):
         raise MalformedSourceError("TPEx payload must be an object")
-    if str(payload.get("code", "")).strip() != symbol:
+    response_code = str(payload.get("code", "")).strip()
+    # peQryStock's official historical envelope omits code/name even though
+    # the request is per-code.  When absent, identity is established by the
+    # exact request URL plus the paired, code-bearing tradingStock response.
+    # A code that is present must always match.
+    if response_code and response_code != symbol:
         raise DataValidationError("TPEx response symbol identity mismatch")
+    if not response_code and not code_optional:
+        raise DataValidationError("TPEx response omits symbol identity")
     response_date = str(payload.get("date", "")).strip()
     if response_date != month.strftime("%Y%m%d"):
         raise DataValidationError("TPEx response month identity mismatch")
@@ -103,10 +110,14 @@ def _table(payload: dict, required: tuple[str, ...]) -> tuple[list[str], list[li
     for raw in payload["tables"]:
         if not isinstance(raw, dict):
             raise MalformedSourceError("invalid TPEx table")
-        fields, rows = raw.get("fields"), raw.get("data")
-        if not isinstance(fields, list) or not all(isinstance(f, str) for f in fields):
+        source_fields, rows = raw.get("fields"), raw.get("data")
+        if not isinstance(source_fields, list) or not all(isinstance(f, str) for f in source_fields):
             raise MalformedSourceError("invalid TPEx table fields")
-        if len(fields) != len(set(fields)) or not isinstance(rows, list):
+        # The official historical close schema used `日 期`; the current
+        # schema uses `日期`.  Whitespace is presentation-only, so normalize
+        # it for every field rather than branching on a date or symbol.
+        fields = [re.sub(r"\s+", "", field) for field in source_fields]
+        if any(not field for field in fields) or len(fields) != len(set(fields)) or not isinstance(rows, list):
             raise MalformedSourceError("invalid TPEx table schema")
         _declared_count(raw.get("totalCount"), len(rows))
         for row in rows:
@@ -162,7 +173,7 @@ def parse_close_payload(body: bytes, symbol: str, month: date,
 
 def parse_valuation_payload_with_period(body: bytes, symbol: str, month: date,
                                         expected_name: str | None = None):
-    payload = _payload(body, symbol, month)
+    payload = _payload(body, symbol, month, code_optional=True)
     _identity_name(payload, expected_name)
     table = _table(payload, ("日期", "本益比"))
     if table is None:
