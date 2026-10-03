@@ -194,7 +194,7 @@ def parse_valuation_payload_with_period(body: bytes, symbol: str, month: date,
         raw = values["本益比"]
         parsed = _number(raw, "official PE", unavailable=True)
         pe = parsed if parsed is not None and parsed > 0 else None
-        period_field = next((field for field in ("財報年/季", "財報年季") if field in fields), None)
+        period_field = next((field for field in ("財報繼/季", "財報年季") if field in fields), None)
         period_raw, period_end = parse_financial_report_period(
             values[period_field] if period_field else None)
         result[day] = ValuationPoint(pe, period_raw, period_end)
@@ -223,7 +223,6 @@ def fetch_history(symbol: str, start: date, end: date, cache_dir: Path, *,
     records: list[ValuationObservation] = []
     results: list[dict] = []
     incomplete: list[str] = []
-    first_pe: date | None = None
     last_request: float | None = None
     canonical = canonical_symbol(symbol, TPEX)
 
@@ -261,13 +260,18 @@ def fetch_history(symbol: str, start: date, end: date, cache_dir: Path, *,
             if set(pes) - set(closes):
                 raise DataValidationError("valuation date has no same-day official close")
             valid_dates = [day for day, point in pes.items() if point.official_pe is not None]
-            if valid_dates and first_pe is None:
-                first_pe = min(valid_dates)
             unavailable_close = sorted(day for day, value in closes.items() if value is None)
             numeric_close_dates = {day for day, value in closes.items() if value is not None}
             missing = sorted(numeric_close_dates - set(pes))
             if missing:
-                incomplete.append(month.strftime("%Y-%m"))
+                # ``peQryStock`` is a per-symbol monthly rowset with a declared
+                # count.  A close-only date therefore is not evidence that PE
+                # was officially unavailable; accepting it as ``None`` would
+                # silently turn a partial/parser-omitted valuation response
+                # into a legitimate observation.
+                raise DataValidationError(
+                    "official TPEx close dates lack proven valuation rows: "
+                    + ",".join(day.isoformat() for day in missing))
             for endpoint, body, url, retrieved, status in (
                 ("tradingStock", close_body, close_url, close_time, close_status),
                 ("peQryStock", pe_body, pe_url, pe_time, pe_status),
@@ -280,14 +284,15 @@ def fetch_history(symbol: str, start: date, end: date, cache_dir: Path, *,
                         retrieved_at=retrieved, http_status=200, body=body, source=TPEX)
             records.extend(ValuationObservation(
                 symbol=symbol, trade_date=day, official_close=value,
-                official_pe=pes[day].official_pe if day in pes else None,
+                official_pe=pes[day].official_pe,
                 close_source_url=close_url, pe_source_url=pe_url,
                 financial_report_period_raw=(
-                    pes[day].financial_report_period_raw if day in pes else None),
-                reference_period_end=(pes[day].reference_period_end if day in pes else None),
+                    pes[day].financial_report_period_raw),
+                reference_period_end=pes[day].reference_period_end,
                 canonical_symbol=canonical, market=TPEX,
                 company_name=company_name or observed_name or "",
-            ) for day, value in closes.items() if value is not None and start <= day <= end)
+            ) for day, value in closes.items()
+                if value is not None and day in pes and start <= day <= end)
             result = {
                 "month": month.strftime("%Y-%m"), "market": TPEX,
                 "canonical_symbol": canonical, "close_status": close_status,
@@ -311,7 +316,11 @@ def fetch_history(symbol: str, start: date, end: date, cache_dir: Path, *,
             progress(results[-1])
         month = date(month.year + (month.month == 12), month.month % 12 + 1, 1)
     manifest(True)
-    if not records or first_pe is None:
+    if not records:
         raise DataValidationError("no official TPEx valuation history for requested symbol/window")
-    records = [row for row in records if row.trade_date >= first_pe]
-    return ValuationHistory(tuple(records), tuple(results), first_pe, tuple(incomplete))
+    # Source coverage begins with the earliest retained official valuation
+    # observation, independent of whether its PE value is positive.  Leading
+    # official unavailable markers are real observations and MAX must retain
+    # them; an all-unavailable history is likewise valid.
+    source_start = records[0].trade_date
+    return ValuationHistory(tuple(records), tuple(results), source_start, tuple(incomplete))
