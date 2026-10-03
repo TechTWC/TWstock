@@ -1,0 +1,64 @@
+name: Temporary TPEx PE River Acceptance
+
+on:
+  push:
+    branches:
+      - feat/tpex-pe-river-v0-1
+
+permissions:
+  contents: read
+
+jobs:
+  live-symbols:
+    strategy:
+      fail-fast: false
+      matrix:
+        symbol: [6488, 8069, 7856, 6548, 3290]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: python -m pip install --disable-pip-version-check --requirement requirements-dev.txt
+      - name: Generate generic TPEx MAX report
+        run: >-
+          python scripts/run_pe_river_report.py
+          --symbol "${{ matrix.symbol }}" --market TPEX --max
+          --output-dir "outputs/pe_river/${{ matrix.symbol }}"
+          --cache-dir "$RUNNER_TEMP/cache/TPEX/${{ matrix.symbol }}.TWO"
+          --timeout 60 --retries 3 --request-interval 0.1
+      - name: Validate and render PDF
+        run: |
+          set -euo pipefail
+          python -m json.tool "outputs/pe_river/${{ matrix.symbol }}/report_metadata.json" >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          pdftoppm -png -singlefile -r 120 \
+            "outputs/pe_river/${{ matrix.symbol }}/${{ matrix.symbol }}_pe_river.pdf" \
+            "outputs/pe_river/${{ matrix.symbol }}/pdf_preview"
+          test -s "outputs/pe_river/${{ matrix.symbol }}/pdf_preview.png"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: tpex-pe-river-${{ matrix.symbol }}
+          path: outputs/pe_river/${{ matrix.symbol }}
+          if-no-files-found: error
+          retention-days: 14
+
+  universe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - run: python scripts/audit_tpex_universe.py --output outputs/pe_river/tpex_universe_audit.json --timeout 60 --retries 3
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: tpex-universe-audit
+          path: outputs/pe_river/tpex_universe_audit.json
+          if-no-files-found: error
