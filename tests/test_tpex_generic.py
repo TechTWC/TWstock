@@ -132,7 +132,9 @@ def test_incomplete_http_body_is_retried():
     assert transport.calls == 2
 
 
-@pytest.mark.parametrize("mutation", ["wrong_code", "wrong_month", "truncated", "schema"])
+@pytest.mark.parametrize("mutation", [
+    "wrong_code", "wrong_month", "truncated", "schema", "pagination",
+])
 def test_tpex_valuation_schema_and_identity_drift_fail_closed(mutation):
     payload = json.loads(fixture("tpex_pe_6488_202609.json"))
     if mutation == "wrong_code":
@@ -141,6 +143,8 @@ def test_tpex_valuation_schema_and_identity_drift_fail_closed(mutation):
         payload["date"] = "20260801"
     elif mutation == "truncated":
         payload["tables"][0]["totalCount"] += 1
+    elif mutation == "pagination":
+        payload["nextPage"] = 2
     else:
         payload["tables"][0]["fields"][1] = "估值"
     with pytest.raises((DataValidationError, MalformedSourceError)):

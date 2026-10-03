@@ -87,6 +87,8 @@ def _payload(body: bytes, symbol: str, month: date, *, code_optional=False) -> d
         raise MalformedSourceError("invalid TPEx JSON") from exc
     if not isinstance(payload, dict):
         raise MalformedSourceError("TPEx payload must be an object")
+    if any(key in payload for key in ("next", "nextPage", "page", "offset", "cursor")):
+        raise MalformedSourceError("unknown TPEx valuation pagination contract")
     response_code = str(payload.get("code", "")).strip()
     # peQryStock's official historical envelope omits code/name even though
     # the request is per-code.  When absent, identity is established by the
