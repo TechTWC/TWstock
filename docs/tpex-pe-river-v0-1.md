@@ -8,7 +8,7 @@ codes with a non-empty common-stock par-value field.  This is positive identity
 evidence for TPEx listed ordinary common shares; it is not a maintained symbol
 whitelist and it is not inferred from a failed TWSE query.
 
-ETF, ETN, bond, warrant, preferred share, convertible bond, emerging stock,
+ETF, ETN, bond, warrant, preferred share, convertible bond, TDR, emerging stock,
 structured product, and other non-company/non-ordinary instruments are outside
 this contract and fail closed.  Historical delisted companies are not
 artificially blocked by the adapters, but v0.1 does not reconstruct a complete
