@@ -119,7 +119,8 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
         writer = csv.writer(handle)
         if adjusted:
             writer.writerow([
-                "symbol", "date", "official_close", "adjusted_close", "official_pe",
+                "symbol", "canonical_symbol", "market", "company", "date",
+                "official_close", "adjusted_close", "official_pe",
                 "normalized_pe", "pe_status", "normalization_status",
                 "financial_report_period", "reference_period_end",
                 "raw_implied_reference_eps", "reference_eps_twd",
@@ -134,7 +135,8 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
                 obs = raw.observation
                 valid = raw.reference_eps_twd is not None
                 writer.writerow([
-                    obs.symbol, obs.trade_date.isoformat(), obs.official_close,
+                    obs.symbol, metadata.get("canonical_symbol"), metadata.get("market"),
+                    metadata.get("company"), obs.trade_date.isoformat(), obs.official_close,
                     normalized.adjusted_close if normalized.adjusted_close is not None else "",
                     obs.official_pe if valid else "",
                     normalized.normalized_pe if normalized.normalized_pe is not None else "",
@@ -161,12 +163,15 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
                      ";".join(day.isoformat() for day in normalized.applied_future_events),
                      obs.close_source_url, obs.pe_source_url])
         else:
-            writer.writerow(["symbol", "date", "official_close", "official_pe", "pe_status",
+            writer.writerow(["symbol", "canonical_symbol", "market", "company", "date",
+                             "official_close", "official_pe", "pe_status",
                              "reference_eps_twd"] + [f"river_{m:g}x" for m in multiples]
                             + ["close_source_url", "pe_source_url"])
             for row in rows:
                 obs = row.observation
-                writer.writerow([obs.symbol, obs.trade_date.isoformat(), obs.official_close,
+                writer.writerow([obs.symbol, metadata.get("canonical_symbol"),
+                    metadata.get("market"), metadata.get("company"),
+                    obs.trade_date.isoformat(), obs.official_close,
                     obs.official_pe if row.reference_eps_twd is not None else "",
                     "VALID_PE" if row.reference_eps_twd is not None else "PE_UNAVAILABLE",
                     row.reference_eps_twd if row.reference_eps_twd is not None else ""]
@@ -207,7 +212,9 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
     ax.legend(loc="upper left", bbox_to_anchor=(0, 1.105), ncol=min(6, len(multiples) + 1),
               frameon=False, fontsize=9)
     ax.margins(x=.01)
-    title = metadata.get("report_title", f"{symbol} | TWSE Historical PE River")
+    title = metadata.get(
+        "report_title",
+        f"{metadata.get('canonical_symbol', symbol)} | {metadata.get('market', 'TWSE')} Historical PE River")
     fig.text(.065, .95, title, fontsize=21,
              color="#15283c", weight="bold")
     fig.text(.065, .91, f"{metadata['requested_coverage']} coverage | As of {metadata['latest_market_date']}",
@@ -217,16 +224,21 @@ def write_report(rows: tuple[RiverObservation, ...], metadata: dict, output: Pat
     lines = _summary_lines(metadata, len(events), adjusted=adjusted)
     panel.text(0, 1, "\n".join(lines), va="top", fontfamily="monospace", fontsize=9.3,
                linespacing=1.3, color="#243b50")
+    market = metadata.get("market", "TWSE")
+    exchange_source = (
+        "TPEx peQryStock + tradingStock; TPEx exDailyQ, revivt and pvChgRslt."
+        if market == "TPEX" else
+        "TWSE BWIBBU + STOCK_DAY_AVG; TWSE TWT49U/TWT49UDetail and TWTAUU/TWTAVUDetail.")
     notes = ([
-        "Source: TWSE BWIBBU + STOCK_DAY_AVG; TWSE TWT49U/TWT49UDetail and TWTAUU/TWTAVUDetail.",
+        f"Source: {exchange_source}",
         "Face-value-change coverage: MOPS Company Act category 11, proven per symbol and date interval.",
         "Primary chart is on the latest share-count basis; official close, official PE, raw EPS and raw rivers remain in CSV for audit.",
         "Missing PE leaves raw implied EPS, normalized EPS and both river series blank; no fill or interpolation.",
         "Cash distributions are not total-return adjusted.",
         "Coverage reflects available source observations; this report does not certify trading-calendar completeness.",
     ] if adjusted else [
-        "Source: TWSE BWIBBU official monthly P/E + STOCK_DAY_AVG official daily close; same symbol/name and date.",
-        "River price = TWSE-implied reference EPS x multiple; implied EPS = official close / official PE (published PE is rounded).",
+        f"Source: {metadata.get('source_contract')}",
+        f"River price = {market}-implied reference EPS x multiple; implied EPS = official close / official PE (published PE is rounded).",
         "Reference EPS is not reconstructed accounting EPS. Historical PE is used as published, without corporate-action adjustments.",
         "Missing PE leaves gaps. Distribution uses positive official PE only; rank = count(PE <= latest valid PE) / valid count.",
         "Coverage reflects available source observations; this report does not certify trading-calendar completeness.",

@@ -34,10 +34,12 @@ def load_cached_month(
     canonical_symbol: str,
     month_identifier: str,
     expected_source_url: str,
+    source: str = "TWSE",
 ) -> CachedMonthResponse | None:
     """Load an integrity-checked stable month, importing a valid v0.1 snapshot."""
 
-    raw_path, metadata_path = _stable_paths(root, source_symbol, month_identifier)
+    source = _validate_source(source)
+    raw_path, metadata_path = _stable_paths(root, source_symbol, month_identifier, source)
     if raw_path.exists() or metadata_path.exists():
         if not raw_path.is_file() or not metadata_path.is_file():
             raise DataValidationError(
@@ -52,8 +54,11 @@ def load_cached_month(
             expected_source_url=expected_source_url,
             expected_schema=_CACHE_SCHEMA,
             origin="STABLE_CACHE",
+            source=source,
         )
 
+    if source != "TWSE":
+        return None
     legacy_pattern = (
         f"twse_{source_symbol}_*_*_twse_{month_identifier}_*.metadata.json"
     )
@@ -71,6 +76,7 @@ def load_cached_month(
                     expected_source_url=expected_source_url,
                     expected_schema=None,
                     origin="LEGACY_V0_1_CACHE",
+                    source=source,
                 )
             )
         except DataValidationError:
@@ -101,13 +107,16 @@ def store_cached_month(
     retrieved_at: str,
     http_status: int,
     body: bytes,
+    source: str = "TWSE",
 ) -> None:
-    raw_path, metadata_path = _stable_paths(root, source_symbol, month_identifier)
+    source = _validate_source(source)
+    raw_path, metadata_path = _stable_paths(root, source_symbol, month_identifier, source)
     raw_path.parent.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256(body).hexdigest()
     metadata = {
         "schema_version": _CACHE_SCHEMA,
-        "source": "TWSE",
+        "source": source,
+        "market": source,
         "source_tier": "PRIMARY",
         "source_symbol": source_symbol,
         "canonical_symbol": canonical_symbol,
@@ -134,12 +143,17 @@ def write_cache_run_manifest(
     refresh_month: str | None,
     month_results: Sequence[dict[str, object]],
     completed: bool,
+    source: str = "TWSE",
+    canonical_symbol: str | None = None,
 ) -> None:
+    source = _validate_source(source)
     root.mkdir(parents=True, exist_ok=True)
     payload = {
         "schema_version": _RUN_SCHEMA,
-        "source": "TWSE",
+        "source": source,
+        "market": source,
         "source_symbol": source_symbol,
+        "canonical_symbol": canonical_symbol,
         "requested_start": requested_start,
         "requested_end": requested_end,
         "refresh_month": refresh_month,
@@ -148,15 +162,15 @@ def write_cache_run_manifest(
         "month_results": list(month_results),
     }
     _atomic_write(
-        root / "twse_cache_run.json",
+        root / f"{source.lower()}_cache_run.json",
         json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"),
     )
 
 
 def _stable_paths(
-    root: Path, source_symbol: str, month_identifier: str
+    root: Path, source_symbol: str, month_identifier: str, source: str = "TWSE"
 ) -> tuple[Path, Path]:
-    stem = f"twse_{source_symbol}_{month_identifier}"
+    stem = f"{source.lower()}_{source_symbol}_{month_identifier}"
     monthly = root / ".monthly"
     return monthly / f"{stem}.raw", monthly / f"{stem}.metadata.json"
 
@@ -171,6 +185,7 @@ def _read_entry(
     expected_source_url: str,
     expected_schema: str | None,
     origin: str,
+    source: str = "TWSE",
 ) -> CachedMonthResponse:
     try:
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
@@ -181,7 +196,7 @@ def _read_entry(
     if expected_schema is not None and metadata.get("schema_version") != expected_schema:
         raise DataValidationError("TWSE cache schema mismatch")
     expected_identity = {
-        "source": "TWSE",
+        "source": source,
         "source_tier": "PRIMARY",
         "source_symbol": source_symbol,
         "canonical_symbol": canonical_symbol,
@@ -220,6 +235,12 @@ def _read_entry(
         sha256=digest,
         origin=origin,
     )
+
+
+def _validate_source(source: str) -> str:
+    if source not in {"TWSE", "TPEX"}:
+        raise DataValidationError("cache source must be TWSE or TPEX")
+    return source
 
 
 def _atomic_write(path: Path, content: bytes) -> None:

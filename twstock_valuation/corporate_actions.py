@@ -28,6 +28,7 @@ NORMALIZED_PERCENTILE_COMPLETE = "NORMALIZED_PERCENTILE_COMPLETE"
 NORMALIZED_PERCENTILE_INCOMPLETE = "NORMALIZED_PERCENTILE_INCOMPLETE"
 SOURCE_COVERAGE_INCOMPLETE = "SOURCE_COVERAGE_INCOMPLETE"
 NORMALIZATION_COVERAGE_START = CAPITAL_REDUCTION_HISTORY_START
+TPEX_NORMALIZATION_COVERAGE_START = date(2013, 1, 1)
 CAPITAL_REDUCTION_COVERAGE_REASON = (
     "capital reduction official source coverage begins 2011-01-01")
 
@@ -87,13 +88,16 @@ def normalize_for_corporate_actions(
     if end < observations[-1].trade_date:
         raise ValueError("analysis end precedes latest observation")
 
+    market = observations[0].market or "TWSE"
+    coverage_start = (TPEX_NORMALIZATION_COVERAGE_START
+                      if market == "TPEX" else NORMALIZATION_COVERAGE_START)
     output = []
     for observation in observations:
         official_pe = observation.official_pe
         valid_pe = (official_pe is not None and math.isfinite(official_pe)
                     and official_pe > 0)
         raw_eps = observation.official_close / official_pe if valid_pe else None
-        if observation.trade_date < NORMALIZATION_COVERAGE_START:
+        if observation.trade_date < coverage_start:
             output.append(NormalizedRiverObservation(
                 observation=observation,
                 raw_implied_reference_eps=raw_eps,
@@ -197,6 +201,9 @@ def build_corporate_action_metadata(
         rows[0].observation.trade_date, FACE_VALUE_LEGAL_START)
     if face_value_proof.symbol != rows[0].observation.symbol:
         raise DataValidationError("face-value proof symbol mismatch")
+    observation_market = rows[0].observation.market or "TWSE"
+    if face_value_proof.market != observation_market:
+        raise DataValidationError("face-value proof market mismatch")
     if proof_end_required >= FACE_VALUE_LEGAL_START and (
             face_value_proof.query_start > proof_start_required
             or face_value_proof.query_end < proof_end_required):
@@ -257,13 +264,18 @@ def build_corporate_action_metadata(
         **base_metadata,
         "schema_version": "TWSTOCK-PE-RIVER-PDF-002",
         "report_title": (
+            (f"{base_metadata['canonical_symbol']} | {base_metadata['market']} "
+             f"Corporate-Action Adjusted PE River")
+            if base_metadata.get("market") == "TPEX" else
             f"{base_metadata['symbol']} | Corporate-Action Adjusted PE River"),
         "raw_pe_distribution": distributions["raw_pe_distribution"],
         "normalized_pe_distribution": normalized_distribution,
         "normalization_status": (
             NORMALIZED_PERCENTILE_INCOMPLETE
             if normalized_distribution is None else NORMALIZED),
-        "normalization_coverage_start": NORMALIZATION_COVERAGE_START.isoformat(),
+        "normalization_coverage_start": (
+            TPEX_NORMALIZATION_COVERAGE_START if observation_market == "TPEX"
+            else NORMALIZATION_COVERAGE_START).isoformat(),
         "normalization_incomplete_reason": (
             "; ".join(incomplete_reasons) if incomplete_reasons else None),
         "face_value_change_coverage_status": face_value_proof.status,

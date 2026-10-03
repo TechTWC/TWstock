@@ -1,0 +1,29 @@
+[
+  {
+    "Date": "1151002",
+    "SecuritiesCompanyCode": "6488",
+    "CompanyName": "環球晶圓股份有限公司",
+    "CompanyAbbreviation": "環球晶",
+    "DateOfListing": "20150925",
+    "ParValueOfCommonStock": "NTD 10.0000",
+    "PreferredStock.shares": "0"
+  },
+  {
+    "Date": "1151002",
+    "SecuritiesCompanyCode": "6548",
+    "CompanyName": "長華科技股份有限公司",
+    "CompanyAbbreviation": "長科*",
+    "DateOfListing": "20160913",
+    "ParValueOfCommonStock": "NTD 0.4000",
+    "PreferredStock.shares": "0"
+  },
+  {
+    "Date": "1151002",
+    "SecuritiesCompanyCode": "8069",
+    "CompanyName": "元太科技工業股份有限公司",
+    "CompanyAbbreviation": "元太",
+    "DateOfListing": "20040330",
+    "ParValueOfCommonStock": "NTD 10.0000",
+    "PreferredStock.shares": "0"
+  }
+]

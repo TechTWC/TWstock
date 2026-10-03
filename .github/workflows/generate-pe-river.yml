@@ -4,9 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       symbol:
-        description: "TWSE ordinary-share symbol (4 digits)"
+        description: "TWSE/TPEx ordinary common-share symbol (4 digits)"
         required: true
         type: string
+      market:
+        description: "Official market identity"
+        required: true
+        default: "AUTO"
+        type: choice
+        options:
+          - AUTO
+          - TWSE
+          - TPEX
       coverage:
         description: "History window"
         required: true
@@ -22,7 +31,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pe-river-${{ github.ref }}-${{ inputs.symbol }}-${{ inputs.coverage }}
+  group: pe-river-${{ github.ref }}-${{ inputs.symbol }}-${{ inputs.market }}-${{ inputs.coverage }}
   cancel-in-progress: false
 
 jobs:
@@ -32,6 +41,7 @@ jobs:
     timeout-minutes: 45
     env:
       SYMBOL: ${{ inputs.symbol }}
+      MARKET: ${{ inputs.market }}
       COVERAGE: ${{ inputs.coverage }}
 
     steps:
@@ -57,6 +67,13 @@ jobs:
             echo "SYMBOL_MUST_BE_FOUR_DIGITS"
             exit 2
           }
+          case "$MARKET" in
+            AUTO|TWSE|TPEX) ;;
+            *)
+              echo "UNSUPPORTED_MARKET:$MARKET"
+              exit 2
+              ;;
+          esac
           case "$COVERAGE" in
             MAX) echo "cli_args=--max" >> "$GITHUB_OUTPUT" ;;
             5Y) echo "cli_args=--years 5" >> "$GITHUB_OUTPUT" ;;
@@ -73,8 +90,8 @@ jobs:
         run: |
           set -euo pipefail
           OUTPUT_DIR="outputs/pe_river/$SYMBOL"
-          CACHE_DIR="$RUNNER_TEMP/pe_river_cache/$SYMBOL"
-          python scripts/run_pe_river_report.py --symbol "$SYMBOL" ${{ steps.config.outputs.cli_args }} --output-dir "$OUTPUT_DIR" --cache-dir "$CACHE_DIR" --timeout 30 --retries 2 --request-interval 1
+          CACHE_DIR="$RUNNER_TEMP/pe_river_cache/$MARKET/$SYMBOL"
+          python scripts/run_pe_river_report.py --symbol "$SYMBOL" --market "$MARKET" ${{ steps.config.outputs.cli_args }} --output-dir "$OUTPUT_DIR" --cache-dir "$CACHE_DIR" --timeout 30 --retries 2 --request-interval 1
 
       - name: Validate report outputs
         shell: bash
@@ -91,6 +108,7 @@ jobs:
           from pathlib import Path
 
           symbol = os.environ["SYMBOL"]
+          market = os.environ["MARKET"]
           coverage = os.environ["COVERAGE"]
           root = Path("outputs") / "pe_river" / symbol
           pdf = root / f"{symbol}_pe_river.pdf"
@@ -105,6 +123,10 @@ jobs:
               raise SystemExit("METADATA_SYMBOL_MISMATCH")
           if metadata.get("requested_coverage") != coverage:
               raise SystemExit("METADATA_COVERAGE_MISMATCH")
+          if market != "AUTO" and metadata.get("market") != market:
+              raise SystemExit("METADATA_MARKET_MISMATCH")
+          if metadata.get("canonical_symbol") not in {f"{symbol}.TW", f"{symbol}.TWO"}:
+              raise SystemExit("METADATA_CANONICAL_SYMBOL_INVALID")
 
           with csv_path.open(newline="", encoding="utf-8") as handle:
               header = next(csv.reader(handle), None)
@@ -129,15 +151,22 @@ jobs:
                   encoding="utf-8"
               )
           )
-          print(f"## PE River — {symbol} / {coverage}")
+          print(f"## PE River — {metadata['canonical_symbol']} / {coverage}")
           print()
+          print(f"- Symbol: {metadata['symbol']}")
+          print(f"- Canonical symbol: {metadata['canonical_symbol']}")
+          print(f"- Market: {metadata['market']}")
+          print(f"- Company: {metadata.get('company')}")
+          print(f"- Requested coverage: {metadata['requested_coverage']}")
           print(f"- Actual coverage: {metadata['actual_start_date']} → {metadata['actual_end_date']}")
           print(f"- Observations: {metadata['observation_count']:,}")
           print(f"- Valid PE: {metadata['valid_pe_observation_count']:,}")
+          print(f"- Unavailable PE: {metadata['missing_pe_count']:,}")
           print(f"- Official PE: {metadata.get('latest_official_pe')}")
           print(f"- Normalized PE: {metadata.get('latest_normalized_pe')}")
           print(f"- Normalization: {metadata.get('normalization_status')}")
           print(f"- Face-value coverage: {metadata.get('face_value_change_coverage_status')}")
+          print(f"- Corporate-action status: {metadata.get('normalization_status')}")
           PY
 
       - name: Upload report artifact

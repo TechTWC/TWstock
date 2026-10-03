@@ -56,7 +56,14 @@ def test_pdf_csv_metadata(tmp_path):
 def test_cli_offline_end_to_end(tmp_path):
     class FixtureTransport:
         def get(self, url, timeout):
-            if "/BWIBBU?" in url:
+            if "t187ap03_L" in url:
+                body = json.dumps([{
+                    "公司代號": "2330", "公司名稱": "台灣積體電路製造股份有限公司",
+                    "公司簡稱": "台積電", "出表日期": "0940930",
+                    "上市日期": "19940905", "普通股每股面額": "新台幣10元",
+                    "特別股": "0",
+                }], ensure_ascii=False).encode()
+            elif "/BWIBBU?" in url:
                 body = (Path(__file__).parent / "fixtures" / "twse_valuation_2330_200509.json").read_bytes()
             elif "/STOCK_DAY_AVG?" in url:
                 body = (Path(__file__).parent / "fixtures" / "twse_close_avg_2330_200509.json").read_bytes()
@@ -68,7 +75,7 @@ def test_cli_offline_end_to_end(tmp_path):
             else:
                 raise AssertionError(url)
             return HttpResponse(url, 200, body)
-    assert run(["--symbol", "2330", "--max", "--output-dir", str(tmp_path / "output"),
+    assert run(["--symbol", "2330", "--market", "TWSE", "--max", "--output-dir", str(tmp_path / "output"),
                 "--cache-dir", str(tmp_path / "cache"), "--request-interval", "0"],
                transport=FixtureTransport(), now=datetime(2005, 9, 30, 12, tzinfo=ZoneInfo("Asia/Taipei"))) == 0
     assert (tmp_path / "output" / "2330_pe_river.pdf").exists()

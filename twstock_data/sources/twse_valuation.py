@@ -38,6 +38,9 @@ class ValuationObservation:
     pe_source_url: str = ""
     financial_report_period_raw: str | None = None
     reference_period_end: date | None = None
+    canonical_symbol: str = ""
+    market: str = "TWSE"
+    company_name: str = ""
 
 
 @dataclass(frozen=True)
@@ -58,7 +61,7 @@ class ValuationHistory:
 def validate_symbol(symbol: str) -> None:
     # TWSE ordinary shares have four-digit codes; ETFs/ETNs are excluded.
     if not re.fullmatch(r"[1-9][0-9]{3}", symbol):
-        raise DataValidationError("symbol must be a four-digit TWSE ordinary-share code")
+        raise DataValidationError("symbol must be a four-digit ordinary-share code")
 
 
 def build_url(endpoint: str, symbol: str, month: date) -> str:

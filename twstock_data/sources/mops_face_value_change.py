@@ -41,6 +41,7 @@ from .twse_corporate_actions import (
     mark_conflicting_duplicates,
 )
 from .twse_valuation import validate_symbol
+from .security_identity import TPEX, TWSE, canonical_symbol
 
 MOPS_FORM_URL = "https://mopsov.twse.com.tw/mops/web/t146sb10"
 MOPS_QUERY_URL = "https://mopsov.twse.com.tw/mops/web/ajax_t146sb10"
@@ -108,9 +109,16 @@ class FaceValueCoverageProof:
     status: str
     source_url: str = MOPS_QUERY_URL
     failure_reason: str | None = None
+    market: str = TWSE
+    canonical_symbol: str = ""
 
     def __post_init__(self):
         validate_symbol(self.symbol)
+        if self.market not in {TWSE, TPEX}:
+            raise DataValidationError("face-value proof market is invalid")
+        expected_canonical = canonical_symbol(self.symbol, self.market)
+        if self.canonical_symbol and self.canonical_symbol != expected_canonical:
+            raise DataValidationError("face-value proof canonical symbol mismatch")
         if self.query_start > self.query_end:
             raise DataValidationError("invalid face-value proof window")
         if self.status not in _PROOF_STATUSES:
@@ -519,16 +527,17 @@ def _roc_compact(day: date) -> str:
 
 
 def _cache_response(root: Path, symbol: str, identifier: str, url: str,
-                    response: HttpResponse, retrieved_at: str):
+                    response: HttpResponse, retrieved_at: str, market: str = TWSE):
     store_cached_month(
         root,
         source_symbol=symbol,
-        canonical_symbol=f"{symbol}.TW",
+        canonical_symbol=canonical_symbol(symbol, market),
         month_identifier=identifier,
         source_url=url,
         retrieved_at=retrieved_at,
         http_status=response.status,
         body=response.body,
+        source=market,
     )
 
 
@@ -542,6 +551,8 @@ def _write_proof_manifest(root: Path, proof: FaceValueCoverageProof,
     payload = {
         "schema_version": "TWSTOCK-MOPS-FACE-VALUE-PROOF-001",
         "symbol": proof.symbol,
+        "canonical_symbol": proof.canonical_symbol or canonical_symbol(proof.symbol, proof.market),
+        "market": proof.market,
         "query_start": proof.query_start.isoformat(),
         "query_end": proof.query_end.isoformat(),
         "endpoint": proof.source_url,
@@ -579,10 +590,14 @@ def _reconcile_face_value_events(events):
 
 def fetch_face_value_change_history(
         symbol: str, history_start: date, end: date, cache_dir: Path, *,
+        market: str = TWSE,
         transport: MopsTransport | None = None, timeout=30.0, retries=2,
         request_interval=1.0, refresh_date: date | None = None) -> FaceValueChangeHistory:
     """Return face-value events and a fail-closed per-symbol coverage proof."""
     validate_symbol(symbol)
+    if market not in {TWSE, TPEX}:
+        raise DataValidationError("market must be TWSE or TPEX")
+    canonical = canonical_symbol(symbol, market)
     start = max(history_start, FACE_VALUE_LEGAL_START)
     if start > end:
         if end < FACE_VALUE_LEGAL_START:
@@ -593,6 +608,7 @@ def fetch_face_value_change_history(
                 rowset_hash=empty_hash,
                 detail_manifest_hash=raw_hash(stable_json_bytes([])),
                 retrieved_at=utc_now_iso(), status=FACE_VALUE_COVERAGE_PROVEN,
+                market=market, canonical_symbol=canonical,
             ))
         raise DataValidationError("invalid MOPS face-value history window")
     if (not math.isfinite(timeout) or timeout <= 0 or retries < 0
@@ -615,9 +631,10 @@ def fetch_face_value_change_history(
         cached = None if refresh_rowset else load_cached_month(
             root / "rowset",
             source_symbol=symbol,
-            canonical_symbol=f"{symbol}.TW",
+            canonical_symbol=canonical,
             month_identifier=rowset_id,
             expected_source_url=MOPS_QUERY_URL,
+            source=market,
         )
         if cached is not None:
             rowset_body = cached.body
@@ -634,7 +651,9 @@ def fetch_face_value_change_history(
                 "step": "1", "firstin": "ture", "off": "1", "keyword4": "",
                 "code1": "", "TYPEK2": "", "checkbtn": "",
                 "queryName": "co_id_1", "inpuType": "co_id", "scope": "1",
-                "co_id_1": symbol, "typek": "sii", "selecttype": "2",
+                "co_id_1": symbol,
+                "typek": "otc" if market == TPEX else "sii",
+                "selecttype": "2",
                 "noticeDate": "1", "date": "4", "yymmdd1": _roc_compact(start),
                 "yymmdd2": _roc_compact(end), "noticeKind": "11", "sort": "1",
             }
@@ -653,7 +672,7 @@ def fetch_face_value_change_history(
             retrieved_at = utc_now_iso()
             rowset_body = rowset_response.body
             _cache_response(root / "rowset", symbol, rowset_id, MOPS_QUERY_URL,
-                            rowset_response, retrieved_at)
+                            rowset_response, retrieved_at, market)
             rowset_origin = "FETCHED"
         rows = parse_terminal_rowset(rowset_body, symbol)
         results.append({
@@ -671,9 +690,10 @@ def fetch_face_value_change_history(
             cached_detail = None if refresh_detail else load_cached_month(
                 root / "detail",
                 source_symbol=symbol,
-                canonical_symbol=f"{symbol}.TW",
+                canonical_symbol=canonical,
                 month_identifier=detail_id,
                 expected_source_url=MOPS_DETAIL_URL,
+                source=market,
             )
             if cached_detail is not None:
                 detail_body = cached_detail.body
@@ -690,7 +710,7 @@ def fetch_face_value_change_history(
                 detail_body = detail_response.body
                 detail_retrieved = utc_now_iso()
                 _cache_response(root / "detail", symbol, detail_id, MOPS_DETAIL_URL,
-                                detail_response, detail_retrieved)
+                                detail_response, detail_retrieved, market)
                 detail_origin = "FETCHED"
             event = parse_face_value_detail(
                 detail_body, row, rowset_body, detail_retrieved)
@@ -724,6 +744,7 @@ def fetch_face_value_change_history(
             detail_manifest_hash=manifest_hash,
             retrieved_at=retrieved_at, status=status,
             failure_reason="review-required face-value announcement" if review else None,
+            market=market, canonical_symbol=canonical,
         )
         _write_proof_manifest(root, proof, detail_manifest)
         return FaceValueChangeHistory(tuple(events), proof, tuple(results))
@@ -737,5 +758,6 @@ def fetch_face_value_change_history(
             retrieved_at=retrieved_at,
             status=FACE_VALUE_COVERAGE_INCOMPLETE,
             failure_reason=type(error).__name__,
+            market=market, canonical_symbol=canonical,
         )
         return FaceValueChangeHistory(tuple(events), proof, tuple(results))
