@@ -87,6 +87,7 @@ def build_metadata(rows: Sequence[RiverObservation], *, requested_coverage: str,
         raise ValueError("empty report")
     valid = [r for r in rows if r.reference_eps_twd is not None]
     latest = valid[-1].observation if valid else None
+    first_valid = valid[0].observation if valid else None
     first, last = rows[0].observation, rows[-1].observation
     pe_stats = distribution([r.observation.official_pe for r in valid], latest.official_pe if latest else None)
     relevant_missing = [result for result in month_results
@@ -129,6 +130,7 @@ def build_metadata(rows: Sequence[RiverObservation], *, requested_coverage: str,
         "requested_end_cutoff": cutoff.isoformat() if cutoff else last.trade_date.isoformat(),
         "actual_start_date": first.trade_date.isoformat(), "actual_end_date": last.trade_date.isoformat(),
         "source_start": (source_start or first.trade_date).isoformat(),
+        "first_valid_pe_date": first_valid.trade_date.isoformat() if first_valid else None,
         "years_covered": (last.trade_date - first.trade_date).days / 365.2425,
         "observation_count": len(rows), "valid_pe_observation_count": len(valid),
         "missing_pe_count": len(rows) - len(valid), "coverage_status": status,
