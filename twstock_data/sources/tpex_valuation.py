@@ -113,17 +113,23 @@ def _table(payload: dict, required: tuple[str, ...]) -> tuple[list[str], list[li
         source_fields, rows = raw.get("fields"), raw.get("data")
         if not isinstance(source_fields, list) or not all(isinstance(f, str) for f in source_fields):
             raise MalformedSourceError("invalid TPEx table fields")
+        if not isinstance(rows, list):
+            raise MalformedSourceError("invalid TPEx table rows")
         # The official historical close schema used `日 期`; the current
         # schema uses `日期`.  Whitespace is presentation-only, so normalize
         # it for every field rather than branching on a date or symbol.
         fields = [re.sub(r"\s+", "", field) for field in source_fields]
-        if any(not field for field in fields) or len(fields) != len(set(fields)) or not isinstance(rows, list):
-            raise MalformedSourceError("invalid TPEx table schema")
-        _declared_count(raw.get("totalCount"), len(rows))
-        for row in rows:
-            if not isinstance(row, list) or len(row) != len(fields):
-                raise MalformedSourceError("TPEx row width mismatch")
         if all(field in fields for field in required):
+            # Some envelopes include an ancillary dividend-year legend whose
+            # presentation headings are not a rectangular observation schema.
+            # Completeness checks apply to the uniquely selected observation
+            # table; unrelated tables cannot supply or alter observations.
+            if any(not field for field in fields) or len(fields) != len(set(fields)):
+                raise MalformedSourceError("invalid TPEx observation table schema")
+            _declared_count(raw.get("totalCount"), len(rows))
+            for row in rows:
+                if not isinstance(row, list) or len(row) != len(fields):
+                    raise MalformedSourceError("TPEx row width mismatch")
             matches.append((fields, rows))
     if len(matches) > 1:
         raise MalformedSourceError("ambiguous TPEx data table")

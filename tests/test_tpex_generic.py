@@ -1,4 +1,5 @@
 from datetime import date
+import http.client
 import json
 from pathlib import Path
 
@@ -6,6 +7,7 @@ import pytest
 
 from twstock_data.errors import DataValidationError, MalformedSourceError
 from twstock_data.http import HttpResponse
+from twstock_data.http import get_with_retry
 from twstock_data.sources.security_identity import (
     AUTO, ORDINARY_COMMON_SHARE, TPEX, TWSE,
     parse_security_master, resolve_security_identity,
@@ -87,6 +89,34 @@ def test_verified_pre_listing_month_is_empty_not_an_identity_failure():
         json.dumps(close, ensure_ascii=False).encode(), "6488", MONTH, "環球晶")
     assert name == "環球晶"
     assert values == {}
+
+
+def test_ancillary_legend_does_not_define_observation_schema():
+    pe = json.loads(fixture("tpex_pe_6488_202609.json"))
+    pe["tables"].append({
+        "fields": ["", ""], "data": [["114", "113"]], "totalCount": 1,
+    })
+    values = parse_valuation_payload_with_period(
+        json.dumps(pe, ensure_ascii=False).encode(), "6488", MONTH, "環球晶")
+    assert len(values) == 3
+
+
+def test_incomplete_http_body_is_retried():
+    class Transport:
+        calls = 0
+
+        def get(self, url, timeout):
+            self.calls += 1
+            if self.calls == 1:
+                raise http.client.IncompleteRead(b"partial", 10)
+            return HttpResponse(url, 200, b"complete")
+
+    transport = Transport()
+    response = get_with_retry(
+        "https://www.tpex.org.tw/openapi/v1/example", transport,
+        retries=1, backoff=0)
+    assert response.body == b"complete"
+    assert transport.calls == 2
 
 
 @pytest.mark.parametrize("mutation", ["wrong_code", "wrong_month", "truncated", "schema"])
