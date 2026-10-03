@@ -23,7 +23,7 @@ def run(
     parser = argparse.ArgumentParser(
         description=(
             "Scan multiple TWSE-listed symbols with incremental official raw "
-            "daily prices. "
+            "daily prices and a standalone visual report. "
             "Shadow Observation only; corporate actions remain UNVERIFIED."
         )
     )

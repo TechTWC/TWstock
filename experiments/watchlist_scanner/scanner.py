@@ -25,7 +25,12 @@ from twstock_data.dataset import ResearchMarketDataset
 from twstock_data.errors import DataValidationError, MarketDataError
 from twstock_data.normalization import stable_json_bytes, validate_date_range
 
-from .models import CandidateObservation, TimelineEvent, WatchlistScan
+from .models import (
+    CandidateObservation,
+    SymbolVisualization,
+    TimelineEvent,
+    WatchlistScan,
+)
 
 
 DatasetLoader = Callable[[str, str, str], ResearchMarketDataset]
@@ -93,6 +98,7 @@ def scan_watchlist(
     candidates: list[CandidateObservation] = []
     timeline: list[TimelineEvent] = []
     datasets: list[ResearchMarketDataset] = []
+    visualizations: list[SymbolVisualization] = []
 
     for source_symbol in validated_symbols:
         try:
@@ -118,6 +124,14 @@ def scan_watchlist(
         datasets.append(dataset)
         breakout = BreakoutTracker(tracker_config).run(dataset.bars)
         monitor = ContinuousHighMonitor(monitor_config).run(dataset.bars)
+        visualizations.append(
+            SymbolVisualization(
+                source_symbol=source_symbol,
+                breakout_snapshots=tuple(breakout),
+                continuous_high_result=monitor,
+                monitor_config=monitor_config,
+            )
+        )
         timeline.extend(_breakout_events(breakout, breakout_hash))
         timeline.extend(_continuous_high_events(monitor))
         candidates.append(
@@ -201,6 +215,7 @@ def scan_watchlist(
         candidates=ranked,
         timeline=ordered_timeline,
         datasets=tuple(datasets),
+        visualizations=tuple(visualizations),
     )
 
 

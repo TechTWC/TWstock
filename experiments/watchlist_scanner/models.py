@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 
+from experiments.breakout_tracker_v5 import BreakoutSnapshot
+from experiments.continuous_high_monitor import MonitorConfig, MonitorResult
 from twstock_data.dataset import ResearchMarketDataset
 
 
@@ -45,6 +47,16 @@ class TimelineEvent:
 
 
 @dataclass(frozen=True)
+class SymbolVisualization:
+    """Exact engine results retained for the standalone visual report."""
+
+    source_symbol: str
+    breakout_snapshots: tuple[BreakoutSnapshot, ...]
+    continuous_high_result: MonitorResult
+    monitor_config: MonitorConfig = field(compare=False, repr=False)
+
+
+@dataclass(frozen=True)
 class WatchlistScan:
     requested_start: str
     requested_end: str
@@ -57,5 +69,8 @@ class WatchlistScan:
     candidates: tuple[CandidateObservation, ...]
     timeline: tuple[TimelineEvent, ...]
     datasets: tuple[ResearchMarketDataset, ...] = field(
+        default=(), compare=False, repr=False
+    )
+    visualizations: tuple[SymbolVisualization, ...] = field(
         default=(), compare=False, repr=False
     )
