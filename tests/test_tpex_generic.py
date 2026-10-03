@@ -213,6 +213,31 @@ def test_tpex_corporate_actions_map_generic_families_fail_closed():
     assert face[0].status == NORMALIZATION_READY
 
 
+def test_historical_action_abbreviation_is_verified_against_official_legal_name():
+    payload = json.loads(fixture("tpex_corporate_actions_multi.json"))["exRight"]
+    fields = payload["tables"][0]["fields"]
+    row = next(row for row in payload["tables"][0]["data"]
+               if row[fields.index("代號")] == "8069")
+    row[fields.index("代號")] = "6548"
+    row[fields.index("名稱")] = "長華科"
+    events = parse_events(
+        json.dumps(payload, ensure_ascii=False).encode(), "ex_right", "6548",
+        date(2026, 9, 1), date(2026, 9, 30),
+        "https://www.tpex.org.tw/www/zh-tw/bulletin/exDailyQ",
+        "2026-10-03T00:00:00Z", "長科*", "長華科技股份有限公司")
+    assert events
+
+    for candidate in payload["tables"][0]["data"]:
+        if candidate[fields.index("代號")] == "6548":
+            candidate[fields.index("名稱")] = "不相干公司"
+    with pytest.raises(DataValidationError, match="company identity"):
+        parse_events(
+            json.dumps(payload, ensure_ascii=False).encode(), "ex_right", "6548",
+            date(2026, 9, 1), date(2026, 9, 30),
+            "https://www.tpex.org.tw/www/zh-tw/bulletin/exDailyQ",
+            "2026-10-03T00:00:00Z", "長科*", "長華科技股份有限公司")
+
+
 def test_verified_empty_tpex_action_interval_is_not_network_empty():
     payload = {
         "date": "20260901~20260930", "stat": "ok",

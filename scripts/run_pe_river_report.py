@@ -83,8 +83,9 @@ def run(argv=None, *, transport=None, now=None) -> int:
         rows = calculate_rivers(observations, args.multiples)
         fetch_actions = (fetch_tpex_corporate_actions if identity.market == TPEX
                          else fetch_twse_corporate_actions)
-        action_kwargs = ({"company_name": identity.company_short_name}
-                         if identity.market == TPEX else {})
+        action_kwargs = ({"company_name": identity.company_short_name,
+                          "company_full_name": identity.company_name}
+                          if identity.market == TPEX else {})
         actions = fetch_actions(
             args.symbol, observations[0].trade_date, cutoff, cache,
             transport=transport, timeout=args.timeout, retries=args.retries,

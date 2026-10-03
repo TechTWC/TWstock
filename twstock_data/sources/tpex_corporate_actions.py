@@ -136,9 +136,36 @@ def _field(fields: list[str], aliases: tuple[str, ...], label: str,
     return indices[0] if indices else None
 
 
+def _company_name_compatible(observed: str, short_name: str | None,
+                             full_name: str | None) -> bool:
+    def clean(value: str | None) -> str:
+        return re.sub(r"\s+", "", value or "").rstrip("*＊")
+
+    observed_clean = clean(observed)
+    short_clean = clean(short_name)
+    full_clean = clean(full_name)
+    for suffix in ("股份有限公司", "有限公司"):
+        if full_clean.endswith(suffix):
+            full_clean = full_clean[:-len(suffix)]
+            break
+    if not observed_clean:
+        return False
+    if short_clean and observed_clean == short_clean:
+        return True
+    # Historical TPEx action reports can retain the pre-change exchange
+    # abbreviation (for example, an abbreviation of the legal company name)
+    # after the current master short name changes.  Require a meaningful
+    # prefix relationship to the official full legal name; exact code remains
+    # mandatory independently.
+    return bool(full_clean and min(len(observed_clean), len(full_clean)) >= 2 and
+                (observed_clean.startswith(full_clean) or
+                 full_clean.startswith(observed_clean)))
+
+
 def parse_events(body: bytes, family: str, symbol: str, start: date, end: date,
                  source_url: str, retrieved_at: str,
-                 expected_name: str | None = None):
+                 expected_name: str | None = None,
+                 expected_full_name: str | None = None):
     validate_symbol(symbol)
     _, (fields, rows, _) = _payload(body, family, start, end)
     date_i = _field(fields, ("除權息日期",) if family == "ex_right" else ("恢復買賣日期",), "date")
@@ -167,7 +194,8 @@ def parse_events(body: bytes, family: str, symbol: str, start: date, end: date,
         if str(row[code_i]).strip() != symbol:
             continue
         name = str(row[name_i]).strip()
-        if expected_name and name.rstrip("*").strip() != expected_name.rstrip("*").strip():
+        if ((expected_name or expected_full_name) and not _company_name_compatible(
+                name, expected_name, expected_full_name)):
             raise DataValidationError("TPEx corporate-action company identity mismatch")
         pre = _number(row[pre_i], "pre-event close", unavailable=True)
         ref = _number(row[ref_i], "reference price", unavailable=True)
@@ -246,7 +274,8 @@ def parse_events(body: bytes, family: str, symbol: str, start: date, end: date,
 
 def fetch_corporate_action_history(
         symbol: str, start: date, end: date, cache_dir: Path, *,
-        company_name: str | None = None, transport: HttpTransport | None = None,
+        company_name: str | None = None, company_full_name: str | None = None,
+        transport: HttpTransport | None = None,
         timeout=30.0, retries=2, request_interval=1.0,
         refresh_date: date | None = None, progress=None) -> CorporateActionHistory:
     validate_symbol(symbol)
@@ -289,7 +318,7 @@ def fetch_corporate_action_history(
                 f"{window_start:%Y%m%d}_{window_end:%Y%m%d}", url,
                 year == current_year)
             parsed = parse_events(body, family, symbol, window_start, window_end,
-                                  url, retrieved, company_name)
+                                  url, retrieved, company_name, company_full_name)
             events.extend(parsed)
             result = {
                 "source": FAMILIES[family][0], "family": family,
