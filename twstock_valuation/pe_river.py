@@ -27,11 +27,12 @@ def years_before(day: date, years: int) -> date:
         return day.replace(year=day.year - years, day=28)
 
 
-def select_coverage(observations: Sequence[ValuationObservation], years: int | None = None):
+def select_coverage(observations: Sequence[ValuationObservation], years: int | None = None,
+                    *, history_start: date = HISTORY_START):
     if not observations:
         raise ValueError("no historical observations")
     latest = observations[-1].trade_date
-    start = max(HISTORY_START, years_before(latest, years)) if years else HISTORY_START
+    start = max(history_start, years_before(latest, years)) if years else history_start
     return tuple(row for row in observations if row.trade_date >= start), start
 
 
@@ -80,11 +81,13 @@ def distribution(pe_values: Sequence[float], current: float | None) -> dict:
 
 def build_metadata(rows: Sequence[RiverObservation], *, requested_coverage: str,
                    requested_start: date, multiples=DEFAULT_MULTIPLES,
-                   cutoff: date | None = None, month_results=()):
+                   cutoff: date | None = None, month_results=(),
+                   source_start: date | None = None, identity=None):
     if not rows:
         raise ValueError("empty report")
     valid = [r for r in rows if r.reference_eps_twd is not None]
     latest = valid[-1].observation if valid else None
+    first_valid = valid[0].observation if valid else None
     first, last = rows[0].observation, rows[-1].observation
     pe_stats = distribution([r.observation.official_pe for r in valid], latest.official_pe if latest else None)
     relevant_missing = [result for result in month_results
@@ -94,11 +97,40 @@ def build_metadata(rows: Sequence[RiverObservation], *, requested_coverage: str,
                 and result.get("close_count") == 0))]
     status = "SOURCE_GAPS" if relevant_missing else (
         "SHORTER_AVAILABLE_HISTORY" if first.trade_date > requested_start + timedelta(days=7) else "AVAILABLE_HISTORY")
+    market = first.market or "TWSE"
+    canonical = first.canonical_symbol or (
+        f"{first.symbol}.TWO" if market == "TPEX" else f"{first.symbol}.TW")
+    company = (getattr(identity, "company_name", None) or first.company_name or None)
+    if market == "TPEX":
+        source_contract = (
+            "TPEx peQryStock monthly PE and tradingStock monthly daily close; "
+            "exact per-code request plus paired tradingStock code/name identity, explicit "
+            "response month, declared observation-row count, normalized field-name parsing, "
+            "and same trading-date join. Any PE response code, when present, must match.")
+        source_url = "https://www.tpex.org.tw/zh-tw/mainboard/trading/info/stock-pe.html"
+        source_semantics = (
+            "Official TPEx contemporaneous PE. Financial reference period is retained when "
+            "officially supplied; it is never inferred. Unmatched PE dates fail closed.")
+        eps_semantics = (
+            "TPEx-implied reference EPS = same-day official unadjusted close / official PE; "
+            "not reported or diluted accounting EPS. Subject to published PE rounding.")
+    else:
+        source_contract = "TWSE BWIBBU monthly PE and STOCK_DAY_AVG daily close, exact symbol/name and trading-date join. BWIBBU has no close column or code in its title. STOCK_DAY_AVG title verifies code; names must match."
+        source_url = "https://www.twse.com.tw/zh/trading/historical/bwibbu.html"
+        source_semantics = "Contemporaneous most-recent-four-quarter reference earnings; no historical back-calculation or corporate-action adjustment applied here. TWSE can substitute a reference price on days without a closing price; unmatched dates fail closed."
+        eps_semantics = "TWSE-implied reference EPS = same-day official unadjusted close / official PE; not reported or diluted accounting EPS. Subject to published PE rounding."
     return {
         "schema_version": "TWSTOCK-PE-RIVER-PDF-001", "symbol": first.symbol,
+        "canonical_symbol": canonical, "market": market, "company": company,
+        "security_type": getattr(identity, "security_type", None),
+        "identity_source": getattr(identity, "identity_source", None),
+        "identity_as_of": (getattr(identity, "identity_as_of", None).isoformat()
+                           if getattr(identity, "identity_as_of", None) else None),
         "requested_coverage": requested_coverage, "requested_start": requested_start.isoformat(),
         "requested_end_cutoff": cutoff.isoformat() if cutoff else last.trade_date.isoformat(),
         "actual_start_date": first.trade_date.isoformat(), "actual_end_date": last.trade_date.isoformat(),
+        "source_start": (source_start or first.trade_date).isoformat(),
+        "first_valid_pe_date": first_valid.trade_date.isoformat() if first_valid else None,
         "years_covered": (last.trade_date - first.trade_date).days / 365.2425,
         "observation_count": len(rows), "valid_pe_observation_count": len(valid),
         "missing_pe_count": len(rows) - len(valid), "coverage_status": status,
@@ -108,10 +140,10 @@ def build_metadata(rows: Sequence[RiverObservation], *, requested_coverage: str,
         "latest_valid_pe_close": latest.official_close if latest else None,
         "latest_pe": latest.official_pe if latest else None,
         "percentiles": pe_stats, "multiples": list(multiples),
-        "eps_semantics": "TWSE-implied reference EPS = same-day official unadjusted close / official PE; not reported or diluted accounting EPS. Subject to published PE rounding.",
-        "source_contract": "TWSE BWIBBU monthly PE and STOCK_DAY_AVG daily close, exact symbol/name and trading-date join. BWIBBU has no close column or code in its title. STOCK_DAY_AVG title verifies code; names must match.",
-        "source_semantics_url": "https://www.twse.com.tw/zh/trading/historical/bwibbu.html",
-        "source_semantics": "Contemporaneous most-recent-four-quarter reference earnings; no historical back-calculation or corporate-action adjustment applied here. TWSE can substitute a reference price on days without a closing price; unmatched dates fail closed.",
+        "eps_semantics": eps_semantics,
+        "source_contract": source_contract,
+        "source_semantics_url": source_url,
+        "source_semantics": source_semantics,
         "unavailable_policy": "Blank, -, --, zero or negative PE -> PE_UNAVAILABLE; malformed numeric -> fail closed; no fill/interpolation.",
         "incomplete_months": [r["month"] for r in relevant_missing],
         "month_results": list(month_results),

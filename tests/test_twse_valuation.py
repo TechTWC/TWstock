@@ -57,6 +57,7 @@ def test_current_schema_preserves_reference_financial_period():
 
 def test_reference_financial_period_parser():
     assert parse_financial_report_period("115/2") == ("115/2", date(2026, 6, 30))
+    assert parse_financial_report_period("113Q3") == ("113Q3", date(2024, 9, 30))
     assert parse_financial_report_period(None) == (None, None)
     with pytest.raises(MalformedSourceError):
         parse_financial_report_period("115-Q2")

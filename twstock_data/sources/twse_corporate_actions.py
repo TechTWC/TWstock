@@ -133,7 +133,8 @@ def _is_official_twse_url(url: str) -> bool:
     return (
         parts.scheme == "https"
         and parts.hostname in {
-            "www.twse.com.tw", "mops.twse.com.tw", "mopsov.twse.com.tw"
+            "www.twse.com.tw", "www.tpex.org.tw",
+            "mops.twse.com.tw", "mopsov.twse.com.tw"
         }
     )
 

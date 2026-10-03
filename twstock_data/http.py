@@ -1,5 +1,5 @@
 from __future__ import annotations
-import time, urllib.error, urllib.request
+import http.client, time, urllib.error, urllib.request
 from dataclasses import dataclass
 from typing import Protocol
 from .errors import SourceUnavailableError
@@ -27,7 +27,7 @@ def get_with_retry(url: str, transport: HttpTransport | None = None, timeout: fl
             r = transport.get(url, timeout)
             if 200 <= r.status < 300: return r
             last = SourceUnavailableError(f"HTTP {r.status} for {sanitize_url(url)}")
-        except (TimeoutError, urllib.error.URLError, OSError) as e:
+        except (TimeoutError, urllib.error.URLError, OSError, http.client.HTTPException) as e:
             last = redact_tokens_in_text(str(e))
         if attempt < retries: time.sleep(backoff * (2 ** attempt))
     raise SourceUnavailableError(redact_tokens_in_text(f"failed to fetch {sanitize_url(url)}: {last}"))

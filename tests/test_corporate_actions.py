@@ -44,16 +44,16 @@ def event(day="2026-09-02", factor=3.0, action=STOCK_DIVIDEND,
     )
 
 
-def observation(day, close, pe, period_end, symbol="6669"):
+def observation(day, close, pe, period_end, symbol="6669", market="TWSE"):
     raw = None if period_end is None else f"{period_end.year - 1911}/{(period_end.month - 1) // 3 + 1}"
     return ValuationObservation(symbol, date.fromisoformat(day), close, pe,
                                 financial_report_period_raw=raw,
-                                reference_period_end=period_end)
+                                reference_period_end=period_end, market=market)
 
 
 def face_proof(symbol="6669", start=date(2019, 3, 27),
                end=date(2026, 10, 1), status=FACE_VALUE_COVERAGE_PROVEN,
-               result_count=0, detail_count=0):
+               result_count=0, detail_count=0, market="TWSE"):
     return FaceValueCoverageProof(
         symbol=symbol, query_start=start, query_end=end,
         result_count=result_count, detail_count=detail_count,
@@ -61,6 +61,7 @@ def face_proof(symbol="6669", start=date(2019, 3, 27),
         detail_manifest_hash="2" * 64 if status == FACE_VALUE_COVERAGE_PROVEN else None,
         retrieved_at="2026-10-02T03:00:00Z", status=status,
         failure_reason=None if status == FACE_VALUE_COVERAGE_PROVEN else "network",
+        market=market,
     )
 
 
@@ -305,6 +306,23 @@ def test_max_spanning_pre_2011_has_no_normalized_distribution():
     assert result["normalization_status"] == NORMALIZED_PERCENTILE_INCOMPLETE
     assert result["normalized_pe_distribution"] is None
     assert result["raw_pe_distribution"]["p50"] == 10.5
+
+
+def test_tpex_incomplete_coverage_reason_uses_tpex_source_boundary():
+    observations = [
+        observation("2012-09-03", 100, 10, date(2012, 6, 30),
+                    symbol="8069", market="TPEX"),
+    ]
+    rows = normalize_for_corporate_actions(observations, [])
+    base = build_metadata(
+        calculate_rivers(observations), requested_coverage="MAX",
+        requested_start=date(2012, 9, 1))
+    metadata = build_corporate_action_metadata(
+        rows, [], base,
+        face_value_proof=face_proof(symbol="8069", market="TPEX"))
+    assert metadata["normalization_coverage_start"] == "2013-01-01"
+    assert metadata["normalization_incomplete_reason"] == (
+        "capital reduction official source coverage begins 2013-01-01")
 
 
 def test_post_2019_6669_coverage_remains_fully_normalized():
