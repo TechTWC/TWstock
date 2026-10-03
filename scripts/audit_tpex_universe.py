@@ -28,7 +28,7 @@ def run(argv=None, *, transport=None) -> int:
             args.output.write_text(text, encoding="utf-8")
         else:
             print(text, end="")
-        return 0 if result["unexpected_failure_count"] == 0 else 1
+        return 0 if result["acceptance_gate_pass"] else 1
     except (MarketDataError, ValueError, OSError) as exc:
         print(f"TPEx universe audit failed: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
